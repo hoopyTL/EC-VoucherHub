@@ -1,0 +1,46 @@
+# Generic CI skeleton. Keep the lint → build → test → coverage shape;
+# replace the placeholder commands with this project's real ones.
+# Source the real commands from .claude/project.json (lint/build/test/coverage)
+# so CI matches what contributors run locally — do NOT hard-code a stack here.
+# This example assumes a Node-style toolchain — swap setup steps for your stack
+# (e.g. actions/setup-java, gradle build; setup-python, pytest; etc.).
+
+name: CI
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # --- Replace this block with your stack's setup ---
+      - name: Setup toolchain
+        run: 'echo "TODO: setup runtime (node/java/python/...)"'
+
+      - name: Install dependencies
+        run: 'echo "TODO: install deps (npm ci / ./gradlew dependencies / pip install ...)"'
+      # --------------------------------------------------
+
+      - name: Lint
+        run: 'echo "TODO: lint command (from .claude/project.json)"'
+
+      - name: Build
+        run: 'echo "TODO: build command (from .claude/project.json)"'
+
+      - name: Test
+        run: 'echo "TODO: test command with coverage (from .claude/project.json)"'
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: "**/coverage/**"
+          if-no-files-found: ignore

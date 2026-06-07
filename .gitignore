@@ -1,0 +1,16 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Claude Code session state (không commit state máy local)
+.claude/settings.local.json
+.claude/.session/
+
+# Logs / temp
+*.log
+/tmp/

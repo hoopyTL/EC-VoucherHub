@@ -1,0 +1,111 @@
+# {{PROJECT_NAME}} — Claude Code Guide
+
+> Generated from the stack-agnostic Claude Code template. `/init-project` filled the `{{...}}` values below.
+
+## Read at the start of every session
+
+1. [memory/active.md](memory/active.md) — where we are, the next step
+2. [memory/decisions.md](memory/decisions.md) — ADRs, binding, do not override
+3. [.claude/rules/](.claude/rules/) — code-style.md, api-conventions.md, testing.md
+4. [.claude/project.json](.claude/project.json) — this project's build/test/run commands (single source)
+
+When memory conflicts with code → **trust the code**, then update memory.
+
+---
+
+## Project overview
+
+{{DESCRIPTION}}
+
+- **Stack**: {{LANGUAGE}} + {{FRAMEWORK}}
+- **Capabilities**: API={{HAS_API}} · DB={{HAS_DB}} · UI={{HAS_UI}} · E2E={{HAS_E2E}}
+
+## Commands (read from .claude/project.json)
+
+| Task | Command |
+|------|---------|
+| install | `{{CMD_INSTALL}}` |
+| build | `{{CMD_BUILD}}` |
+| test | `{{CMD_TEST}}` |
+| lint | `{{CMD_LINT}}` |
+| dev | `{{CMD_DEV}}` |
+| ci | `{{CMD_CI}}` |
+
+Never hard-code a tool name (`npm`, `pytest`, `go`...) in a skill, command, or hook. Read it from `project.json`.
+
+---
+
+## The two trees (information model)
+
+Everything the agent reads or writes lives in one of two trees, each with a distinct role. Keeping them separate is what prevents "source of truth" conflicts.
+
+| Tree | Role | Holds | Written by |
+|------|------|-------|-----------|
+| `docs/` | **Deliverables** — the SDLC handover set | `01-brd/` → `10-demo-script/` (requirements, design, testing, demo) | specs-writer (02-04), system-design (05-08), planning (09-10) |
+| `memory/` | **Agent state** | `active.md` (current task, next step), `decisions.md` (ADRs), `progress.md` (shipped features), `plan.md` (TASK-XXX) | planning, /memory, system-design, debug, migration (ADRs) |
+
+Rule of thumb: `docs/` is the intent and the design; the **code** is the reality. If they ever disagree, the code is the tiebreaker — then update the matching deliverable to match.
+
+The 10 deliverables: 01-BRD (you provide) · 02-SRS · 03-Use Cases · 04-Activity Diagrams · 05-Database Design · 06-Architecture · 07-API Design · 08-Frontend Design · 09-Testing · 10-Demo Script. Diagrams are **Mermaid** (inline). Every project keeps all 10 folders; non-applicable ones are marked **N/A**. See [docs/README.md](docs/README.md).
+
+---
+
+## Standard workflow
+
+```
+FIRST TIME ──▶ /init-project   (run once: interview stack → project.json → rewrite rules → toggle optional skills)
+
+PER FEATURE LOOP:
+  ① specs-writer      → docs/02-srs + 03-use-cases + 04-activity-diagrams   ("I want to build X", FLOW-XXX)
+  ② [system-design]   → docs/05-database + 06-architecture + 07-api + 08-frontend   ◀ ONLY when complex (≥3 new components, new tech, big refactor)
+  ③ planning          → memory/plan.md (TASK-XXX) + docs/09-testing + docs/10-demo-script + memory/active.md
+  ④ [migration]       → schema change                       ◀ ONLY when has_database
+  ⑤ IMPLEMENT         → code + tests written together (per TASK)
+  ⑥ code-review       → spawn @sec-review ∥ @code-review → APPROVE / REQUEST CHANGES (loop until APPROVE)
+  ⑦ /git              → conventional commit + secret scan (test gate for feat/fix/refactor)
+  ⑧ sync docs/        → update the affected deliverable (05/06/07/08) in the SAME change
+  ⑨ /deploy           → build → start → smoke (local verify)
+  ⑩ [/e2e FLOW-XXX]   → ONLY when has_e2e; on fail → debug skill (max 2 rounds)
+  ⑪ /git pr           → push + PR (deliberate, never auto)
+  ⑫ /memory           → update active.md (always) + decisions.md (if new ADR)
+```
+
+Three decision gates keep this fit for any project:
+- **Gate ②** (system-design): skipped for CRUD / bugfix / UI tweak; fires only for ≥3 new components or a new tech choice.
+- **Gates ④/⑩** (migration, e2e): on/off by `capabilities` in project.json. A CLI tool with no DB/UI simply never hits them.
+- **Gate ⑥** (code-review): always runs; the verdict decides whether you loop back.
+
+## Skills
+
+| Skill | When | Produces |
+|-------|------|----------|
+| `specs-writer` | BRD → analyst deliverables | docs/02-srs, 03-use-cases, 04-activity-diagrams |
+| `system-design` | complex feature → design | docs/05-database, 06-architecture, 07-api, 08-frontend |
+| `planning` | break down tasks | memory/plan.md, docs/09-testing, docs/10-demo-script |
+| `code-review` | before commit → spawn @sec-review + @code-review | verdict |
+| `debug` | test fail / bug | root-cause fix |
+{{OPTIONAL_SKILLS}}
+
+## Commands
+
+| Command | Purpose |
+|---------|---------|
+| `/git [pr\|scan\|branch]` | conventional commit + secret scan + PR |
+| `/deploy` | local build + start + smoke |
+{{OPTIONAL_COMMANDS}}
+| `/memory` | update the memory bank at end of session |
+
+## Coding rules
+
+→ Read `.claude/rules/` (single source of truth). Change a rule only there.
+
+## Task & Flow codes
+
+- **TASK-XXX**: implementation tasks in `memory/plan.md` + `memory/active.md`
+- **FLOW-XXX**: business flows, defined in `docs/02-srs/`, diagrammed in `docs/04-activity-diagrams/`, tested in `docs/09-testing/`
+
+These codes thread through spec → plan → commit message → e2e tag, so any change is traceable end to end.
+
+## End of session
+
+Run `/memory` — always update `memory/active.md`.

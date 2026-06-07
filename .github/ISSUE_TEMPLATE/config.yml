@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Project Documentation
+    url: https://github.com/{{OWNER}}/{{REPO}}/blob/main/docs/README.md
+    about: Check docs/ (01-brd → 10-demo-script deliverables) and memory/ (state + plan) before opening an issue.

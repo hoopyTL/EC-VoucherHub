@@ -1,0 +1,48 @@
+{
+  "$comment": "Single source of stack-specific config. Filled by /init-project. Commands/hooks/skills read from here instead of hard-coding npm/biome/etc. '__FILL__' = not configured yet.",
+  "project": {
+    "name": "__FILL__",
+    "description": "__FILL__",
+    "language": "__FILL__",
+    "framework": "__FILL__"
+  },
+  "commands": {
+    "install": "__FILL__",
+    "build": "__FILL__",
+    "test": "__FILL__",
+    "test_watch": "__FILL__",
+    "lint": "__FILL__",
+    "format": "__FILL__",
+    "typecheck": "__FILL__",
+    "ci": "__FILL__",
+    "dev": "__FILL__",
+    "start": "__FILL__",
+    "e2e": "__FILL__"
+  },
+  "runtime": {
+    "port": "__FILL__",
+    "health_url": "__FILL__",
+    "base_url": "__FILL__"
+  },
+  "capabilities": {
+    "has_database": false,
+    "has_web_ui": false,
+    "has_e2e": false,
+    "has_http_api": false
+  },
+  "paths": {
+    "source_dir": "src",
+    "test_dir": "tests",
+    "e2e_dir": "e2e",
+    "ui_files": [],
+    "db_dir": ""
+  },
+  "docs": {
+    "$comment": "Two trees, distinct roles. docs = the SDLC deliverable set (01-brd through 10-demo-script), the single source for requirements + design + handover. memory = agent state (active, decisions, progress) + the task plan.",
+    "memory_dir": "memory",
+    "reference_dir": "docs",
+    "plan_file": "memory/plan.md"
+  },
+  "format_extensions": [],
+  "secret_file_globs": [".env", "*.pem", "id_rsa", "credentials.json", "*.p12", "*.key"]
+}
