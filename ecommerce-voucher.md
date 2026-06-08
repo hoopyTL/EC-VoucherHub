@@ -37,7 +37,7 @@ Xây dựng nền tảng thương mại điện tử bán voucher giảm giá tr
 | **ORM** | Prisma | Type-safe, migration tốt, quan hệ phức tạp dễ quản lý |
 | **Database** | PostgreSQL | CSDL quan hệ (CON-02), hỗ trợ transaction & locking tốt |
 | **Auth** | JWT + bcrypt + Role-based middleware | Tự xây, hiểu sâu cơ chế (mục tiêu học tập) |
-| **Monorepo** | Turborepo + pnpm workspaces | Share types giữa FE/BE, build cache |
+| **Monorepo** | npm workspaces | Share types giữa FE/BE, đơn giản, không cần thêm tooling |
 | **Inventory** | Optimistic locking (version field) + Prisma transaction | Tránh bán vượt tồn kho (RB-15, RISK-03) |
 | **Validation** | Zod | Schema validation chung cho FE & BE |
 | **State Mgmt** | Zustand + TanStack Query | Zustand cho UI state, TanStack Query cho server state |
@@ -231,9 +231,7 @@ EC-VoucherHub/
 │       ├── package.json
 │       └── tsconfig.json
 │
-├── turbo.json                      # Turborepo config
-├── pnpm-workspace.yaml             # pnpm workspace config
-├── package.json                    # Root package.json
+├── package.json                    # Root package.json (npm workspaces config)
 ├── .env.example                    # Environment template
 ├── .gitignore
 └── ecommerce-voucher.md            # This plan file
@@ -376,8 +374,8 @@ ACTIVE → USED (đối tác xác nhận sử dụng)
 - [ ] **T1.1: Khởi tạo Monorepo**
   - Agent: `backend-specialist` | Skill: `nodejs-best-practices`
   - INPUT: Tech stack decisions
-  - OUTPUT: `turbo.json`, `pnpm-workspace.yaml`, root `package.json`, 3 packages skeleton
-  - VERIFY: `pnpm install` chạy thành công, `pnpm run build` không lỗi
+  - OUTPUT: Root `package.json` (với npm workspaces config), 3 packages skeleton
+  - VERIFY: `npm install` chạy thành công, `npm run build` không lỗi
 
 - [ ] **T1.2: Shared package — Types + Schemas + Constants**
   - Agent: `backend-specialist` | Skill: `clean-code`
@@ -708,7 +706,7 @@ ACTIVE → USED (đối tác xác nhận sử dụng)
 ### Key Design Decisions
 
 1. **SPA (Vite) thay vì SSR (Next.js):** Dashboard-heavy app, SEO không quan trọng bằng admin UX. Nhẹ hơn cho demo.
-2. **Monorepo:** Share TypeScript types giữa FE↔BE tránh type drift. Turborepo cho build cache.
+2. **Monorepo:** Share TypeScript types giữa FE↔BE tránh type drift. npm workspaces đơn giản, không cần thêm tooling.
 3. **Optimistic Locking:** Dùng `version` field trên Voucher, wrap checkout trong Prisma `$transaction`. Balance giữa tính đúng đắn và đơn giản.
 4. **3 UI riêng biệt (route-based):** Cùng 1 SPA nhưng 3 layout riêng (`/`, `/partner/*`, `/admin/*`). Đỡ phải setup 3 project riêng.
 5. **Mock payment:** Tạo payment flow giả lập với dropdown chọn phương thức + confirm button, không cần API gateway thật.
