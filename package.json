@@ -1,0 +1,30 @@
+{
+  "name": "ec-voucherhub",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Hệ thống thương mại điện tử bán voucher giảm giá trực tuyến",
+  "workspaces": [
+    "shared",
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=backend & npm run dev --workspace=frontend",
+    "build": "npm run build --workspace=shared && npm run build --workspace=backend && npm run build --workspace=frontend",
+    "test": "npm run test --workspaces --if-present",
+    "test:e2e": "playwright test --config=e2e/playwright.config.ts",
+    "db:migrate": "npm run db:migrate --workspace=backend",
+    "db:generate": "npm run db:generate --workspace=backend",
+    "db:seed": "npm run db:seed --workspace=backend"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "keywords": [
+    "ecommerce",
+    "voucher",
+    "monorepo"
+  ],
+  "license": "MIT"
+}

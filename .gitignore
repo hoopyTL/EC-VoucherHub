@@ -7,10 +7,32 @@ Thumbs.db
 .idea/
 *.swp
 
-# Claude Code session state (không commit state máy local)
+# Claude Code session state
 .claude/settings.local.json
 .claude/.session/
 
 # Logs / temp
 *.log
 /tmp/
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Prisma
+backend/prisma/*.db
+backend/prisma/*.db-journal
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Test coverage
+coverage/

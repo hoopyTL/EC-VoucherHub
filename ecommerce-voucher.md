@@ -50,190 +50,87 @@ Xây dựng nền tảng thương mại điện tử bán voucher giảm giá tr
 
 ```plaintext
 EC-VoucherHub/
+├── shared/                         # @voucher/shared — Enums, DTOs, types chung
+│   ├── src/
+│   │   ├── enums/index.ts          # Business enums (TODO)
+│   │   ├── dto/index.ts            # Request/Response DTOs (TODO)
+│   │   └── index.ts                # Barrel export
+│   ├── package.json
+│   └── tsconfig.json
+│
+├── backend/                        # @voucher/backend — Express API Server
+│   ├── prisma/
+│   │   ├── schema.prisma           # Database schema
+│   │   ├── migrations/
+│   │   └── seed.ts                 # Demo data seeder
+│   ├── src/
+│   │   ├── app.ts                  # Express app setup
+│   │   ├── server.ts               # Entry point
+│   │   ├── config/
+│   │   │   ├── env.ts              # Environment config
+│   │   │   └── database.ts         # Prisma client instance
+│   │   ├── middleware/
+│   │   │   ├── auth.ts             # JWT verification
+│   │   │   ├── rbac.ts             # Role-based access control
+│   │   │   ├── error-handler.ts
+│   │   │   ├── validate.ts         # Zod request validation
+│   │   │   └── audit-log.ts        # Activity logging (BR-ADM-07)
+│   │   ├── modules/
+│   │   │   ├── auth/               # auth.controller / service / routes / test
+│   │   │   ├── user/
+│   │   │   ├── partner/
+│   │   │   ├── voucher/
+│   │   │   ├── order/
+│   │   │   ├── voucher-code/
+│   │   │   ├── cart/
+│   │   │   ├── category/
+│   │   │   ├── review/
+│   │   │   ├── content/
+│   │   │   └── dashboard/
+│   │   └── utils/
+│   │       ├── voucher-code-generator.ts
+│   │       ├── pagination.ts
+│   │       └── response.ts
+│   ├── package.json
+│   └── tsconfig.json
+│
+├── frontend/                       # @voucher/frontend — Vite + React SPA
+│   ├── public/
+│   ├── src/
+│   │   ├── main.tsx                # Entry point
+│   │   ├── App.tsx                 # Root + Router
+│   │   ├── api/                    # API client (axios + interceptors)
+│   │   ├── stores/                 # Zustand stores
+│   │   ├── hooks/                  # Custom hooks (TanStack Query)
+│   │   ├── components/
+│   │   │   ├── ui/                 # shadcn/ui base components
+│   │   │   ├── layout/             # Header, Footer, Sidebar, ProtectedRoute
+│   │   │   └── common/             # VoucherCard, SearchBar, QRCode, etc.
+│   │   ├── pages/
+│   │   │   ├── customer/           # HomePage, VoucherList, Cart, Checkout, ...
+│   │   │   ├── partner/            # Dashboard, VoucherManage, VerifyVoucher, ...
+│   │   │   ├── admin/              # Dashboard, UserManage, Approvals, Reports, ...
+│   │   │   └── auth/               # Login, Register, ForgotPassword
+│   │   ├── lib/                    # Utilities
+│   │   └── styles/globals.css      # Tailwind + custom tokens
+│   ├── index.html
+│   ├── vite.config.ts
+│   ├── tailwind.config.ts
+│   ├── components.json             # shadcn/ui config
+│   ├── package.json
+│   └── tsconfig.json
+│
 ├── docs/                           # Tài liệu dự án
 │   ├── 01-brd/brd.md
-│   ├── 02-srs/                     # (tương lai)
-│   └── 03-erd/                     # (tương lai)
-├── packages/
-│   ├── shared/                     # Shared types, schemas, constants
-│   │   ├── src/
-│   │   │   ├── types/              # TypeScript interfaces
-│   │   │   │   ├── user.ts
-│   │   │   │   ├── voucher.ts
-│   │   │   │   ├── order.ts
-│   │   │   │   ├── partner.ts
-│   │   │   │   └── index.ts
-│   │   │   ├── schemas/            # Zod validation schemas
-│   │   │   │   ├── auth.schema.ts
-│   │   │   │   ├── voucher.schema.ts
-│   │   │   │   ├── order.schema.ts
-│   │   │   │   └── index.ts
-│   │   │   ├── constants/          # Enums, status mappings
-│   │   │   │   ├── roles.ts
-│   │   │   │   ├── voucher-status.ts
-│   │   │   │   ├── order-status.ts
-│   │   │   │   └── index.ts
-│   │   │   └── utils/              # Shared utilities
-│   │   │       ├── format.ts
-│   │   │       └── index.ts
-│   │   ├── package.json
-│   │   └── tsconfig.json
-│   │
-│   ├── backend/                    # Express API Server
-│   │   ├── prisma/
-│   │   │   ├── schema.prisma       # Database schema
-│   │   │   ├── migrations/
-│   │   │   └── seed.ts             # Demo data seeder
-│   │   ├── src/
-│   │   │   ├── app.ts              # Express app setup
-│   │   │   ├── server.ts           # Entry point
-│   │   │   ├── config/
-│   │   │   │   ├── env.ts          # Environment config
-│   │   │   │   └── database.ts     # Prisma client instance
-│   │   │   ├── middleware/
-│   │   │   │   ├── auth.ts         # JWT verification
-│   │   │   │   ├── rbac.ts         # Role-based access control
-│   │   │   │   ├── error-handler.ts
-│   │   │   │   ├── validate.ts     # Zod request validation
-│   │   │   │   └── audit-log.ts    # Activity logging (BR-ADM-07)
-│   │   │   ├── modules/
-│   │   │   │   ├── auth/
-│   │   │   │   │   ├── auth.controller.ts
-│   │   │   │   │   ├── auth.service.ts
-│   │   │   │   │   ├── auth.routes.ts
-│   │   │   │   │   └── auth.test.ts
-│   │   │   │   ├── user/
-│   │   │   │   │   ├── user.controller.ts
-│   │   │   │   │   ├── user.service.ts
-│   │   │   │   │   ├── user.routes.ts
-│   │   │   │   │   └── user.test.ts
-│   │   │   │   ├── partner/
-│   │   │   │   │   ├── partner.controller.ts
-│   │   │   │   │   ├── partner.service.ts
-│   │   │   │   │   ├── partner.routes.ts
-│   │   │   │   │   └── partner.test.ts
-│   │   │   │   ├── voucher/
-│   │   │   │   │   ├── voucher.controller.ts
-│   │   │   │   │   ├── voucher.service.ts
-│   │   │   │   │   ├── voucher.routes.ts
-│   │   │   │   │   └── voucher.test.ts
-│   │   │   │   ├── order/
-│   │   │   │   │   ├── order.controller.ts
-│   │   │   │   │   ├── order.service.ts
-│   │   │   │   │   ├── order.routes.ts
-│   │   │   │   │   └── order.test.ts
-│   │   │   │   ├── voucher-code/
-│   │   │   │   │   ├── voucher-code.controller.ts
-│   │   │   │   │   ├── voucher-code.service.ts
-│   │   │   │   │   ├── voucher-code.routes.ts
-│   │   │   │   │   └── voucher-code.test.ts
-│   │   │   │   ├── cart/
-│   │   │   │   │   ├── cart.controller.ts
-│   │   │   │   │   ├── cart.service.ts
-│   │   │   │   │   └── cart.routes.ts
-│   │   │   │   ├── category/
-│   │   │   │   │   ├── category.controller.ts
-│   │   │   │   │   ├── category.service.ts
-│   │   │   │   │   └── category.routes.ts
-│   │   │   │   ├── review/
-│   │   │   │   │   ├── review.controller.ts
-│   │   │   │   │   ├── review.service.ts
-│   │   │   │   │   └── review.routes.ts
-│   │   │   │   ├── content/
-│   │   │   │   │   ├── content.controller.ts
-│   │   │   │   │   ├── content.service.ts
-│   │   │   │   │   └── content.routes.ts
-│   │   │   │   └── dashboard/
-│   │   │   │       ├── dashboard.controller.ts
-│   │   │   │       ├── dashboard.service.ts
-│   │   │   │       └── dashboard.routes.ts
-│   │   │   └── utils/
-│   │   │       ├── voucher-code-generator.ts  # Unique code gen (RB-06)
-│   │   │       ├── pagination.ts
-│   │   │       └── response.ts
-│   │   ├── package.json
-│   │   └── tsconfig.json
-│   │
-│   └── frontend/                   # Vite + React SPA
-│       ├── public/
-│       ├── src/
-│       │   ├── main.tsx            # Entry point
-│       │   ├── App.tsx             # Root + Router
-│       │   ├── api/                # API client (axios + interceptors)
-│       │   │   ├── client.ts
-│       │   │   ├── auth.api.ts
-│       │   │   ├── voucher.api.ts
-│       │   │   ├── order.api.ts
-│       │   │   ├── partner.api.ts
-│       │   │   └── admin.api.ts
-│       │   ├── stores/             # Zustand stores
-│       │   │   ├── auth.store.ts
-│       │   │   ├── cart.store.ts
-│       │   │   └── ui.store.ts
-│       │   ├── hooks/              # Custom hooks (TanStack Query)
-│       │   │   ├── useVouchers.ts
-│       │   │   ├── useOrders.ts
-│       │   │   ├── useAuth.ts
-│       │   │   └── useCart.ts
-│       │   ├── components/         # Shared UI components
-│       │   │   ├── ui/             # shadcn/ui base components
-│       │   │   ├── layout/
-│       │   │   │   ├── Header.tsx
-│       │   │   │   ├── Footer.tsx
-│       │   │   │   ├── Sidebar.tsx
-│       │   │   │   └── ProtectedRoute.tsx
-│       │   │   └── common/
-│       │   │       ├── VoucherCard.tsx
-│       │   │       ├── SearchBar.tsx
-│       │   │       ├── QRCode.tsx
-│       │   │       ├── StatusBadge.tsx
-│       │   │       └── DataTable.tsx
-│       │   ├── pages/
-│       │   │   ├── customer/       # Customer-facing pages
-│       │   │   │   ├── HomePage.tsx
-│       │   │   │   ├── VoucherListPage.tsx
-│       │   │   │   ├── VoucherDetailPage.tsx
-│       │   │   │   ├── CartPage.tsx
-│       │   │   │   ├── CheckoutPage.tsx
-│       │   │   │   ├── OrderHistoryPage.tsx
-│       │   │   │   ├── MyVouchersPage.tsx
-│       │   │   │   └── ProfilePage.tsx
-│       │   │   ├── partner/        # Partner portal pages
-│       │   │   │   ├── PartnerDashboard.tsx
-│       │   │   │   ├── VoucherManagePage.tsx
-│       │   │   │   ├── CreateVoucherPage.tsx
-│       │   │   │   ├── VerifyVoucherPage.tsx
-│       │   │   │   ├── PartnerReportPage.tsx
-│       │   │   │   └── BranchManagePage.tsx
-│       │   │   ├── admin/          # Admin dashboard pages
-│       │   │   │   ├── AdminDashboard.tsx
-│       │   │   │   ├── UserManagePage.tsx
-│       │   │   │   ├── PartnerApprovalPage.tsx
-│       │   │   │   ├── VoucherApprovalPage.tsx
-│       │   │   │   ├── OrderManagePage.tsx
-│       │   │   │   ├── ContentManagePage.tsx
-│       │   │   │   ├── AuditLogPage.tsx
-│       │   │   │   └── ReportPage.tsx
-│       │   │   └── auth/           # Auth pages (shared)
-│       │   │       ├── LoginPage.tsx
-│       │   │       ├── RegisterPage.tsx
-│       │   │       ├── ForgotPasswordPage.tsx
-│       │   │       └── PartnerRegisterPage.tsx
-│       │   ├── lib/                # Utilities
-│       │   │   ├── cn.ts           # classnames utility
-│       │   │   └── format.ts
-│       │   └── styles/
-│       │       └── globals.css     # Tailwind + custom tokens
-│       ├── index.html
-│       ├── tailwind.config.ts
-│       ├── vite.config.ts
-│       ├── components.json         # shadcn/ui config
-│       ├── package.json
-│       └── tsconfig.json
+│   ├── 02-srs/                     # TODO
+│   ├── 03-erd/                     # TODO
+│   └── ...                         # 04→10 TODO
 │
-├── package.json                    # Root package.json (npm workspaces config)
+├── package.json                    # Root — npm workspaces config
+├── tsconfig.json                   # Base TS config (all workspaces extend)
 ├── .env.example                    # Environment template
 ├── .gitignore
+├── README.md
 └── ecommerce-voucher.md            # This plan file
 ```
 
@@ -371,11 +268,11 @@ ACTIVE → USED (đối tác xác nhận sử dụng)
 
 ### Phase 1: Foundation (P0) — `database-architect` + `backend-specialist`
 
-- [ ] **T1.1: Khởi tạo Monorepo**
+- [x] **T1.1: Khởi tạo Monorepo** ✅
   - Agent: `backend-specialist` | Skill: `nodejs-best-practices`
   - INPUT: Tech stack decisions
-  - OUTPUT: Root `package.json` (với npm workspaces config), 3 packages skeleton
-  - VERIFY: `npm install` chạy thành công, `npm run build` không lỗi
+  - OUTPUT: Root `package.json` (npm workspaces), `tsconfig.json` base, 3 workspace skeletons (`shared/`, `backend/`, `frontend/`), `.env.example`, `README.md`, `.gitignore`
+  - VERIFY: ✅ `npm install` OK (0 vulnerabilities), `npx tsc --noEmit` pass, workspace symlinks verified
 
 - [ ] **T1.2: Shared package — Types + Schemas + Constants**
   - Agent: `backend-specialist` | Skill: `clean-code`
