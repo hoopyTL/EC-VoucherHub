@@ -1,3 +1,20 @@
+> ⚠️ **TÀI LIỆU KẾ HOẠCH BAN ĐẦU — CHỈ ĐỂ THAM KHẢO.**
+>
+> Đây là bản kế hoạch ban đầu của dự án, được giữ lại để tham chiếu ERD và các
+> quyết định thiết kế. **Nguồn sự thật hiện tại** là:
+> - Spec sống (what/how): `.kiro/specs/voucher-ecommerce-platform/{requirements,design,tasks}.md`
+> - Tài liệu bàn giao: `docs/01-brd … 10-demo-script`
+> - Trạng thái + kế hoạch: `memory/`
+>
+> Một số chi tiết trong file này **đã lỗi thời**, đừng dùng làm chuẩn:
+> - Trình quản lý gói: ghi `pnpm` → thực tế dùng **npm workspaces**.
+> - Port API: ghi `localhost:5000` → cấu hình hiện tại là **3000** (`.claude/project.json`).
+> - Đường dẫn `packages/shared` → thực tế là `shared/` ở gốc.
+>
+> Xem bản đồ tài liệu tổng thể tại `docs/README.md`.
+
+---
+
 # EC-VoucherHub — Hệ thống TMĐT bán voucher giảm giá trực tuyến
 
 ## Overview
@@ -131,7 +148,7 @@ EC-VoucherHub/
 ├── .env.example                    # Environment template
 ├── .gitignore
 ├── README.md
-└── ecommerce-voucher.md            # This plan file
+└── docs/00-planning/initial-plan.md   # Tài liệu kế hoạch này (đã chuyển từ gốc)
 ```
 
 ---
