@@ -1,6 +1,6 @@
-# {{PROJECT_NAME}} — Claude Code Guide
+# EC-VoucherHub — Claude Code Guide
 
-> Generated from the stack-agnostic Claude Code template. `/init-project` filled the `{{...}}` values below.
+> Generated from the stack-agnostic Claude Code template. `/init-project` filled the values below.
 
 ## Read at the start of every session
 
@@ -15,21 +15,22 @@ When memory conflicts with code → **trust the code**, then update memory.
 
 ## Project overview
 
-{{DESCRIPTION}}
+Hệ thống thương mại điện tử bán voucher giảm giá trực tuyến (monorepo: Express API + React/Vite SPA + shared).
 
-- **Stack**: {{LANGUAGE}} + {{FRAMEWORK}}
-- **Capabilities**: API={{HAS_API}} · DB={{HAS_DB}} · UI={{HAS_UI}} · E2E={{HAS_E2E}}
+- **Stack**: TypeScript + Express + React (Vite), npm workspaces monorepo
+- **Capabilities**: API=true · DB=true · UI=true · E2E=true
 
 ## Commands (read from .claude/project.json)
 
 | Task | Command |
 |------|---------|
-| install | `{{CMD_INSTALL}}` |
-| build | `{{CMD_BUILD}}` |
-| test | `{{CMD_TEST}}` |
-| lint | `{{CMD_LINT}}` |
-| dev | `{{CMD_DEV}}` |
-| ci | `{{CMD_CI}}` |
+| install | `npm ci` |
+| build | `npm run build` |
+| test | `npm test` |
+| lint | `npm run lint --workspaces --if-present` |
+| dev | `npm run dev` |
+| ci | `npm run typecheck --workspaces --if-present && npm run build && npm test` |
+| e2e | `npm run test:e2e` |
 
 Never hard-code a tool name (`npm`, `pytest`, `go`...) in a skill, command, or hook. Read it from `project.json`.
 
@@ -59,20 +60,20 @@ PER FEATURE LOOP:
   ① specs-writer      → docs/02-srs + 03-use-cases + 04-activity-diagrams   ("I want to build X", FLOW-XXX)
   ② [system-design]   → docs/05-database + 06-architecture + 07-api + 08-frontend   ◀ ONLY when complex (≥3 new components, new tech, big refactor)
   ③ planning          → memory/plan.md (TASK-XXX) + docs/09-testing + docs/10-demo-script + memory/active.md
-  ④ [migration]       → schema change                       ◀ ONLY when has_database
+  ④ [migration]       → schema change                       ◀ has_database = true
   ⑤ IMPLEMENT         → code + tests written together (per TASK)
   ⑥ code-review       → spawn @sec-review ∥ @code-review → APPROVE / REQUEST CHANGES (loop until APPROVE)
   ⑦ /git              → conventional commit + secret scan (test gate for feat/fix/refactor)
   ⑧ sync docs/        → update the affected deliverable (05/06/07/08) in the SAME change
   ⑨ /deploy           → build → start → smoke (local verify)
-  ⑩ [/e2e FLOW-XXX]   → ONLY when has_e2e; on fail → debug skill (max 2 rounds)
+  ⑩ [/e2e FLOW-XXX]   → has_e2e = true; on fail → debug skill (max 2 rounds)
   ⑪ /git pr           → push + PR (deliberate, never auto)
   ⑫ /memory           → update active.md (always) + decisions.md (if new ADR)
 ```
 
 Three decision gates keep this fit for any project:
 - **Gate ②** (system-design): skipped for CRUD / bugfix / UI tweak; fires only for ≥3 new components or a new tech choice.
-- **Gates ④/⑩** (migration, e2e): on/off by `capabilities` in project.json. A CLI tool with no DB/UI simply never hits them.
+- **Gates ④/⑩** (migration, e2e): both **on** for this project (DB + E2E enabled).
 - **Gate ⑥** (code-review): always runs; the verdict decides whether you loop back.
 
 ## Skills
@@ -84,7 +85,8 @@ Three decision gates keep this fit for any project:
 | `planning` | break down tasks | memory/plan.md, docs/09-testing, docs/10-demo-script |
 | `code-review` | before commit → spawn @sec-review + @code-review | verdict |
 | `debug` | test fail / bug | root-cause fix |
-{{OPTIONAL_SKILLS}}
+| `migration` | schema change (DB enabled) | Prisma migration + ADR |
+| `design-reviewer` | UI review vs DESIGN.md (UI enabled) | design issues (GitHub, label `design`) |
 
 ## Commands
 
@@ -92,7 +94,7 @@ Three decision gates keep this fit for any project:
 |---------|---------|
 | `/git [pr\|scan\|branch]` | conventional commit + secret scan + PR |
 | `/deploy` | local build + start + smoke |
-{{OPTIONAL_COMMANDS}}
+| `/e2e [FLOW-XXX]` | run Playwright E2E (E2E enabled) |
 | `/memory` | update the memory bank at end of session |
 
 ## Coding rules

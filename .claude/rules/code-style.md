@@ -42,29 +42,36 @@ File / function / variable / type casing → idiomatic to the language (filled i
 <!-- INIT-PROJECT: rewrite the block below for the real language/framework -->
 
 ### Imports / modules
-> e.g. (TS NodeNext): `.js` extension required. (Python): absolute imports from the package root. (Go): group stdlib / third-party / local.
-
-`__FILL__`
+- **ESM everywhere in source** (`import`/`export`), no `require`. Root + frontend + shared are `module: ESNext`; backend compiles to CommonJS via `tsc` but you still author ESM syntax.
+- `moduleResolution: bundler` (root/frontend) — **no `.js` extension** on relative imports. Backend uses `node` resolution; keep imports extensionless too.
+- Cross-package: import from the workspace package name (`@voucher/shared`), never a deep relative path like `../../shared/src`.
+- Order: node builtins → third-party → workspace (`@voucher/*`) → local relative. One blank line between groups.
+- No circular imports between `backend` / `frontend` / `shared`. `shared` must not import from `backend` or `frontend`.
 
 ### Type system
-> e.g. (TS): avoid `any`, use `unknown` then narrow; `readonly`. (Python): type hints + mypy. (Go): avoid `interface{}`.
-
-`__FILL__`
+- `strict: true` is on — honor it. Avoid `any`; use `unknown` then narrow with type guards.
+- `noUnusedLocals` / `noUnusedParameters` are on — no dead bindings (prefix intentionally-unused params with `_`).
+- Mark immutable data `readonly` / `as const`. Prefer `interface` for object shapes, `type` for unions/aliases.
+- Share request/response DTOs and enums from `@voucher/shared` — never redeclare a type that already lives there.
+- No `// @ts-ignore`; use `// @ts-expect-error` with a one-line reason only when unavoidable.
 
 ### Number / parsing / null safety
-> e.g. (TS): `Number.parseInt(x,10)`, `Number.isNaN`. (Python): no bare `except`. Rules for null/None/nil.
+- Parse explicitly: `Number.parseInt(x, 10)`, `Number.parseFloat(x)`. Guard with `Number.isNaN` / `Number.isFinite`, never global `isNaN`.
+- Prefer `??` (nullish coalescing) and `?.` (optional chaining) over `||` for defaults, so `0`/`""`/`false` aren't swallowed.
+- Distinguish `null` (explicit absence) from `undefined` (not set) consistently — match Prisma's nullable convention at the DB boundary.
+- Validate and coerce all external input (req params/query/body) at the route boundary before use.
 
-`__FILL__`
-
-### Database / persistence (only when `capabilities.has_database = true`)
-> Parameterized binding — NEVER interpolate strings into SQL. Single DB instance. Idempotent migrations.
-
-`__FILL__`
+### Database / persistence (`has_database = true`)
+- **Prisma is the only DB access path.** Use the generated client — never raw string-interpolated SQL. If `$queryRaw` is unavoidable, use the tagged-template form (`$queryRaw\`... ${val}\``) so values are parameterized.
+- A **single** `PrismaClient` instance, exported from one module and imported everywhere (no per-request `new PrismaClient()`).
+- Migrations via `prisma migrate` only; schema lives in `backend/prisma/schema.prisma`. Migrations are committed and forward-only — never hand-edit an applied migration.
+- Wrap multi-write operations that must succeed together in `prisma.$transaction`.
 
 ### File & symbol naming (idiomatic)
-| Item | Convention |
-|------|-----------|
-| Files | `__FILL__` |
-| Functions | `__FILL__` |
-| Types/Classes | `__FILL__` |
-| DB tables/columns | `__FILL__` |
+| Item | Convention | Example |
+|------|-----------|---------|
+| Files | kebab-case `.ts` (modules), PascalCase `.tsx` (React components) | `voucher-service.ts`, `VoucherCard.tsx` |
+| Functions / variables | camelCase | `getVoucherById` |
+| Types / Interfaces / Classes / React components | PascalCase | `VoucherDto`, `OrderService` |
+| Constants | SCREAMING_SNAKE | `MAX_PRIORITY` |
+| DB models / fields (Prisma) | PascalCase model → camelCase fields; mapped to snake_case table/columns via `@@map` / `@map` | `model Voucher { createdAt }` → `vouchers.created_at` |

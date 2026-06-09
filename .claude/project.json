@@ -1,48 +1,44 @@
 {
   "$comment": "Single source of stack-specific config. Filled by /init-project. Commands/hooks/skills read from here instead of hard-coding npm/biome/etc. '__FILL__' = not configured yet.",
   "project": {
-    "name": "__FILL__",
-    "description": "__FILL__",
-    "language": "__FILL__",
-    "framework": "__FILL__"
+    "name": "EC-VoucherHub",
+    "description": "Hệ thống thương mại điện tử bán voucher giảm giá trực tuyến (monorepo: Express API + React/Vite SPA + shared).",
+    "language": "TypeScript",
+    "framework": "Express + React (Vite), npm workspaces monorepo"
   },
   "commands": {
-    "install": "__FILL__",
-    "build": "__FILL__",
-    "test": "__FILL__",
-    "test_watch": "__FILL__",
-    "lint": "__FILL__",
-    "format": "__FILL__",
-    "typecheck": "__FILL__",
-    "ci": "__FILL__",
-    "dev": "__FILL__",
-    "start": "__FILL__",
-    "e2e": "__FILL__"
+    "install": "npm ci",
+    "build": "npm run build",
+    "test": "npm test",
+    "test_watch": "npx vitest --watch",
+    "lint": "npm run lint --workspaces --if-present",
+    "format": "npm run format --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "ci": "npm run typecheck --workspaces --if-present && npm run build && npm test",
+    "dev": "npm run dev",
+    "start": "npm run start --workspace=backend",
+    "e2e": "npm run test:e2e"
   },
   "runtime": {
-    "port": "__FILL__",
-    "health_url": "__FILL__",
-    "base_url": "__FILL__"
+    "port": "3000",
+    "health_url": "http://localhost:3000/health",
+    "base_url": "http://localhost:3000"
   },
   "capabilities": {
-    "has_database": false,
-    "has_web_ui": false,
-    "has_e2e": false,
-    "has_http_api": false
+    "has_database": true,
+    "has_web_ui": true,
+    "has_e2e": true,
+    "has_http_api": true
   },
   "paths": {
-    "source_dir": "src",
-    "test_dir": "tests",
+    "source_dir": "backend/src",
+    "test_dir": "backend/src",
     "e2e_dir": "e2e",
-    "ui_files": [],
-    "db_dir": ""
+    "ui_files": [
+      "frontend/src/**"
+    ],
+    "db_dir": "backend/prisma"
   },
-  "docs": {
-    "$comment": "Two trees, distinct roles. docs = the SDLC deliverable set (01-brd through 10-demo-script), the single source for requirements + design + handover. memory = agent state (active, decisions, progress) + the task plan.",
-    "memory_dir": "memory",
-    "reference_dir": "docs",
-    "plan_file": "memory/plan.md"
-  },
-  "format_extensions": [],
+  "format_extensions": [".ts", ".tsx"],
   "secret_file_globs": [".env", "*.pem", "id_rsa", "credentials.json", "*.p12", "*.key"]
 }

@@ -88,4 +88,49 @@ Non-breaking: adding an optional field, adding an endpoint, adding an enum value
 
 > Three-step pattern: (1) parse + validate → return errors early; (2) logic/persistence; (3) normalize + return the wrapper.
 
-`__FILL__`
+**Express + Zod + Prisma.** Validate at the boundary with a Zod schema, do work in a service, return the wrapper. Keep handlers ≤30 lines — push logic into services.
+
+```ts
+import { Router, type Request, type Response, type NextFunction } from "express";
+import { z } from "zod";
+import { voucherService } from "../services/voucher-service";
+
+const router = Router();
+
+const CreateVoucher = z.object({
+  title: z.string().trim().min(1),
+  price: z.number().int().nonnegative(),
+});
+
+router.post("/vouchers", async (req: Request, res: Response, next: NextFunction) => {
+  // 1. parse + validate → return early
+  const parsed = CreateVoucher.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      success: false,
+      error: "validation failed",
+      details: parsed.error.issues.map((i) => ({
+        field: i.path.join("."),
+        message: i.message,
+      })),
+    });
+  }
+
+  try {
+    // 2. logic / persistence (service owns Prisma)
+    const voucher = await voucherService.create(parsed.data);
+    // 3. normalize + return the wrapper
+    return res.status(201).json({ success: true, data: voucher });
+  } catch (err) {
+    return next(err); // central error middleware → { success:false, error } + 500
+  }
+});
+
+export default router;
+```
+
+Rules:
+- **Validation lives in the handler** (boundary); business rules live in the service. Services throw typed errors; a single error-handling middleware maps them to status + the `{ success:false, error }` wrapper — no `try/catch` scattered in logic.
+- Every response uses the wrapper. `201` + body on create, `200` + body on read, `204` no body on delete.
+- Async handlers must forward errors via `next(err)` (or an `asyncHandler` wrapper) — an unhandled rejection in Express won't hit the error middleware otherwise.
+- Map errors to the right code per the table above: validation → `400`, business-rule violation → `422`, missing row → `404`, duplicate → `409`.

@@ -1,19 +1,22 @@
 # Execution State
 
-> Updated: <date>
+> Updated: 2026-06-09
 > Plan source: memory/plan.md
 
 ## Current
 
-(Not started yet. Run `/init-project` to configure the stack, then write your business requirements into docs/01-brd/.)
+(Template configured for the EC-VoucherHub stack. Next: write business requirements into `docs/01-brd/`, then run the specs → design → plan workflow.)
 
 ## Pending
 
-- [ ] `/init-project` — configure the stack in .claude/project.json
+- [ ] Write business requirements into `docs/01-brd/`
+- [ ] `/specs-writer` — turn the BRD into SRS + use cases + activity diagrams
+- [ ] `/system-design` — ERD, architecture, API & frontend design
+- [ ] `/planning` — break the design into TASK-XXX with tests + demo script
 
 ## Done
 
-(empty)
+- [x] `/init-project` — configured the stack in `.claude/project.json` + rewrote `.claude/rules/*`
 
 ## Blockers
 
