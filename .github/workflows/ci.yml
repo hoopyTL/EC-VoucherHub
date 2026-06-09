@@ -1,9 +1,8 @@
-# Generic CI skeleton. Keep the lint → build → test → coverage shape;
-# replace the placeholder commands with this project's real ones.
-# Source the real commands from .claude/project.json (lint/build/test/coverage)
-# so CI matches what contributors run locally — do NOT hard-code a stack here.
-# This example assumes a Node-style toolchain — swap setup steps for your stack
-# (e.g. actions/setup-java, gradle build; setup-python, pytest; etc.).
+# CI cho EC-VoucherHub — monorepo npm workspaces (shared + backend + frontend).
+# Stack: TypeScript/Node, Express, Prisma, React + Vite, Vitest + fast-check.
+# Các lệnh dưới đây bám theo scripts trong package.json (gốc + từng workspace).
+# Một số script (lint/test) hiện chưa được khai báo nên dùng `--if-present`
+# để CI không vỡ ở giai đoạn scaffold; chúng sẽ tự chạy khi script được thêm.
 
 name: CI
 
@@ -13,29 +12,49 @@ on:
   push:
     branches: [ main ]
 
+# Hủy các lần chạy cũ trên cùng một nhánh/PR khi có commit mới.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # --- Replace this block with your stack's setup ---
-      - name: Setup toolchain
-        run: 'echo "TODO: setup runtime (node/java/python/...)"'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
 
       - name: Install dependencies
-        run: 'echo "TODO: install deps (npm ci / ./gradlew dependencies / pip install ...)"'
-      # --------------------------------------------------
+        run: npm ci
+
+      # Prisma chưa có schema ở giai đoạn scaffold → chỉ generate khi đã có schema,
+      # tránh CI đỏ trước khi Task 2.1 (Prisma schema) hoàn thành.
+      - name: Prisma generate (nếu đã có schema)
+        run: |
+          if [ -f backend/prisma/schema.prisma ]; then
+            npm run db:generate
+          else
+            echo "Chưa có backend/prisma/schema.prisma — bỏ qua prisma generate."
+          fi
 
       - name: Lint
-        run: 'echo "TODO: lint command (from .claude/project.json)"'
+        run: npm run lint --workspaces --if-present
+
+      - name: Typecheck
+        run: npm run typecheck --workspaces --if-present
 
       - name: Build
-        run: 'echo "TODO: build command (from .claude/project.json)"'
+        run: npm run build
 
       - name: Test
-        run: 'echo "TODO: test command with coverage (from .claude/project.json)"'
+        run: npm test
 
       - name: Upload coverage
         if: always()
