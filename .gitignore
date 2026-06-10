@@ -7,9 +7,14 @@ Thumbs.db
 .idea/
 *.swp
 
-# Claude Code session state
+# Agent
 .claude/settings.local.json
 .claude/.session/
+memory/
+.claude/
+.agents/
+.kiro/
+CLAUDE.md
 
 # Logs / temp
 *.log

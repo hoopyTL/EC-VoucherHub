@@ -16,11 +16,12 @@
 
 ```
 EC-VoucherHub/
-├── shared/       # @voucher/shared — Enums, DTOs, types chung
-├── backend/      # @voucher/backend — Express API
-├── frontend/     # @voucher/frontend — Vite + React SPA
-├── docs/         # Tài liệu dự án (BRD, SRS, ERD, ...)
-└── package.json  # npm workspaces root
+├── shared/           # @voucher/shared — Enums, DTOs, types chung
+├── backend/          # @voucher/backend — Express API
+├── frontend/         # @voucher/frontend — Vite + React SPA
+├── docs/             # Tài liệu dự án (BRD, SRS, ERD, ...)
+├── CONTRIBUTING.md   # Quy ước đóng góp (branch, commit, PR, code style)
+└── package.json      # npm workspaces root
 ```
 
 ## Getting Started
@@ -62,6 +63,9 @@ npm run dev
 | `npm run dev` | Start backend + frontend in dev mode |
 | `npm run build` | Build all workspaces (shared → server → client) |
 | `npm test` | Run tests across all workspaces |
+| `npm run lint` | Lint all workspaces (ESLint) |
+| `npm run format` | Format code (Prettier) |
+| `npm run typecheck` | Type-check all workspaces |
 | `npm run db:migrate` | Run Prisma migrations |
 | `npm run db:seed` | Seed demo data |
 
@@ -72,6 +76,10 @@ npm run dev
 | **Customer** | Mua voucher, quản lý đơn hàng, đánh giá |
 | **Partner** | Tạo/quản lý voucher, xác thực sử dụng, báo cáo |
 | **Admin** | Duyệt đối tác/voucher, quản lý hệ thống, dashboard |
+
+## Contributing
+
+Quy ước branch, commit, PR và code style nằm trong [CONTRIBUTING.md](CONTRIBUTING.md). Vui lòng đọc trước khi mở pull request — không push trực tiếp lên `main`.
 
 ## License
 
