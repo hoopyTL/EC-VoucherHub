@@ -20,9 +20,9 @@
     "e2e": "npm run test:e2e"
   },
   "runtime": {
-    "port": "3000",
-    "health_url": "http://localhost:3000/health",
-    "base_url": "http://localhost:3000"
+    "port": "4000",
+    "health_url": "http://localhost:4000/health",
+    "base_url": "http://localhost:4000"
   },
   "capabilities": {
     "has_database": true,
