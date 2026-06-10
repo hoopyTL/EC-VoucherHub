@@ -1,27 +1,10 @@
-> ⚠️ **TÀI LIỆU KẾ HOẠCH BAN ĐẦU — CHỈ ĐỂ THAM KHẢO.**
->
-> Đây là bản kế hoạch ban đầu của dự án, được giữ lại để tham chiếu ERD và các
-> quyết định thiết kế. **Nguồn sự thật hiện tại** là:
-> - Spec sống (what/how): `.kiro/specs/voucher-ecommerce-platform/{requirements,design,tasks}.md`
-> - Tài liệu bàn giao: `docs/01-brd … 10-demo-script`
-> - Trạng thái + kế hoạch: `memory/`
->
-> Một số chi tiết trong file này **đã lỗi thời**, đừng dùng làm chuẩn:
-> - Trình quản lý gói: ghi `pnpm` → thực tế dùng **npm workspaces**.
-> - Port API: ghi `localhost:5000` → cấu hình hiện tại là **3000** (`.claude/project.json`).
-> - Đường dẫn `packages/shared` → thực tế là `shared/` ở gốc.
->
-> Xem bản đồ tài liệu tổng thể tại `docs/README.md`.
-
----
-
 # EC-VoucherHub — Hệ thống TMĐT bán voucher giảm giá trực tuyến
 
 ## Overview
 
 Xây dựng nền tảng thương mại điện tử bán voucher giảm giá trực tuyến cho đồ án cuối kỳ môn TMĐT. Hệ thống đóng vai trò **sàn trung gian** giữa khách hàng và đối tác cung cấp dịch vụ, hỗ trợ toàn bộ vòng đời voucher: tạo → duyệt → bán → thanh toán → phát hành mã → xác thực sử dụng → báo cáo.
 
-**Nguồn yêu cầu:** [BRD v1.0](file:///Users/hoopy/Downloads/EC-VoucherHub/docs/01-brd/brd.md)
+**Nguồn yêu cầu:** [BRD v1.0]
 
 ---
 
@@ -589,9 +572,6 @@ ACTIVE → USED (đối tác xác nhận sử dụng)
 - [ ] 15 Business Rules (RB-01 → RB-15) — spot check each
 - [ ] 3 roles authentication & authorization verified
 - [ ] Responsive check on mobile viewport (375px)
-- [ ] `python .agents/scripts/checklist.py .` — Pass
-- [ ] `python .agents/skills/vulnerability-scanner/scripts/security_scan.py .` — No critical issues
-- [ ] `python .agents/skills/frontend-design/scripts/ux_audit.py .` — Pass
 
 ---
 
