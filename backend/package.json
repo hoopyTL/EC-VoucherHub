@@ -2,10 +2,10 @@
   "name": "@voucher/backend",
   "version": "1.0.0",
   "private": true,
-  "main": "./src/server.ts",
+  "main": "./dist/server.js",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
-    "build": "tsc",
+    "dev": "nodemon",
+    "build": "rimraf dist && tsc && tsc-alias -p tsconfig.json",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
     "db:migrate": "prisma migrate dev",
@@ -14,10 +14,12 @@
     "db:studio": "prisma studio"
   },
   "dependencies": {
-    "@voucher/shared": "*"
+    "@voucher/shared": "*",
+    "express": "^5.2.1",
+    "morgan": "^1.11.0"
   },
   "devDependencies": {
-    "@types/node": "^25.9.2",
-    "typescript": "^5.7.0"
+    "@types/express": "^5.0.6",
+    "@types/morgan": "^1.9.10"
   }
 }

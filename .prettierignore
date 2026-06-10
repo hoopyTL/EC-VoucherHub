@@ -1,0 +1,16 @@
+node_modules/
+dist/
+build/
+coverage/
+package-lock.json
+*.tsbuildinfo
+
+.agents/
+.claude/
+.github/
+.kiro/
+docs/
+memory/
+CLAUDE.md
+DESIGN.md
+README.md
