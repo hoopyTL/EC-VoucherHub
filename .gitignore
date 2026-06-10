@@ -22,6 +22,12 @@ node_modules/
 dist/
 build/
 
+# Compiled output accidentally emitted next to TS sources
+**/src/**/*.js
+**/src/**/*.js.map
+**/src/**/*.d.ts
+**/src/**/*.d.ts.map
+
 # Environment
 .env
 .env.local
