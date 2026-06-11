@@ -5,7 +5,7 @@
 
 ## 1. Tổng quan
 
-15 bảng chia 6 nhóm: **Tài khoản & vai trò** (roles, users), **Đối tác** (partners, branches, partner_staff), **Danh mục & voucher** (categories, voucher_products, voucher_product_branches), **Mua hàng** (orders, order_items), **Phát hành & sử dụng** (issued_voucher_codes, usage_logs), **Vận hành** (reviews, audit_logs, content_items).
+17 bảng chia 7 nhóm: **Tài khoản & vai trò** (roles, users), **Đối tác** (partners, branches, partner_staff), **Danh mục & voucher** (categories, voucher_products, voucher_product_branches), **Giỏ hàng** (carts, cart_items), **Mua hàng** (orders, order_items), **Phát hành & sử dụng** (issued_voucher_codes, usage_logs), **Vận hành** (reviews, audit_logs, content_items).
 
 Ba thực thể trạng thái là trung tâm toàn vẹn (NFR-03): `voucher_products.status`, `orders.status`, `issued_voucher_codes.status` — xem máy trạng thái ở `docs/02-srs/` §1.4 và `docs/06-architecture/`.
 
@@ -15,6 +15,7 @@ Ba thực thể trạng thái là trung tâm toàn vẹn (NFR-03): `voucher_prod
 erDiagram
     ROLES ||--o{ USERS : "phân vai"
     USERS ||--o{ ORDERS : "đặt"
+    USERS ||--o| CARTS : "sở hữu"
     USERS ||--o{ REVIEWS : "viết"
     USERS ||--o{ AUDIT_LOGS : "thực hiện"
     USERS ||--o| PARTNER_STAFF : "là nhân viên"
@@ -30,7 +31,10 @@ erDiagram
     VOUCHER_PRODUCTS ||--o{ VOUCHER_PRODUCT_BRANCHES : "áp dụng tại"
     BRANCHES ||--o{ VOUCHER_PRODUCT_BRANCHES : "phục vụ"
     VOUCHER_PRODUCTS ||--o{ ORDER_ITEMS : "được mua trong"
+    VOUCHER_PRODUCTS ||--o{ CART_ITEMS : "được thêm vào"
     VOUCHER_PRODUCTS ||--o{ REVIEWS : "được đánh giá"
+
+    CARTS ||--o{ CART_ITEMS : "gồm"
 
     ORDERS ||--o{ ORDER_ITEMS : "gồm"
     ORDERS ||--o{ ISSUED_VOUCHER_CODES : "phát hành"
@@ -110,6 +114,19 @@ erDiagram
     VOUCHER_PRODUCT_BRANCHES {
         int voucher_product_id FK
         int branch_id FK
+    }
+    CARTS {
+        int id PK
+        int customer_id FK "UNIQUE — 1 khách ↔ 1 giỏ"
+        datetime created_at
+        datetime updated_at
+    }
+    CART_ITEMS {
+        int id PK
+        int cart_id FK
+        int voucher_product_id FK
+        int quantity "CHECK > 0"
+        datetime created_at
     }
     ORDERS {
         int id PK
@@ -264,6 +281,26 @@ erDiagram
 | voucher_product_id | int | FK, PK (kép) | |
 | branch_id | int | FK, PK (kép) | |
 
+### carts `(FR-06)`
+| Cột | Kiểu | Ràng buộc | Mô tả |
+| --- | --- | --- | --- |
+| id | serial | PK | |
+| customer_id | int | FK→users, **UNIQUE**, NOT NULL | một khách ↔ một giỏ (UC-05 yêu cầu đã đăng nhập) |
+| created_at / updated_at | timestamptz | NOT NULL | `updated_at` cập nhật mỗi lần đổi mục |
+
+> Giỏ là thực thể server-side gắn khách hàng (UC-05 tiền điều kiện "đã đăng nhập"). Tổng tạm tính (FR-06 AC4) **không** lưu — tính realtime từ `voucher_products.sale_price` hiện tại; giá chỉ chốt (snapshot) vào `order_items.unit_price` khi tạo đơn.
+
+### cart_items `(FR-06 AC1/2/3/5)`
+| Cột | Kiểu | Ràng buộc | Mô tả |
+| --- | --- | --- | --- |
+| id | serial | PK | |
+| cart_id | int | FK→carts, NOT NULL | |
+| voucher_product_id | int | FK→voucher_products, NOT NULL | |
+| quantity | int | NOT NULL, CHECK > 0 | số lượng nguyên dương (FR-06 AC2) |
+| created_at | timestamptz | NOT NULL | |
+
+**UNIQUE**: `(cart_id, voucher_product_id)` — một voucher = một dòng, thêm lại thì cộng dồn `quantity` (FR-06 AC1). Kiểm tra `quantity <= remaining_quantity` tại boundary khi thêm/sửa (FR-06 AC5).
+
 ### orders `(FR-07, FR-08, FR-20; DR-04)`
 | Cột | Kiểu | Ràng buộc | Mô tả |
 | --- | --- | --- | --- |
@@ -353,6 +390,8 @@ erDiagram
 | issued_voucher_codes | (voucher_product_id), (owner_user_id), (status) | xác thực + phạm vi + tra cứu |
 | orders | (customer_id), (status) | lịch sử đơn + tra cứu admin |
 | order_items | (order_id), (voucher_product_id) | join |
+| carts | UNIQUE(customer_id) | 1 khách ↔ 1 giỏ |
+| cart_items | UNIQUE(cart_id, voucher_product_id), (cart_id) | 1 voucher 1 dòng + tải giỏ |
 | usage_logs | (issued_code_id) | lịch sử sử dụng |
 | audit_logs | (created_at), (actor_user_id) | tra cứu nhật ký |
 
@@ -363,6 +402,8 @@ erDiagram
 | Mã voucher duy nhất | UNIQUE(code) + retry khi đụng độ | Property 1 (FR-08 AC3) |
 | Không bán vượt tồn kho | `UPDATE … WHERE remaining_quantity >= qty` trong TX | Property 5 (FR-07/08) |
 | Giá bán < giá gốc | CHECK constraint | FR-12 AC3 |
+| Số lượng giỏ > 0 | CHECK `quantity > 0` trên cart_items | FR-06 AC2 |
+| Giỏ không vượt tồn kho | service so `quantity` với `remaining_quantity` lúc thêm/sửa (không phải ràng buộc DB — tồn kho biến động) | FR-06 AC5 |
 | Bảo toàn tồn kho | TX trừ/hoàn khi thanh toán/hủy/hoàn | Property 6 (FR-20 AC4) |
 | Phát hành chỉ sau thanh toán | issue trong cùng TX với `da_thanh_toan` | Property 3/4 (FR-08) |
 
