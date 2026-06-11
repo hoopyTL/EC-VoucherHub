@@ -18,7 +18,7 @@ EC-VoucherHub là hệ thống thương mại điện tử bán voucher giảm g
 
 - Node.js >= 18, npm >= 9
 - Cài dependencies: `npm ci` (từ thư mục gốc — cài cho cả 3 workspace)
-- Sao chép `.env.example` thành `.env` và điền giá trị
+- Sao chép env mẫu cho từng workspace rồi điền giá trị: `cp backend/.env.example backend/.env` và `cp frontend/.env.example frontend/.env` (mỗi service giữ env riêng — secret backend không lẫn vào bundle frontend)
 
 ## Lệnh thường dùng
 

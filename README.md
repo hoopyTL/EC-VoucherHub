@@ -42,9 +42,10 @@ cd EC-VoucherHub
 # Install all dependencies
 npm install
 
-# Copy environment variables
-cp .env.example .env
-# Edit .env with your database credentials
+# Copy environment variables (per workspace)
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+# Edit backend/.env with your database credentials + JWT secret
 
 # Run database migrations
 npm run db:migrate

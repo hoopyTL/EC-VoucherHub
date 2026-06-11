@@ -8,8 +8,9 @@
 # Cài dependencies
 npm ci
 
-# Tạo file môi trường (điền DATABASE_URL trỏ tới Postgres local)
-cp .env.example .env
+# Tạo file môi trường cho từng workspace (điền DATABASE_URL của backend trỏ tới Postgres local)
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
 
 # Tạo schema + chạy migration
 npm run db:migrate
