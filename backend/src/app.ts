@@ -1,11 +1,17 @@
 // Express app set up
 import express, { Request, Response } from 'express'
+import helmet from 'helmet'
 import morgan from 'morgan'
+
+import { env } from './configs/env'
 
 const app = express()
 
 // init middlewares
-app.use(morgan('dev'))
+app.use(helmet())
+if (env.NODE_ENV !== 'production') {
+  app.use(morgan('dev'))
+}
 
 // init db
 
