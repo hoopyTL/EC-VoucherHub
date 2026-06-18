@@ -1,0 +1,25 @@
+# Dev-only Postgres cho EC-VoucherHub.
+# Chạy `docker compose up -d` → DB riêng, cùng version, zero migration drift.
+# DATABASE_URL trong backend/.env.example: postgres:postgres @ localhost:5432 / voucherhub.
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: voucherhub-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: voucherhub
+    ports:
+      - "5432:5432"
+    volumes:
+      - voucherhub-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d voucherhub" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  voucherhub-pgdata:
