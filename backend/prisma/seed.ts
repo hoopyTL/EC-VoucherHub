@@ -32,7 +32,7 @@ async function main() {
   const foodCat = await prisma.category.create({ data: { name: 'Ăn uống' } })
   const travelCat = await prisma.category.create({ data: { name: 'Du lịch & Khách sạn' } })
   const beautyCat = await prisma.category.create({ data: { name: 'Làm đẹp & Spa' } })
-  
+
   // Seed danh mục con (Self-reference)
   const cafeCat = await prisma.category.create({
     data: { name: 'Cà phê & Trà sữa', parentId: foodCat.id }
