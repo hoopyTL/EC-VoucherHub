@@ -352,6 +352,7 @@ ALTER TABLE "users" ADD CONSTRAINT "users_email_phone_check" CHECK (email IS NOT
 -- VoucherProducts: pricing and quantity logic
 ALTER TABLE "voucher_products" ADD CONSTRAINT "voucher_products_price_check" CHECK (sale_price < original_price);
 ALTER TABLE "voucher_products" ADD CONSTRAINT "voucher_products_quantity_check" CHECK (total_quantity >= 0 AND remaining_quantity >= 0 AND remaining_quantity <= total_quantity);
+ALTER TABLE "voucher_products" ADD CONSTRAINT "voucher_products_uses_per_code_positive_check" CHECK (uses_per_code IS NULL OR uses_per_code > 0);
 ALTER TABLE "voucher_products" ADD CONSTRAINT "voucher_products_multi_use_check" CHECK (is_multi_use = FALSE OR uses_per_code IS NOT NULL);
 
 -- CartItems: quantity must be positive

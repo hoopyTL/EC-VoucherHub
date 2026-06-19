@@ -169,7 +169,9 @@ model Category {
 
 /// Sản phẩm voucher. 7 trạng thái (máy trạng thái chính — xem docs/02-srs §1.4).
 /// CHECK tay: sale_price < original_price, remaining_quantity <= total_quantity,
-///   total_quantity >= 0, remaining_quantity >= 0, is_multi_use = false OR uses_per_code IS NOT NULL.
+///   total_quantity >= 0, remaining_quantity >= 0,
+///   uses_per_code IS NULL OR uses_per_code > 0,
+///   is_multi_use = false OR uses_per_code IS NOT NULL.
 model VoucherProduct {
   id                String        @id @default(uuid()) @db.Uuid
   partnerId         String        @map("partner_id") @db.Uuid
