@@ -1,0 +1,358 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ENUMS
+
+enum UserStatus {
+  ACTIVE @map("active")
+  LOCKED @map("locked")
+
+  @@map("user_status")
+}
+
+enum ApprovalStatus {
+  PENDING  @map("pending")
+  APPROVED @map("approved")
+  REJECTED @map("rejected")
+
+  @@map("approval_status")
+}
+
+enum OperatingStatus {
+  ACTIVE    @map("active")
+  SUSPENDED @map("suspended")
+
+  @@map("operating_status")
+}
+
+enum VoucherStatus {
+  DRAFT          @map("draft")
+  PENDING_REVIEW @map("pending_review")
+  APPROVED       @map("approved")
+  REJECTED       @map("rejected")
+  ON_SALE        @map("on_sale")
+  PAUSED         @map("paused")
+  DISCONTINUED   @map("discontinued")
+
+  @@map("voucher_status")
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT @map("pending_payment")
+  PAID            @map("paid")
+  CANCELLED       @map("cancelled")
+  REFUNDED        @map("refunded")
+
+  @@map("order_status")
+}
+
+enum VoucherCodeStatus {
+  UNUSED    @map("unused")
+  USED      @map("used")
+  EXPIRED   @map("expired")
+  CANCELLED @map("cancelled")
+  LOCKED    @map("locked")
+
+  @@map("voucher_code_status")
+}
+
+enum UsageResult {
+  SUCCESS      @map("success")
+  INVALID_CODE @map("invalid_code")
+  EXPIRED      @map("expired")
+  ALREADY_USED @map("already_used")
+  WRONG_BRANCH @map("wrong_branch")
+  LOCKED       @map("locked")
+
+  @@map("usage_result")
+}
+
+// MODELS — Tài khoản & vai trò
+
+model Role {
+  id   Int    @id @default(autoincrement())
+  name String @unique @db.VarChar(32)
+
+  // Relations
+  users User[]
+
+  @@map("roles")
+}
+
+/// Bảng đăng nhập chung cho mọi vai trò. CHECK tay: email IS NOT NULL OR phone IS NOT NULL.
+model User {
+  id           String     @id @default(uuid()) @db.Uuid
+  email        String?    @unique @db.VarChar(255)
+  phone        String?    @unique @db.VarChar(20)
+  passwordHash String     @map("password_hash") @db.VarChar(255)
+  roleId       Int        @map("role_id")
+  status       UserStatus @default(ACTIVE)
+  fullName     String     @map("full_name") @db.VarChar(255)
+  address      String?    @db.Text
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  role               Role                @relation(fields: [roleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  partner            Partner?
+  cart               Cart?
+  orders             Order[]
+  issuedVoucherCodes IssuedVoucherCode[]
+  usageLogs          UsageLog[]
+
+  @@map("users")
+}
+
+// MODELS — Đối tác
+
+/// Hồ sơ doanh nghiệp đối tác. ownerUserId @unique → quan hệ 1:0..1 với User (quyết định 2026-06-16).
+model Partner {
+  id              String          @id @default(uuid()) @db.Uuid
+  ownerUserId     String          @unique @map("owner_user_id") @db.Uuid
+  legalName       String          @map("legal_name") @db.VarChar(255)
+  taxCode         String          @unique @map("tax_code") @db.VarChar(32)
+  representative  String          @db.VarChar(255)
+  approvalStatus  ApprovalStatus  @default(PENDING) @map("approval_status")
+  rejectReason    String?         @map("reject_reason") @db.Text
+  operatingStatus OperatingStatus @default(ACTIVE) @map("operating_status")
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  owner           User             @relation(fields: [ownerUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  branches        Branch[]
+  voucherProducts VoucherProduct[]
+
+  @@map("partners")
+}
+
+/// Chi nhánh đối tác. Đợt 2 — đã khai schema sẵn, feature (redeem + lọc khu vực) làm sau.
+model Branch {
+  id        Int    @id @default(autoincrement())
+  partnerId String @map("partner_id") @db.Uuid
+  name      String @db.VarChar(255)
+  address   String @db.Text
+  region    String @db.VarChar(128)
+
+  // Relations
+  partner                Partner                @relation(fields: [partnerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  voucherProductBranches VoucherProductBranch[]
+  usageLogs              UsageLog[]
+
+  @@index([partnerId])
+  @@index([region])
+  @@map("branches")
+}
+
+// MODELS — Danh mục & voucher
+
+/// Danh mục cây (self-reference). Seeded cố định — không có màn admin quản lý danh mục ở MVP.
+model Category {
+  id       Int    @id @default(autoincrement())
+  name     String @db.VarChar(128)
+  parentId Int?   @map("parent_id")
+
+  // Relations (self-reference cần named relation)
+  parent          Category?        @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  children        Category[]       @relation("CategoryTree")
+  voucherProducts VoucherProduct[]
+
+  @@unique([name, parentId])
+  @@map("categories")
+}
+
+/// Sản phẩm voucher. 7 trạng thái (máy trạng thái chính — xem docs/02-srs §1.4).
+/// CHECK tay: sale_price < original_price, remaining_quantity <= total_quantity,
+///   total_quantity >= 0, remaining_quantity >= 0, is_multi_use = false OR uses_per_code IS NOT NULL.
+model VoucherProduct {
+  id                String        @id @default(uuid()) @db.Uuid
+  partnerId         String        @map("partner_id") @db.Uuid
+  categoryId        Int?          @map("category_id")
+  name              String        @db.VarChar(255)
+  description       String        @db.Text
+  imageUrl          String?       @map("image_url") @db.VarChar(512)
+  originalPrice     Decimal       @map("original_price") @db.Decimal(12, 2)
+  salePrice         Decimal       @map("sale_price") @db.Decimal(12, 2)
+  saleStart         DateTime      @map("sale_start") @db.Timestamptz(6)
+  saleEnd           DateTime      @map("sale_end") @db.Timestamptz(6)
+  usageStart        DateTime      @map("usage_start") @db.Timestamptz(6)
+  usageEnd          DateTime      @map("usage_end") @db.Timestamptz(6)
+  totalQuantity     Int           @map("total_quantity")
+  remainingQuantity Int           @map("remaining_quantity")
+  isMultiUse        Boolean       @default(false) @map("is_multi_use")
+  usesPerCode       Int?          @map("uses_per_code")
+  status            VoucherStatus @default(DRAFT)
+  rejectReason      String?       @map("reject_reason") @db.Text
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  partner                Partner                @relation(fields: [partnerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  category               Category?              @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  voucherProductBranches VoucherProductBranch[]
+  cartItems              CartItem[]
+  orderItems             OrderItem[]
+  issuedVoucherCodes     IssuedVoucherCode[]
+
+  @@index([partnerId])
+  @@index([categoryId])
+  @@index([status])
+  @@index([saleStart, saleEnd])
+  @@index([usageStart, usageEnd])
+  @@index([remainingQuantity])
+  @@map("voucher_products")
+}
+
+/// Bảng nối N-M: voucher áp dụng tại chi nhánh nào. Đợt 2 — schema sẵn.
+model VoucherProductBranch {
+  voucherProductId String @map("voucher_product_id") @db.Uuid
+  branchId         Int    @map("branch_id")
+
+  // Relations
+  voucherProduct VoucherProduct @relation(fields: [voucherProductId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  branch         Branch         @relation(fields: [branchId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([voucherProductId, branchId])
+  @@index([branchId])
+  @@map("voucher_product_branches")
+}
+
+// MODELS — Giỏ hàng
+
+/// Giỏ hàng server-side. 1 khách ↔ 1 giỏ (customerId @unique).
+/// Tổng tạm tính KHÔNG lưu — tính realtime từ voucher_products.sale_price.
+model Cart {
+  id         String   @id @default(uuid()) @db.Uuid
+  customerId String   @unique @map("customer_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  customer  User       @relation(fields: [customerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  cartItems CartItem[]
+
+  @@map("carts")
+}
+
+/// Dòng trong giỏ. CHECK tay: quantity > 0.
+/// UNIQUE(cartId, voucherProductId) — 1 voucher = 1 dòng, thêm lại → cộng dồn quantity.
+model CartItem {
+  id               Int      @id @default(autoincrement())
+  cartId           String   @map("cart_id") @db.Uuid
+  voucherProductId String   @map("voucher_product_id") @db.Uuid
+  quantity         Int
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // Relations
+  cart           Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  voucherProduct VoucherProduct @relation(fields: [voucherProductId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([cartId, voucherProductId])
+  @@index([voucherProductId])
+  @@map("cart_items")
+}
+
+// MODELS — Đơn hàng
+
+/// Đơn hàng. 4 trạng thái (máy trạng thái — xem docs/02-srs §1.4).
+model Order {
+  id            String      @id @default(uuid()) @db.Uuid
+  customerId    String      @map("customer_id") @db.Uuid
+  /// denormalized snapshot — cố ý: đông cứng tổng tiền = Σ(unit_price × quantity) lúc đặt.
+  totalAmount   Decimal     @map("total_amount") @db.Decimal(12, 2)
+  paymentMethod String      @map("payment_method") @db.VarChar(32)
+  status        OrderStatus @default(PENDING_PAYMENT)
+  giftRecipient Json?       @map("gift_recipient") @db.JsonB
+  paidAt        DateTime?   @map("paid_at") @db.Timestamptz(6)
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  customer           User                @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  orderItems         OrderItem[]
+  issuedVoucherCodes IssuedVoucherCode[]
+
+  @@index([customerId])
+  @@index([status])
+  @@map("orders")
+}
+
+/// Dòng đơn hàng (bất biến sau khi tạo — không cần updatedAt).
+/// unit_price = snapshot giá bán lúc đặt, không đổi kể cả khi voucher đổi giá sau.
+/// CHECK tay: quantity > 0.
+model OrderItem {
+  id               Int     @id @default(autoincrement())
+  orderId          String  @map("order_id") @db.Uuid
+  voucherProductId String  @map("voucher_product_id") @db.Uuid
+  quantity         Int
+  unitPrice        Decimal @map("unit_price") @db.Decimal(12, 2)
+
+  // Relations
+  order              Order               @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  voucherProduct     VoucherProduct      @relation(fields: [voucherProductId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  issuedVoucherCodes IssuedVoucherCode[]
+
+  @@index([orderId])
+  @@index([voucherProductId])
+  @@map("order_items")
+}
+
+// MODELS — Phát hành & sử dụng
+
+/// Mã voucher đã phát hành. 5 trạng thái (máy trạng thái — xem docs/02-srs §1.4).
+/// code ≥ 12 ký tự, sinh bằng CSPRNG (FR-08 AC3/4).
+model IssuedVoucherCode {
+  id               String            @id @default(uuid()) @db.Uuid
+  code             String            @unique @db.VarChar(32)
+  /// denormalized — cố ý: tiện truy ngược mã → đơn mà không join 2 chặng qua order_items.
+  orderId          String            @map("order_id") @db.Uuid
+  orderItemId      Int               @map("order_item_id")
+  voucherProductId String            @map("voucher_product_id") @db.Uuid
+  ownerUserId      String            @map("owner_user_id") @db.Uuid
+  status           VoucherCodeStatus @default(UNUSED)
+  remainingUses    Int               @default(1) @map("remaining_uses")
+  issuedAt         DateTime          @default(now()) @map("issued_at") @db.Timestamptz(6)
+  /// denormalized snapshot — cố ý: đông cứng hạn sử dụng từ voucher_products.usage_end lúc phát hành.
+  expiresAt        DateTime          @map("expires_at") @db.Timestamptz(6)
+  updatedAt        DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  order          Order          @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  orderItem      OrderItem      @relation(fields: [orderItemId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  voucherProduct VoucherProduct @relation(fields: [voucherProductId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  owner          User           @relation(fields: [ownerUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  usageLogs      UsageLog[]
+
+  @@index([orderId])
+  @@index([orderItemId])
+  @@index([voucherProductId])
+  @@index([ownerUserId])
+  @@index([status])
+  @@map("issued_voucher_codes")
+}
+
+/// Nhật ký sử dụng/redeem (bất biến — không cần updatedAt). Đợt 2 — schema sẵn.
+model UsageLog {
+  id           Int         @id @default(autoincrement())
+  issuedCodeId String      @map("issued_code_id") @db.Uuid
+  branchId     Int         @map("branch_id")
+  actorUserId  String      @map("actor_user_id") @db.Uuid
+  usedAt       DateTime    @default(now()) @map("used_at") @db.Timestamptz(6)
+  result       UsageResult
+
+  // Relations
+  issuedCode IssuedVoucherCode @relation(fields: [issuedCodeId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  branch     Branch            @relation(fields: [branchId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  actor      User              @relation(fields: [actorUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([issuedCodeId])
+  @@index([branchId])
+  @@index([actorUserId])
+  @@map("usage_logs")
+}
