@@ -1,29 +1,39 @@
-// Express app set up
-import express, { Request, Response } from 'express'
+import express from 'express'
 import helmet from 'helmet'
 import morgan from 'morgan'
 
-import { env } from './configs/env'
+import { env } from '~/configs/env'
+import { notFoundHandler } from '~/middlewares/not-found'
+import { errorHandler } from '~/middlewares/error-handler'
+import { ApiResponse } from '~/utils/api-response'
 
 const app = express()
 
-// init middlewares
+// Security
 app.use(helmet())
-if (env.NODE_ENV !== 'production') {
-  app.use(morgan('dev'))
+
+// Body parsing
+app.use(express.json({ limit: '1mb' }))
+app.use(express.urlencoded({ extended: true }))
+
+// Logging 
+if (env.NODE_ENV !== 'test') {
+  app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'))
 }
 
-// init db
-
-// init routes
-app.get('/health', (_req: Request, res: Response) => {
-  res.status(200).json({ success: true, data: { status: 'ok' } })
+// Routes
+app.get('/health', (_req, res) => {
+  ApiResponse.success(res, { status: 'ok' })
 })
 
-app.get('/', (_req: Request, res: Response) => {
-  res.status(200).json({ success: true, data: { message: 'Welcome VoucherHub' } })
+app.get('/', (_req, res) => {
+  ApiResponse.success(res, { message: 'Welcome VoucherHub' })
 })
 
-// handling error
+// Future: app.use('/api/v1', router)
+
+// Error handling
+app.use(notFoundHandler)
+app.use(errorHandler)
 
 export default app
