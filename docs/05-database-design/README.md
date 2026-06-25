@@ -204,9 +204,9 @@ erDiagram
 | `id` | `uuid` | PK | |
 | `customer_id` | `uuid` | FK→`users`, NOT NULL | |
 | `total_amount` | `numeric(12,2)` | NOT NULL | snapshot tổng tiền |
-| `payment_method` | `varchar(32)` | NOT NULL | |
+| `payment_method` | `varchar(32)` | NOT NULL | vd: `SIMULATED` |
 | `status` | `order_status` | NOT NULL, default `pending_payment` | |
-| `gift_recipient` | `jsonb` | nullable | metadata phụ |
+| `gift_recipient` | `jsonb` | nullable | JSON chứa `{name, phone}` người nhận quà (FR-07 AC2) |
 | `paid_at` | `timestamptz(6)` | nullable | |
 | `created_at` | `timestamptz(6)` | NOT NULL | |
 | `updated_at` | `timestamptz(6)` | NOT NULL | |

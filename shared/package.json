@@ -5,7 +5,10 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
-    "build": "rimraf dist && tsc",
+    "build": "rimraf dist tsconfig.tsbuildinfo && tsc",
     "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
   }
 }

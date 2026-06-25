@@ -170,7 +170,7 @@ Không kết quả → `items: []` + 200 (không phải 404).
 ```jsonc
 { "success": true,
   "data": { "id": "clx...", "status": "cho_thanh_toan", "totalAmount": 400000,
-    "items": [ { "voucherId": "clx...", "quantity": 2, "unitPrice": 200000 } ] } }
+    "items": [ { "voucherProductId": "clx...", "quantity": 2, "unitPrice": 200000 } ] } }
 ```
 **Lỗi**: giỏ rỗng → 422 (`giỏ hàng rỗng`); bất kỳ mục vượt tồn kho → 422 (`vượt quá tồn kho` + `details` theo voucher).
 
@@ -181,7 +181,7 @@ Không kết quả → `items: []` + 200 (không phải 404).
 ```jsonc
 { "success": true,
   "data": { "orderId": "clx...", "status": "da_thanh_toan",
-    "codes": [ { "code": "A1B2C3D4E5F6", "voucherId": "clx...",
+    "codes": [ { "code": "A1B2C3D4E5F6", "voucherProductId": "clx...",
                  "status": "chua_su_dung", "expiresAt": "2026-12-31T23:59:59Z" } ] } }
 ```
 **Lỗi**: `outcome=FAILURE` → 200 `{ success:true, data:{ status:"cho_thanh_toan" } }` (giữ trạng thái, không phát hành — FR-08 AC7); đơn không thuộc khách → 403; đơn không `cho_thanh_toan` → 409. **Mã không bao giờ trả về nếu đơn chưa `da_thanh_toan`** (FR-08 AC8).
@@ -198,7 +198,7 @@ Không kết quả → `items: []` + 200 (không phải 404).
 
 ### 3.7 `POST /voucher-codes/:code/redemption` (FR-15) — endpoint lõi
 
-**Request** `{ "branchId": "clx..." }`
+**Request** `{ "branchId": 1 }`
 **200 OK** (một-lượt) — transaction: `da_su_dung` + ghi Nhật_ký_sử_dụng:
 ```jsonc
 { "success": true,
