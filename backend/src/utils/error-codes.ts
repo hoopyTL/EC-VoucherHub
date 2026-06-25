@@ -31,7 +31,7 @@ export const ErrorCode = {
   RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED',
 
   // 500
-  INTERNAL_ERROR: 'INTERNAL_ERROR',
+  INTERNAL_ERROR: 'INTERNAL_ERROR'
 } as const
 
 export type ErrorCodeValue = (typeof ErrorCode)[keyof typeof ErrorCode]
@@ -58,5 +58,5 @@ export const ErrorHttpStatus: Record<ErrorCodeValue, number> = {
 
   [ErrorCode.RATE_LIMIT_EXCEEDED]: 429,
 
-  [ErrorCode.INTERNAL_ERROR]: 500,
+  [ErrorCode.INTERNAL_ERROR]: 500
 }

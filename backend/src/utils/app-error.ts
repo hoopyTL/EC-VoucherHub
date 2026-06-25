@@ -33,7 +33,11 @@ export class AppError extends Error {
   }
 
   static notFound(resource = 'Resource'): AppError {
-    return new AppError(`${resource} not found`, ErrorHttpStatus[ErrorCode.RESOURCE_NOT_FOUND], ErrorCode.RESOURCE_NOT_FOUND)
+    return new AppError(
+      `${resource} not found`,
+      ErrorHttpStatus[ErrorCode.RESOURCE_NOT_FOUND],
+      ErrorCode.RESOURCE_NOT_FOUND
+    )
   }
 
   static conflict(message = 'Resource already exists', details?: unknown): AppError {
