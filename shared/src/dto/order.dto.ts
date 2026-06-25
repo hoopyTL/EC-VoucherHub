@@ -23,6 +23,26 @@ export const createOrderSchema = z.object({
 })
 export type CreateOrderDto = z.infer<typeof createOrderSchema>
 
+export const paymentOutcomeSchema = z.object({
+  outcome: z.enum(['SUCCESS', 'FAILURE'], {
+    error: 'outcome phải là SUCCESS hoặc FAILURE',
+  }),
+})
+export type PaymentOutcomeDto = z.infer<typeof paymentOutcomeSchema>
+
+export interface VoucherCodeIssuedResponse {
+  code: string
+  voucherProductId: string
+  status: string
+  expiresAt: string
+}
+
+export interface PaymentResponse {
+  orderId: string
+  status: string
+  codes: VoucherCodeIssuedResponse[]
+}
+
 export interface OrderItemResponse {
   id: number
   voucherProductId: string

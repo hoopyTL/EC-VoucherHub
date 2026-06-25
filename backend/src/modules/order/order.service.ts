@@ -4,6 +4,7 @@ import {
   NotFoundError,
   ValidationError,
   ForbiddenError,
+  ConflictError,
 } from '../../middleware/error-handler'
 import type {
   CreateOrderDto,
@@ -11,8 +12,11 @@ import type {
   OrderItemResponse,
   OrderListResponse,
   GiftRecipient,
+  PaymentOutcomeDto,
+  PaymentResponse,
 } from '@voucher/shared'
 import { Decimal } from '@prisma/client/runtime/library'
+import { generateVoucherCode } from '../../utils/voucher-code-generator'
 
 // ─── Constants ──────────────────────────────────────────────────────
 
@@ -254,4 +258,181 @@ export const getOrderDetail = async (
   }
 
   return toOrderResponse(order)
+}
+
+/**
+ * Xử lý thanh toán mô phỏng cho đơn hàng.
+ * Nếu thành công: trừ kho + đổi trạng thái PAID + phát hành N mã voucher trong transaction.
+ */
+export const processPayment = async (
+  customerId: string,
+  orderId: string,
+  dto: PaymentOutcomeDto,
+): Promise<PaymentResponse> => {
+  // 1. Tìm đơn hàng
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: {
+      orderItems: {
+        include: {
+          voucherProduct: {
+            select: {
+              id: true,
+              name: true,
+              status: true,
+              remainingQuantity: true,
+              usageEnd: true,
+              isMultiUse: true,
+              usesPerCode: true,
+            },
+          },
+        },
+      },
+    },
+  })
+
+  if (!order) {
+    throw new NotFoundError('đơn hàng không tồn tại')
+  }
+
+  if (order.customerId !== customerId) {
+    throw new ForbiddenError('đơn hàng không thuộc về bạn')
+  }
+
+  // 2. Kiểm tra trạng thái đơn hàng (chỉ thanh toán khi PENDING_PAYMENT)
+  if (order.status !== 'PENDING_PAYMENT') {
+    throw new ConflictError('đơn hàng không ở trạng thái chờ thanh toán')
+  }
+
+  // 3. Nếu thanh toán thất bại
+  if (dto.outcome === 'FAILURE') {
+    return {
+      orderId: order.id,
+      status: order.status,
+      codes: [],
+    }
+  }
+
+  // 4. Nếu thanh toán thành công -> Chạy transaction
+  const issuedCodes = await prisma.$transaction(async (tx) => {
+    const codesData: Array<{
+      code: string
+      orderId: string
+      orderItemId: number
+      voucherProductId: string
+      ownerUserId: string
+      status: 'UNUSED'
+      remainingUses: number
+      expiresAt: Date
+    }> = []
+
+    // 4a. Khóa và trừ tồn kho từng voucher
+    for (const item of order.orderItems) {
+      const vp = item.voucherProduct
+
+      // Tải lại voucher và kiểm tra lại
+      const freshVoucher = await tx.voucherProduct.findUnique({
+        where: { id: vp.id },
+        select: { remainingQuantity: true, name: true, status: true },
+      })
+
+      if (!freshVoucher || freshVoucher.status !== 'ON_SALE') {
+        throw new ValidationError('voucher không còn đang bán', [
+          { field: `items.${vp.id}`, message: `Voucher "${freshVoucher?.name ?? 'Không tên'}" không còn bán.` },
+        ])
+      }
+
+      if (freshVoucher.remainingQuantity < item.quantity) {
+        throw new ValidationError('vượt quá tồn kho', [
+          { field: `items.${vp.id}`, message: `Voucher "${freshVoucher.name}" không đủ số lượng trong kho.` },
+        ])
+      }
+
+      // Trừ tồn kho
+      await tx.voucherProduct.update({
+        where: { id: vp.id },
+        data: {
+          remainingQuantity: {
+            decrement: item.quantity,
+          },
+        },
+      })
+
+      // 4b. Chuẩn bị thông tin mã voucher sẽ phát hành
+      for (let i = 0; i < item.quantity; i++) {
+        // Sinh mã ngẫu nhiên duy nhất
+        let code = generateVoucherCode()
+        
+        // Đảm bảo không trùng lặp (nếu trùng thì sinh lại, tối đa 5 lần)
+        let isUnique = false
+        let attempts = 0
+        while (!isUnique && attempts < 5) {
+          const existingCode = await tx.issuedVoucherCode.findUnique({
+            where: { code },
+          })
+          if (!existingCode) {
+            isUnique = true
+          } else {
+            code = generateVoucherCode()
+            attempts++
+          }
+        }
+
+        codesData.push({
+          code,
+          orderId: order.id,
+          orderItemId: item.id,
+          voucherProductId: vp.id,
+          ownerUserId: customerId,
+          status: 'UNUSED',
+          remainingUses: vp.isMultiUse ? (vp.usesPerCode ?? 1) : 1,
+          expiresAt: vp.usageEnd,
+        })
+      }
+    }
+
+    // 4c. Cập nhật trạng thái đơn hàng -> PAID
+    await tx.order.update({
+      where: { id: order.id },
+      data: {
+        status: 'PAID',
+        paidAt: new Date(),
+      },
+    })
+
+    // 4d. Tạo các mã voucher trong DB
+    const createdCodes: Array<{
+      code: string
+      voucherProductId: string
+      status: string
+      expiresAt: Date
+    }> = []
+
+    for (const data of codesData) {
+      const newCode = await tx.issuedVoucherCode.create({
+        data,
+        select: {
+          code: true,
+          voucherProductId: true,
+          status: true,
+          expiresAt: true,
+        },
+      })
+      createdCodes.push(newCode)
+    }
+
+    return createdCodes
+  })
+
+  // 5. Trả về kết quả thanh toán thành công
+  return {
+    orderId: order.id,
+    status: 'PAID',
+    codes: issuedCodes.map((c) => ({
+      code: c.code,
+      voucherProductId: c.voucherProductId,
+      status: c.status,
+      expiresAt: c.expiresAt.toISOString(),
+    })),
+  }
 }

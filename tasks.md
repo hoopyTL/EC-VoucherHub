@@ -12,13 +12,13 @@
 
 ## Bảng phân công tổng hợp
 
-| Thành viên | Vai trò / Domain | TASK sở hữu | Số TASK |
-| --- | --- | --- | --- |
-| **TV1 — Lead** | Nền tảng, Auth & RBAC | 001, 002, 003, 004, 005 | 5 |
-| **TV2** | Mua sắm — Khách hàng | 008, 009, 010, 011, 012, 020 | 6 |
-| **TV3** | Đối tác & Voucher | 006, 007, 013, 014, 021 | 5 |
-| **TV4** | Quản trị & Báo cáo | 015, 016, 017, 018, 019, 022 | 6 |
-| **Cả nhóm** | Tích hợp đầu cuối | 023 | 1 |
+| Thành viên          | Vai trò / Domain        | TASK sở hữu                | Số TASK |
+| --------------------- | ------------------------ | ---------------------------- | -------- |
+| **TV1 — Lead** | Nền tảng, Auth & RBAC  | 001, 002, 003, 004, 005      | 5        |
+| **TV2**         | Mua sắm — Khách hàng | 008, 009, 010, 011, 012, 020 | 6        |
+| **TV3**         | Đối tác & Voucher     | 006, 007, 013, 014, 021      | 5        |
+| **TV4**         | Quản trị & Báo cáo   | 015, 016, 017, 018, 019, 022 | 6        |
+| **Cả nhóm**   | Tích hợp đầu cuối   | 023                          | 1        |
 
 ---
 
@@ -26,13 +26,13 @@
 
 > Làm **trước tiên** ở Giai đoạn 0. Toàn nhóm chờ mảng này, nên ưu tiên cao nhất.
 
-| TASK | Tên | Source | Phụ thuộc |
-| --- | --- | --- | --- |
-| TASK-001 | Hoàn thiện scaffold monorepo + công cụ kiểm thử | NFR-04/05/08 | — |
-| TASK-002 | Prisma schema + migration khởi tạo + tầng repository | FR-01, FR-08 | TASK-001 |
-| TASK-003 | Nền tảng miền — máy trạng thái + xử lý lỗi tập trung | FR-07/08/12-15/19/20, NFR-03 | TASK-002 |
-| TASK-004 | Auth & User Service + RBAC | FR-01, FR-02, FR-03, FR-17 | TASK-003 |
-| TASK-005 | **Checkpoint** — Auth & RBAC | — | TASK-004 |
+| TASK     | Tên                                                            | Source                       | Phụ thuộc |
+| -------- | --------------------------------------------------------------- | ---------------------------- | ----------- |
+| TASK-001 | Hoàn thiện scaffold monorepo + công cụ kiểm thử           | NFR-04/05/08                 | —          |
+| TASK-002 | Prisma schema + migration khởi tạo + tầng repository         | FR-01, FR-08                 | TASK-001    |
+| TASK-003 | Nền tảng miền — máy trạng thái + xử lý lỗi tập trung | FR-07/08/12-15/19/20, NFR-03 | TASK-002    |
+| TASK-004 | Auth & User Service + RBAC                                      | FR-01, FR-02, FR-03, FR-17   | TASK-003    |
+| TASK-005 | **Checkpoint** — Auth & RBAC                             | —                           | TASK-004    |
 
 **Bàn giao cho nhóm**: schema DB ổn định, middleware Auth/RBAC + kiểm tra phạm vi sở hữu, máy trạng thái + khung lỗi dùng chung. Sau TASK-005, ba domain còn lại khởi động song song.
 
@@ -42,14 +42,14 @@
 
 > Sở hữu lõi giao dịch của hệ thống: giỏ hàng → đặt đơn → thanh toán → phát hành mã. TASK-010 là phần rủi ro nhất (chống oversell, mã duy nhất, giao dịch nguyên tử).
 
-| TASK | Tên | Source | Phụ thuộc |
-| --- | --- | --- | --- |
-| TASK-008 | Tìm kiếm, lọc & chi tiết voucher | FR-04, FR-05 | TASK-007 (TV3) |
-| TASK-009 | Cart & Order Service | FR-06, FR-07 | TASK-008 |
-| TASK-010 | Payment Sim + phát hành Voucher_code (**lõi hệ thống**) | FR-08, R19.2, R24.3 | TASK-009 |
-| TASK-011 | **Checkpoint** — Mua → Thanh toán → Phát hành | — | TASK-010 |
-| TASK-012 | Nhận voucher đã mua & lịch sử đơn | FR-09 | TASK-010 |
-| TASK-020 | Frontend — Giao diện Khách hàng (FLOW-001..004) | FR-01,02,04,05,06,07,08,09,10 | TASK-010, 012, 014 (TV3) |
+| TASK     | Tên                                                               | Source                        | Phụ thuộc              |
+| -------- | ------------------------------------------------------------------ | ----------------------------- | ------------------------ |
+| TASK-008 | Tìm kiếm, lọc & chi tiết voucher                               | FR-04, FR-05                  | TASK-007 (TV3)           |
+| TASK-009 | Cart & Order Service                                               | FR-06, FR-07                  | TASK-008                 |
+| TASK-010 | Payment Sim + phát hành Voucher_code (**lõi hệ thống**) | FR-08, R19.2, R24.3           | TASK-009                 |
+| TASK-011 | **Checkpoint** — Mua → Thanh toán → Phát hành          | —                            | TASK-010                 |
+| TASK-012 | Nhận voucher đã mua & lịch sử đơn                           | FR-09                         | TASK-010                 |
+| TASK-020 | Frontend — Giao diện Khách hàng (FLOW-001..004)                | FR-01,02,04,05,06,07,08,09,10 | TASK-010, 012, 014 (TV3) |
 
 **Lưu ý phối hợp**: TASK-008 chờ TASK-007 (voucher product của TV3); TASK-020 chờ thêm TASK-014 (review của TV3). Đồng bộ lịch với TV3.
 
@@ -59,12 +59,12 @@
 
 > Sở hữu vòng đời voucher (tạo → duyệt) và luồng xác thực sử dụng tại chi nhánh.
 
-| TASK | Tên | Source | Phụ thuộc |
-| --- | --- | --- | --- |
-| TASK-006 | Partner Service | FR-11, FR-18 | TASK-004 (TV1) |
-| TASK-007 | Voucher Product Service + máy trạng thái sản phẩm | FR-12, FR-13, FR-19 | TASK-006 |
-| TASK-013 | Redemption Service (kiểm tra + xác nhận sử dụng) | FR-14, FR-15 | TASK-010 (TV2) |
-| TASK-014 | Review Service | FR-10 | TASK-013 |
+| TASK     | Tên                                                            | Source               | Phụ thuộc              |
+| -------- | --------------------------------------------------------------- | -------------------- | ------------------------ |
+| TASK-006 | Partner Service                                                 | FR-11, FR-18         | TASK-004 (TV1)           |
+| TASK-007 | Voucher Product Service + máy trạng thái sản phẩm          | FR-12, FR-13, FR-19  | TASK-006                 |
+| TASK-013 | Redemption Service (kiểm tra + xác nhận sử dụng)           | FR-14, FR-15         | TASK-010 (TV2)           |
+| TASK-014 | Review Service                                                  | FR-10                | TASK-013                 |
 | TASK-021 | Frontend — Giao diện Đối tác / Nhân viên (FLOW-005..008) | FR-11,12,13,14,15,16 | TASK-007, 013, 016 (TV4) |
 
 **Lưu ý phối hợp**: TASK-007 là dependency của TASK-008 (TV2) → ưu tiên làm sớm. TASK-013 chờ TASK-010 (lõi của TV2).
@@ -75,14 +75,14 @@
 
 > Sở hữu mảng vận hành: quản lý đơn, báo cáo, nội dung, nhật ký, dữ liệu mẫu.
 
-| TASK | Tên | Source | Phụ thuộc |
-| --- | --- | --- | --- |
-| TASK-015 | Quản lý đơn hàng (Quản trị viên) | FR-20 | TASK-010 (TV2) |
-| TASK-016 | Reporting & Dashboard Service | FR-16, FR-22 | TASK-013 (TV3), TASK-015 |
-| TASK-017 | Content Service | FR-21 | TASK-004 (TV1) |
-| TASK-018 | Audit Log Service | FR-23 | TASK-006 (TV3), 007 (TV3), 015 |
-| TASK-019 | Dữ liệu mẫu (seed) | NFR-08, CON-04, AC-04 | TASK-018 |
-| TASK-022 | Frontend — Giao diện Quản trị viên (FLOW-009..012) | FR-17,18,19,20,21,22,23 | TASK-015, 016, 017, 018 |
+| TASK     | Tên                                                    | Source                  | Phụ thuộc                    |
+| -------- | ------------------------------------------------------- | ----------------------- | ------------------------------ |
+| TASK-015 | Quản lý đơn hàng (Quản trị viên)                | FR-20                   | TASK-010 (TV2)                 |
+| TASK-016 | Reporting & Dashboard Service                           | FR-16, FR-22            | TASK-013 (TV3), TASK-015       |
+| TASK-017 | Content Service                                         | FR-21                   | TASK-004 (TV1)                 |
+| TASK-018 | Audit Log Service                                       | FR-23                   | TASK-006 (TV3), 007 (TV3), 015 |
+| TASK-019 | Dữ liệu mẫu (seed)                                   | NFR-08, CON-04, AC-04   | TASK-018                       |
+| TASK-022 | Frontend — Giao diện Quản trị viên (FLOW-009..012) | FR-17,18,19,20,21,22,23 | TASK-015, 016, 017, 018        |
 
 **Lưu ý phối hợp**: TASK-017 chỉ cần nền tảng (TASK-004) → có thể bắt đầu sớm khi chờ TASK-010. TASK-019 (seed) cần dữ liệu mọi domain → làm gần cuối.
 
@@ -90,9 +90,9 @@
 
 ## Cả nhóm — Tích hợp
 
-| TASK | Tên | Source | Phụ thuộc |
-| --- | --- | --- | --- |
-| TASK-023 | Kiểm thử tích hợp đầu cuối + **Checkpoint cuối** | FLOW-003, FLOW-007 | TASK-020, 021, 022 |
+| TASK     | Tên                                                          | Source             | Phụ thuộc        |
+| -------- | ------------------------------------------------------------- | ------------------ | ------------------ |
+| TASK-023 | Kiểm thử tích hợp đầu cuối +**Checkpoint cuối** | FLOW-003, FLOW-007 | TASK-020, 021, 022 |
 
 Cả 4 thành viên cùng tham gia: chạy luồng mua → thanh toán → phát hành → xác thực end-to-end, xác minh transaction + ràng buộc DB, chốt toàn bộ test xanh trước demo.
 
@@ -100,14 +100,14 @@ Cả 4 thành viên cùng tham gia: chạy luồng mua → thanh toán → phát
 
 ## Tiến trình theo giai đoạn (gợi ý)
 
-| Giai đoạn | Ai làm | Nội dung |
-| --- | --- | --- |
-| **0 — Nền tảng** | TV1 (cả nhóm hỗ trợ) | TASK-001..005 — scaffold, DB, domain core, Auth/RBAC. Nhóm chờ điểm này. |
-| **1 — Toả domain** | TV2/3/4 song song | TV3 ưu tiên TASK-006→007 (mở khoá TV2). TV4 bắt đầu TASK-017. TV2 chờ 007 rồi chạy 008→009→010. |
-| **2 — Lõi giao dịch** | TV2 + checkpoint | TASK-010 + TASK-011 (cả nhóm xác nhận). Mở khoá TASK-012/013/015. |
-| **3 — Hoàn thiện service** | TV3/TV4 | TASK-013/014, 015/016/018/019. |
-| **4 — Frontend** | TV2/3/4 | TASK-020/021/022 theo domain. |
-| **5 — Tích hợp** | Cả nhóm | TASK-023 + checkpoint cuối → demo. |
+| Giai đoạn                         | Ai làm                  | Nội dung                                                                                                    |
+| ----------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| **0 — Nền tảng**           | TV1 (cả nhóm hỗ trợ) | TASK-001..005 — scaffold, DB, domain core, Auth/RBAC. Nhóm chờ điểm này.                               |
+| **1 — Toả domain**          | TV2/3/4 song song        | TV3 ưu tiên TASK-006→007 (mở khoá TV2). TV4 bắt đầu TASK-017. TV2 chờ 007 rồi chạy 008→009→010. |
+| **2 — Lõi giao dịch**      | TV2 + checkpoint         | TASK-010 + TASK-011 (cả nhóm xác nhận). Mở khoá TASK-012/013/015.                                      |
+| **3 — Hoàn thiện service** | TV3/TV4                  | TASK-013/014, 015/016/018/019.                                                                               |
+| **4 — Frontend**             | TV2/3/4                  | TASK-020/021/022 theo domain.                                                                                |
+| **5 — Tích hợp**           | Cả nhóm                | TASK-023 + checkpoint cuối → demo.                                                                         |
 
 ## Quy ước làm việc
 
@@ -134,11 +134,11 @@ Cả 4 thành viên cùng tham gia: chạy luồng mua → thanh toán → phát
 
 > Ba mảng này cả nhóm cùng làm / một người chốt, **không đếm vào cân tải** giữa 4 thành viên.
 
-| Mảng | Ai | Ghi chú |
-| --- | --- | --- |
-| **Scaffold** (TASK-001) | cả nhóm (TV1 chốt) | dựng monorepo + tooling một lần ở đầu |
-| **DB schema + migration** (TASK-002 phần schema, cả 2 đợt) | **TV1 (bạn) viết** | TV1 sở hữu `schema.prisma` — người khác cần model mới thì báo, KHÔNG tự sửa |
-| **Report / Dashboard** (TASK-016) | cả nhóm | query tổng hợp, cụm độc lập — ghép cuối khi số liệu các domain đã có |
+| Mảng                                                                | Ai                         | Ghi chú                                                                                  |
+| -------------------------------------------------------------------- | -------------------------- | ----------------------------------------------------------------------------------------- |
+| **Scaffold** (TASK-001)                                        | cả nhóm (TV1 chốt)      | dựng monorepo + tooling một lần ở đầu                                               |
+| **DB schema + migration** (TASK-002 phần schema, cả 2 đợt) | **TV1 (bạn) viết** | TV1 sở hữu`schema.prisma` — người khác cần model mới thì báo, KHÔNG tự sửa |
+| **Report / Dashboard** (TASK-016)                              | cả nhóm                  | query tổng hợp, cụm độc lập — ghép cuối khi số liệu các domain đã có       |
 
 ---
 
@@ -146,12 +146,12 @@ Cả 4 thành viên cùng tham gia: chạy luồng mua → thanh toán → phát
 
 > Nguyên tắc: **domain để chia code** (gom flow dùng-chung-service về một người → ít đụng nhau nhất). **Flow để chia test e2e** (xem mục dưới). Mỗi người một lát dọc `services/<domain>/` + `pages/<role>/`, không sửa file của nhau.
 
-| Thành viên | Domain | TASK code | FLOW phủ | Điểm |
-| --- | --- | --- | --- | --- |
-| **TV1 — bạn** | Nền tảng code + Auth | 003, 004, 012, **020 (FE khách)** | 001, 009 | ~11 |
-| **TV2** | Shopping BE (lõi giao dịch) | 008, 009, 010 | 002, 003 | ~8.5 |
-| **TV3** | Đối tác & Voucher (BE+FE) | 006, 007, 013, 021 | 005, 006, 007 | ~10.5 |
-| **TV4** | Admin + Seed (BE+FE) + **dẫn integration/e2e** | 015, 019, 022, **023** | 010 + sở hữu toàn bộ FLOW-tag | ~10.5 |
+| Thành viên          | Domain                                               | TASK code                               | FLOW phủ                         | Điểm |
+| --------------------- | ---------------------------------------------------- | --------------------------------------- | --------------------------------- | ------ |
+| **TV1 — bạn** | Nền tảng code + Auth                               | 003, 004, 012,**020 (FE khách)** | 001, 009                          | ~11    |
+| **TV2**         | Shopping BE (lõi giao dịch)                        | 008, 009, 010                           | 002, 003                          | ~8.5   |
+| **TV3**         | Đối tác & Voucher (BE+FE)                         | 006, 007, 013, 021                      | 005, 006, 007                     | ~10.5  |
+| **TV4**         | Admin + Seed (BE+FE) +**dẫn integration/e2e** | 015, 019, 022,**023**             | 010 + sở hữu toàn bộ FLOW-tag | ~10.5  |
 
 **Chi tiết từng người**
 
@@ -168,17 +168,17 @@ Cả 4 thành viên cùng tham gia: chạy luồng mua → thanh toán → phát
 
 > Code chia theo domain (ít đụng nhất). Test e2e chia theo FLOW (rule `@FLOW-XXX` trong `testing.md`). **TV4 dẫn integration nên sở hữu toàn bộ FLOW-tag e2e**; mỗi domain-owner tự viết unit/property test của mình.
 
-| FLOW | Nội dung | Code-owner | TASK |
-| --- | --- | --- | --- |
-| FLOW-001 | Đăng ký/login KH | TV1 | 004 |
-| FLOW-002 | Tìm kiếm → chi tiết | TV2 | 008 |
-| FLOW-003 | Giỏ→đặt→thanh toán→nhận mã (lõi) | TV2 | 009+010+012 |
-| FLOW-005 | Đăng ký đối tác → admin duyệt | TV3 | 006 |
-| FLOW-006 | Tạo voucher → duyệt → công bố | TV3 | 007 |
-| FLOW-007 | Kiểm tra → xác nhận dùng (redeem) | TV3 | 013 |
-| FLOW-009 | Admin quản lý/phân quyền user | TV1 | 004 |
-| FLOW-010 | Hủy / hoàn đơn | TV4 | 015 |
-| FLOW-004/008/011/012 | Đánh giá / báo cáo / nội dung+dashboard / nhật ký | — | OUT hoặc làm chung (016) |
+| FLOW                 | Nội dung                                                 | Code-owner | TASK                       |
+| -------------------- | --------------------------------------------------------- | ---------- | -------------------------- |
+| FLOW-001             | Đăng ký/login KH                                       | TV1        | 004                        |
+| FLOW-002             | Tìm kiếm → chi tiết                                   | TV2        | 008                        |
+| FLOW-003             | Giỏ→đặt→thanh toán→nhận mã (lõi)                | TV2        | 009+010+012                |
+| FLOW-005             | Đăng ký đối tác → admin duyệt                     | TV3        | 006                        |
+| FLOW-006             | Tạo voucher → duyệt → công bố                       | TV3        | 007                        |
+| FLOW-007             | Kiểm tra → xác nhận dùng (redeem)                    | TV3        | 013                        |
+| FLOW-009             | Admin quản lý/phân quyền user                         | TV1        | 004                        |
+| FLOW-010             | Hủy / hoàn đơn                                        | TV4        | 015                        |
+| FLOW-004/008/011/012 | Đánh giá / báo cáo / nội dung+dashboard / nhật ký | —         | OUT hoặc làm chung (016) |
 
 Lý do gom flow theo domain: FLOW-001+009 cùng đụng `auth-service` → một người (TV1); FLOW-003+007+010 cùng đọc/ghi `issued_voucher_codes` + máy trạng thái code → gom về vòng đời voucher (TV2 phát hành, TV3 redeem, TV4 hủy) nhưng **cùng máy trạng thái do TV1 sở hữu** → tránh ba người sửa chung chỗ nhạy cảm.
 
@@ -194,21 +194,21 @@ Lý do gom flow theo domain: FLOW-001+009 cùng đụng `auth-service` → một
 >
 > **Quy tắc cắt**: không bảng core nào có FK **NOT NULL** trỏ tới bảng chưa dựng. `voucher_products.category_id` giữ **nullable** (categories ở đợt 2). Filter `region`/`category` tạm bỏ (nằm ở `branches`/`categories`).
 
-| Wave | TASK | Ai |
-| --- | --- | --- |
-| 0 | TASK-001 scaffold | cả nhóm (TV1 chốt) |
-| 1 | DB schema 9 bảng + 002 repository | **TV1 (không tính điểm)** |
-| 2 | TASK-003 máy trạng thái + middleware | TV1 |
-| 3 | TASK-004 auth + RBAC | TV1 |
-| 4 | **TASK-005** checkpoint | cả nhóm |
-| 5 | TASK-006⊂ partner | TV3 · (TV4 dựng khung FE admin) |
-| 6 | TASK-007 voucher product | TV3 |
-| 7 | TASK-008⊂ search | TV2 |
-| 8 | TASK-009 cart/order | TV2 |
-| 9 | TASK-010 (lõi) payment+phát hành | TV2 |
-| 10 | **TASK-011** checkpoint | cả nhóm |
-| 11 | TASK-012⊂ nhận mã + seed tối thiểu | TV1 · TV4 |
-| 12 | FE đợt 1 (TV1=020⊂ · TV3=021⊂ · TV4=022⊂) | TV1/3/4 |
+| Wave | TASK                                             | Ai                                  |
+| ---- | ------------------------------------------------ | ----------------------------------- |
+| 0    | TASK-001 scaffold                                | cả nhóm (TV1 chốt)               |
+| 1    | DB schema 9 bảng + 002 repository               | **TV1 (không tính điểm)** |
+| 2    | TASK-003 máy trạng thái + middleware          | TV1                                 |
+| 3    | TASK-004 auth + RBAC                             | TV1                                 |
+| 4    | **TASK-005** checkpoint                    | cả nhóm                           |
+| 5    | TASK-006⊂ partner                               | TV3 · (TV4 dựng khung FE admin)   |
+| 6    | TASK-007 voucher product                         | TV3                                 |
+| 7    | TASK-008⊂ search                                | TV2                                 |
+| 8    | TASK-009 cart/order                              | TV2                                 |
+| 9    | TASK-010 (lõi) payment+phát hành              | TV2                                 |
+| 10   | **TASK-011** checkpoint                    | cả nhóm                           |
+| 11   | TASK-012⊂ nhận mã + seed tối thiểu          | TV1 · TV4                          |
+| 12   | FE đợt 1 (TV1=020⊂ · TV3=021⊂ · TV4=022⊂) | TV1/3/4                             |
 
 ---
 
@@ -218,13 +218,13 @@ Lý do gom flow theo domain: FLOW-001+009 cùng đụng `auth-service` → một
 >
 > **+4 bảng** (mỗi cái chỉ *trỏ vào* core, một `prisma migrate` mới, KHÔNG sửa schema cũ): `categories`, `branches`, `voucher_product_branches`, `usage_logs`.
 
-| Wave | TASK | Ai |
-| --- | --- | --- |
-| 13 | DB migration +4 bảng | **TV1 (không tính điểm)** |
-| 14 | TASK-008 (filter) · TASK-006 (branch) · TASK-015 | TV2 · TV3 · TV4 |
-| 15 | TASK-013 redeem · TASK-016 dashboard | TV3 · cả nhóm (chung) |
-| 16 | FE mở đủ (020/021/022) + TASK-019 seed đầy đủ | TV1/3/4 |
-| 17 | **TASK-023** integration + checkpoint cuối | TV4 dẫn · cả nhóm |
+| Wave | TASK                                                 | Ai                                  |
+| ---- | ---------------------------------------------------- | ----------------------------------- |
+| 13   | DB migration +4 bảng                                | **TV1 (không tính điểm)** |
+| 14   | TASK-008 (filter) · TASK-006 (branch) · TASK-015   | TV2 · TV3 · TV4                   |
+| 15   | TASK-013 redeem · TASK-016 dashboard                | TV3 · cả nhóm (chung)            |
+| 16   | FE mở đủ (020/021/022) + TASK-019 seed đầy đủ | TV1/3/4                             |
+| 17   | **TASK-023** integration + checkpoint cuối    | TV4 dẫn · cả nhóm               |
 
 ---
 

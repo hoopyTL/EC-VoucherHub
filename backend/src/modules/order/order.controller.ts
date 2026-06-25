@@ -28,3 +28,11 @@ export const getOrderDetail = asyncHandler(async (req: Request, res: Response) =
   const order = await orderService.getOrderDetail(req.user!.id, req.params.id as string)
   successResponse(res, order)
 })
+
+/**
+ * POST /api/orders/:id/payment — Thanh toán mô phỏng cho đơn hàng
+ */
+export const processPayment = asyncHandler(async (req: Request, res: Response) => {
+  const result = await orderService.processPayment(req.user!.id, req.params.id as string, req.body)
+  successResponse(res, result)
+})
