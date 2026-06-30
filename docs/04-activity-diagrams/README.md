@@ -116,9 +116,12 @@ flowchart TD
     pending --> admin[/Admin duyệt/]
     admin --> decide{Duyệt?}
     decide -->|Từ chối| reject[Voucher → từ chối + lý do]
-    reject --> edit[Đối tác sửa lại khi nháp/từ chối] --> submit
+    reject --> redraft[Voucher → nháp: đối tác sửa thoải mái, lưu nháp nhiều lần]
+    redraft --> submit
     decide -->|Duyệt| approved[Voucher → đã duyệt]
-    approved --> publish[Admin công bố → đang bán]
+    approved --> revoke{Admin phát hiện sai sót?}
+    revoke -->|Có| revReject[Thu hồi duyệt: Voucher → từ chối + lý do] --> redraft
+    revoke -->|Không| publish[Admin công bố → đang bán]
     publish --> done([Kết thúc])
 ```
 
