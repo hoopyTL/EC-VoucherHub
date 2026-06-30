@@ -40,6 +40,15 @@ export class AppError extends Error {
     )
   }
 
+  static unprocessable(message = 'Operation not allowed in current state', details?: unknown): AppError {
+    return new AppError(
+      message,
+      ErrorHttpStatus[ErrorCode.UNPROCESSABLE_ENTITY],
+      ErrorCode.UNPROCESSABLE_ENTITY,
+      details
+    )
+  }
+
   static conflict(message = 'Resource already exists', details?: unknown): AppError {
     return new AppError(message, ErrorHttpStatus[ErrorCode.CONFLICT], ErrorCode.CONFLICT, details)
   }
