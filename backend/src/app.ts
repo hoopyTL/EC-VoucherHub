@@ -5,43 +5,27 @@ import helmet from 'helmet'
 import morgan from 'morgan'
 import cors from 'cors'
 
-import { env } from '~/configs/env'
-import { errorHandler } from './middleware/error-handler'
-
-// Route imports
-import cartRoutes from './modules/cart/cart.routes'
-import orderRoutes from './modules/order/order.routes'
-import searchRoutes from './modules/search/search.routes'
-import { notFoundHandler } from '~/middlewares/not-found'
-import { ApiResponse } from '~/utils/api-response'
-import apiRouter from '~/modules'
-
-// task 06
-import partnerRoutes from '~/modules/partners/partner.routes'
-import { devAuth } from '~/middlewares/dev-auth'
-//
-
-// task 007
-import voucherRoutes from '~/modules/vouchers/voucher.routes'
-// catalogy
-import categoryRoutes from '~/modules/categories/category.routes'
+import { env } from './configs/env'
+import adminRoutes from './routes/admin.routes'
+import { errorHandler, notFoundHandler } from './middlewares/error.middleware'
 
 const app = express()
 
 // Security
 app.use(helmet())
-
-// Cors
-app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }))
-
-// Body parsing
-app.use(express.json({ limit: '1mb' }))
-app.use(express.urlencoded({ extended: true }))
-app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')))
-
-// Logging
-if (env.NODE_ENV !== 'test') {
-  app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'))
+app.use(express.json())
+app.use((_req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*')
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS')
+  if (_req.method === 'OPTIONS') {
+    res.sendStatus(204)
+    return
+  }
+  next()
+})
+if (env.NODE_ENV !== 'production') {
+  app.use(morgan('dev'))
 }
 
 // Routes
@@ -53,20 +37,9 @@ app.get('/', (_req, res) => {
   ApiResponse.success(res, { message: 'Welcome VoucherHub' })
 })
 
-// API routes
-app.use('/api', apiRouter)
-app.use('/api/cart', cartRoutes)
-app.use('/api/orders', orderRoutes)
-app.use('/api/vouchers', searchRoutes)
+app.use('/api/admin', adminRoutes)
 
-//task 06
-app.use('/api', devAuth, partnerRoutes)
-
-app.use('/api', categoryRoutes)
-//task 007
-app.use('/api', devAuth, voucherRoutes)
-
-// handling error — phải ở cuối, sau tất cả routes
+// handling error
 app.use(notFoundHandler)
 app.use(errorHandler)
 

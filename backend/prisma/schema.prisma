@@ -106,6 +106,8 @@ model User {
   orders             Order[]
   issuedVoucherCodes IssuedVoucherCode[]
   usageLogs          UsageLog[]
+  contentItems       ContentItem[]
+  auditLogs          AuditLog[]
 
   @@map("users")
 }
@@ -359,4 +361,46 @@ model UsageLog {
   @@index([branchId])
   @@index([actorUserId])
   @@map("usage_logs")
+}
+
+/// Nội dung vận hành do admin quản lý: banner, thông báo, chính sách demo.
+model ContentItem {
+  id           String    @id @default(uuid()) @db.Uuid
+  type         String    @db.VarChar(32)
+  title        String    @db.VarChar(255)
+  body         String    @db.Text
+  status       String    @default("draft") @db.VarChar(32)
+  displayFrom  DateTime? @map("display_from") @db.Timestamptz(6)
+  displayTo    DateTime? @map("display_to") @db.Timestamptz(6)
+  authorUserId String    @map("author_user_id") @db.Uuid
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  author User @relation(fields: [authorUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([type])
+  @@index([status])
+  @@index([authorUserId])
+  @@map("content_items")
+}
+
+/// Nhật ký kiểm toán thao tác quản trị quan trọng.
+model AuditLog {
+  id          Int      @id @default(autoincrement())
+  actorUserId String?  @map("actor_user_id") @db.Uuid
+  action      String   @db.VarChar(64)
+  entityType  String   @map("entity_type") @db.VarChar(64)
+  entityId    String?  @map("entity_id") @db.VarChar(128)
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // Relations
+  actor User? @relation(fields: [actorUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([actorUserId])
+  @@index([action])
+  @@index([entityType])
+  @@index([createdAt])
+  @@map("audit_logs")
 }

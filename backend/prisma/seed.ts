@@ -4,11 +4,15 @@ import { hashPassword } from '../src/utils/password'
 
 const prisma = new PrismaClient()
 
-async function main() {
-  console.log('Starting database seed...')
+const passwordHash = '$2b$10$EPVma1Sp2.3m/zJ1S.3oGe7rM4zK18/O5n7qg.ZqF68e1QvYpMyea'
 
-  // 1. Wipe the DB before seeding (delete children before parents to avoid FK errors)
-  console.log('Cleaning up existing data...')
+function daysFromNow(days: number) {
+  return new Date(Date.now() + days * 24 * 60 * 60 * 1000)
+}
+
+async function resetDatabase() {
+  await prisma.auditLog.deleteMany()
+  await prisma.contentItem.deleteMany()
   await prisma.usageLog.deleteMany()
   await prisma.issuedVoucherCode.deleteMany()
   await prisma.orderItem.deleteMany()
@@ -22,133 +26,524 @@ async function main() {
   await prisma.user.deleteMany()
   await prisma.category.deleteMany()
   await prisma.role.deleteMany()
+}
 
-  // 2. Seed the Roles table (fixed roles — values must match the RoleName enum)
-  console.log('Creating roles...')
-  const adminRole = await prisma.role.create({ data: { name: RoleName.ADMIN } })
-  const partnerRole = await prisma.role.create({ data: { name: RoleName.PARTNER } })
-  const customerRole = await prisma.role.create({ data: { name: RoleName.CUSTOMER } })
+async function main() {
+  console.log('Seeding VoucherHub demo data...')
+  await resetDatabase()
 
-  // 3. Seed the Categories table (product categories)
-  console.log('Creating categories...')
-  const foodCat = await prisma.category.create({ data: { name: 'Ăn uống' } })
-  await prisma.category.create({ data: { name: 'Du lịch & Khách sạn' } })
-  await prisma.category.create({ data: { name: 'Làm đẹp & Spa' } })
+  const adminRole = await prisma.role.create({ data: { name: 'QUAN_TRI_VIEN' } })
+  const partnerRole = await prisma.role.create({ data: { name: 'DOI_TAC' } })
+  const customerRole = await prisma.role.create({ data: { name: 'KHACH_HANG' } })
 
-  // Seed sub-categories (self-reference)
-  const cafeCat = await prisma.category.create({
-    data: { name: 'Cà phê & Trà sữa', parentId: foodCat.id }
-  })
-  await prisma.category.create({
-    data: { name: 'Buffet & Lẩu', parentId: foodCat.id }
-  })
+  const foodCat = await prisma.category.create({ data: { name: 'An uong' } })
+  const travelCat = await prisma.category.create({ data: { name: 'Du lich' } })
+  const beautyCat = await prisma.category.create({ data: { name: 'Lam dep' } })
+  const cafeCat = await prisma.category.create({ data: { name: 'Ca phe & Tra sua', parentId: foodCat.id } })
+  const buffetCat = await prisma.category.create({ data: { name: 'Buffet & Lau', parentId: foodCat.id } })
 
-  // 4. Seed Users (sample accounts)
-  console.log('Creating users...')
-  const passwordHash = await hashPassword('12345678')
-
-  // System admin account
-  await prisma.user.create({
+  const admin = await prisma.user.create({
     data: {
       email: 'admin@voucherhub.com',
-      phone: '0901234567',
+      phone: '0901000000',
       passwordHash,
       roleId: adminRole.id,
-      fullName: 'Hệ thống Quản trị viên',
+      fullName: 'VoucherHub Admin',
       status: 'ACTIVE'
     }
   })
 
-  // Sample customer account
-  const customerUser = await prisma.user.create({
+  const customerA = await prisma.user.create({
     data: {
-      email: 'customer@gmail.com',
-      phone: '0908888888',
+      email: 'customer@voucherhub.com',
+      phone: '0902000000',
       passwordHash,
       roleId: customerRole.id,
-      fullName: 'Nguyễn Văn Khách',
+      fullName: 'Nguyen Minh Khach',
       status: 'ACTIVE'
     }
   })
 
-  // Partner owner account
-  const partnerUser = await prisma.user.create({
+  const customerB = await prisma.user.create({
     data: {
-      email: 'owner@highlandscoffee.com.vn',
-      phone: '0909999999',
+      email: 'linh.customer@voucherhub.com',
+      phone: '0902000001',
+      passwordHash,
+      roleId: customerRole.id,
+      fullName: 'Tran Hoang Linh',
+      status: 'ACTIVE'
+    }
+  })
+
+  const highlandsOwner = await prisma.user.create({
+    data: {
+      email: 'owner@highlands.example',
+      phone: '0903000000',
       passwordHash,
       roleId: partnerRole.id,
-      fullName: 'Đại diện Highlands Coffee',
+      fullName: 'Highlands Owner',
       status: 'ACTIVE'
     }
   })
 
-  // 5. Seed Partners and their Branches
-  console.log('Creating partner profiles & branches...')
-  const highlandPartner = await prisma.partner.create({
+  const spaOwner = await prisma.user.create({
     data: {
-      ownerUserId: partnerUser.id,
-      legalName: 'CÔNG TY CỔ PHẦN DỊCH VỤ CÀ PHÊ CAO NGUYÊN',
+      email: 'owner@lotus-spa.example',
+      phone: '0903000001',
+      passwordHash,
+      roleId: partnerRole.id,
+      fullName: 'Lotus Spa Owner',
+      status: 'ACTIVE'
+    }
+  })
+
+  const highlands = await prisma.partner.create({
+    data: {
+      ownerUserId: highlandsOwner.id,
+      legalName: 'Highlands Coffee Demo',
       taxCode: '0302869720',
-      representative: 'Nguyễn Hải Highlands',
+      representative: 'Nguyen Hai Highlands',
       approvalStatus: 'APPROVED',
       operatingStatus: 'ACTIVE'
     }
   })
 
-  await prisma.branch.create({
+  const lotusSpa = await prisma.partner.create({
     data: {
-      partnerId: highlandPartner.id,
-      name: 'Highlands Coffee Nhà Hát Lớn',
-      address: 'Số 1 Tràng Tiền, Hoàn Kiếm, Hà Nội',
-      region: 'Miền Bắc'
+      ownerUserId: spaOwner.id,
+      legalName: 'Lotus Spa Demo',
+      taxCode: '0319999999',
+      representative: 'Le Mai Lotus',
+      approvalStatus: 'APPROVED',
+      operatingStatus: 'ACTIVE'
     }
   })
 
-  await prisma.branch.create({
+  const pendingPartnerOwner = await prisma.user.create({
     data: {
-      partnerId: highlandPartner.id,
-      name: 'Highlands Coffee Dinh Độc Lập',
-      address: '135 Nam Kỳ Khởi Nghĩa, Quận 1, TP. Hồ Chí Minh',
-      region: 'Miền Nam'
+      email: 'pending.partner@voucherhub.com',
+      phone: '0903000002',
+      passwordHash,
+      roleId: partnerRole.id,
+      fullName: 'Pending Partner Owner',
+      status: 'ACTIVE'
     }
   })
 
-  // 6. Seed VoucherProducts
-  console.log('Creating sample voucher products...')
+  await prisma.partner.create({
+    data: {
+      ownerUserId: pendingPartnerOwner.id,
+      legalName: 'Pending Foods Demo',
+      taxCode: '0399999999',
+      representative: 'Pham Pending',
+      approvalStatus: 'PENDING',
+      operatingStatus: 'ACTIVE'
+    }
+  })
+
+  const hanoiBranch = await prisma.branch.create({
+    data: {
+      partnerId: highlands.id,
+      name: 'Highlands Hoan Kiem',
+      address: '1 Trang Tien, Hoan Kiem, Ha Noi',
+      region: 'Ha Noi'
+    }
+  })
+
+  const hcmBranch = await prisma.branch.create({
+    data: {
+      partnerId: highlands.id,
+      name: 'Highlands Quan 1',
+      address: '135 Nam Ky Khoi Nghia, Quan 1, TP HCM',
+      region: 'TP HCM'
+    }
+  })
+
+  const spaBranch = await prisma.branch.create({
+    data: {
+      partnerId: lotusSpa.id,
+      name: 'Lotus Spa Thao Dien',
+      address: '12 Quoc Huong, Thu Duc, TP HCM',
+      region: 'TP HCM'
+    }
+  })
+
+  const coffeeVoucher = await prisma.voucherProduct.create({
+    data: {
+      partnerId: highlands.id,
+      categoryId: cafeCat.id,
+      name: 'Highlands 50k toan menu',
+      description: 'Ap dung cho do uong tai cac chi nhanh Highlands trong danh sach.',
+      imageUrl: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93',
+      originalPrice: 50000,
+      salePrice: 35000,
+      saleStart: daysFromNow(-10),
+      saleEnd: daysFromNow(25),
+      usageStart: daysFromNow(-10),
+      usageEnd: daysFromNow(60),
+      totalQuantity: 100,
+      remainingQuantity: 94,
+      isMultiUse: false,
+      status: 'ON_SALE',
+      voucherProductBranches: {
+        create: [{ branchId: hanoiBranch.id }, { branchId: hcmBranch.id }]
+      }
+    }
+  })
+
+  const buffetVoucher = await prisma.voucherProduct.create({
+    data: {
+      partnerId: highlands.id,
+      categoryId: buffetCat.id,
+      name: 'Buffet toi giam 30%',
+      description: 'Voucher buffet ap dung buoi toi tu thu 2 den thu 6.',
+      imageUrl: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5',
+      originalPrice: 399000,
+      salePrice: 279000,
+      saleStart: daysFromNow(-5),
+      saleEnd: daysFromNow(20),
+      usageStart: daysFromNow(-5),
+      usageEnd: daysFromNow(45),
+      totalQuantity: 50,
+      remainingQuantity: 47,
+      isMultiUse: false,
+      status: 'ON_SALE',
+      voucherProductBranches: {
+        create: [{ branchId: hcmBranch.id }]
+      }
+    }
+  })
+
+  const spaVoucher = await prisma.voucherProduct.create({
+    data: {
+      partnerId: lotusSpa.id,
+      categoryId: beautyCat.id,
+      name: 'Massage thu gian 90 phut',
+      description: 'Lieu trinh massage thu gian tai Lotus Spa.',
+      imageUrl: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874',
+      originalPrice: 650000,
+      salePrice: 420000,
+      saleStart: daysFromNow(-3),
+      saleEnd: daysFromNow(30),
+      usageStart: daysFromNow(-3),
+      usageEnd: daysFromNow(75),
+      totalQuantity: 40,
+      remainingQuantity: 38,
+      isMultiUse: false,
+      status: 'ON_SALE',
+      voucherProductBranches: {
+        create: [{ branchId: spaBranch.id }]
+      }
+    }
+  })
+
   await prisma.voucherProduct.create({
     data: {
-      partnerId: highlandPartner.id,
-      categoryId: cafeCat.id,
-      name: 'Voucher Highlands Coffee giảm 50k toàn menu',
-      description: 'Áp dụng cho mọi đồ uống tại các chi nhánh Highlands toàn quốc.',
-      imageUrl: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93',
-      originalPrice: 50000.0,
-      salePrice: 35000.0,
-      saleStart: new Date(),
-      saleEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-      usageStart: new Date(),
-      usageEnd: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // 60 days
-      totalQuantity: 1000,
-      remainingQuantity: 950,
+      partnerId: lotusSpa.id,
+      categoryId: travelCat.id,
+      name: 'Staycation cuoi tuan',
+      description: 'San pham dang cho admin duyet.',
+      originalPrice: 1800000,
+      salePrice: 1290000,
+      saleStart: daysFromNow(2),
+      saleEnd: daysFromNow(35),
+      usageStart: daysFromNow(5),
+      usageEnd: daysFromNow(90),
+      totalQuantity: 20,
+      remainingQuantity: 20,
       isMultiUse: false,
-      status: 'ON_SALE'
+      status: 'PENDING_REVIEW'
     }
   })
 
-  // 7. Seed an initial empty cart for the customer
-  await prisma.cart.create({
+  await prisma.voucherProduct.create({
     data: {
-      customerId: customerUser.id
+      partnerId: highlands.id,
+      categoryId: cafeCat.id,
+      name: 'Combo ca phe sang',
+      description: 'Da duyet, cho admin cong bo.',
+      originalPrice: 90000,
+      salePrice: 65000,
+      saleStart: daysFromNow(1),
+      saleEnd: daysFromNow(20),
+      usageStart: daysFromNow(1),
+      usageEnd: daysFromNow(40),
+      totalQuantity: 80,
+      remainingQuantity: 80,
+      isMultiUse: false,
+      status: 'APPROVED'
     }
   })
 
-  console.log('Database seed completed successfully!')
+  await prisma.cart.create({ data: { customerId: customerA.id } })
+  await prisma.cart.create({ data: { customerId: customerB.id } })
+
+  const paidOrder = await prisma.order.create({
+    data: {
+      customerId: customerA.id,
+      totalAmount: 70000,
+      paymentMethod: 'SIMULATED',
+      status: 'PAID',
+      paidAt: daysFromNow(-2),
+      orderItems: {
+        create: [
+          {
+            voucherProductId: coffeeVoucher.id,
+            quantity: 2,
+            unitPrice: 35000
+          }
+        ]
+      }
+    },
+    include: { orderItems: true }
+  })
+
+  const unusedCode = await prisma.issuedVoucherCode.create({
+    data: {
+      code: 'VH-DEMO-COFFEE-001',
+      orderId: paidOrder.id,
+      orderItemId: paidOrder.orderItems[0].id,
+      voucherProductId: coffeeVoucher.id,
+      ownerUserId: customerA.id,
+      status: 'UNUSED',
+      remainingUses: 1,
+      expiresAt: daysFromNow(60)
+    }
+  })
+
+  const usedCode = await prisma.issuedVoucherCode.create({
+    data: {
+      code: 'VH-DEMO-COFFEE-002',
+      orderId: paidOrder.id,
+      orderItemId: paidOrder.orderItems[0].id,
+      voucherProductId: coffeeVoucher.id,
+      ownerUserId: customerA.id,
+      status: 'USED',
+      remainingUses: 0,
+      expiresAt: daysFromNow(60)
+    }
+  })
+
+  await prisma.usageLog.create({
+    data: {
+      issuedCodeId: usedCode.id,
+      branchId: hanoiBranch.id,
+      actorUserId: highlandsOwner.id,
+      result: 'SUCCESS',
+      usedAt: daysFromNow(-1)
+    }
+  })
+
+  const refundableOrder = await prisma.order.create({
+    data: {
+      customerId: customerB.id,
+      totalAmount: 420000,
+      paymentMethod: 'SIMULATED',
+      status: 'PAID',
+      paidAt: daysFromNow(-1),
+      orderItems: {
+        create: [
+          {
+            voucherProductId: spaVoucher.id,
+            quantity: 1,
+            unitPrice: 420000
+          }
+        ]
+      }
+    },
+    include: { orderItems: true }
+  })
+
+  await prisma.issuedVoucherCode.create({
+    data: {
+      code: 'VH-DEMO-SPA-001',
+      orderId: refundableOrder.id,
+      orderItemId: refundableOrder.orderItems[0].id,
+      voucherProductId: spaVoucher.id,
+      ownerUserId: customerB.id,
+      status: 'UNUSED',
+      remainingUses: 1,
+      expiresAt: daysFromNow(75)
+    }
+  })
+
+  const pendingOrder = await prisma.order.create({
+    data: {
+      customerId: customerA.id,
+      totalAmount: 279000,
+      paymentMethod: 'SIMULATED',
+      status: 'PENDING_PAYMENT',
+      orderItems: {
+        create: [
+          {
+            voucherProductId: buffetVoucher.id,
+            quantity: 1,
+            unitPrice: 279000
+          }
+        ]
+      }
+    }
+  })
+
+  await prisma.order.create({
+    data: {
+      customerId: customerB.id,
+      totalAmount: 35000,
+      paymentMethod: 'SIMULATED',
+      status: 'CANCELLED',
+      orderItems: {
+        create: [
+          {
+            voucherProductId: coffeeVoucher.id,
+            quantity: 1,
+            unitPrice: 35000
+          }
+        ]
+      }
+    }
+  })
+
+  const refundedOrder = await prisma.order.create({
+    data: {
+      customerId: customerB.id,
+      totalAmount: 279000,
+      paymentMethod: 'SIMULATED',
+      status: 'REFUNDED',
+      paidAt: daysFromNow(-6),
+      orderItems: {
+        create: [
+          {
+            voucherProductId: buffetVoucher.id,
+            quantity: 1,
+            unitPrice: 279000
+          }
+        ]
+      }
+    },
+    include: { orderItems: true }
+  })
+
+  await prisma.issuedVoucherCode.create({
+    data: {
+      code: 'VH-DEMO-BUFFET-CANCELLED',
+      orderId: refundedOrder.id,
+      orderItemId: refundedOrder.orderItems[0].id,
+      voucherProductId: buffetVoucher.id,
+      ownerUserId: customerB.id,
+      status: 'CANCELLED',
+      remainingUses: 1,
+      expiresAt: daysFromNow(45)
+    }
+  })
+
+  const expiredOrder = await prisma.order.create({
+    data: {
+      customerId: customerA.id,
+      totalAmount: 35000,
+      paymentMethod: 'SIMULATED',
+      status: 'PAID',
+      paidAt: daysFromNow(-80),
+      orderItems: {
+        create: [
+          {
+            voucherProductId: coffeeVoucher.id,
+            quantity: 1,
+            unitPrice: 35000
+          }
+        ]
+      }
+    },
+    include: { orderItems: true }
+  })
+
+  await prisma.issuedVoucherCode.create({
+    data: {
+      code: 'VH-DEMO-EXPIRED-001',
+      orderId: expiredOrder.id,
+      orderItemId: expiredOrder.orderItems[0].id,
+      voucherProductId: coffeeVoucher.id,
+      ownerUserId: customerA.id,
+      status: 'EXPIRED',
+      remainingUses: 1,
+      issuedAt: daysFromNow(-80),
+      expiresAt: daysFromNow(-5)
+    }
+  })
+
+  const publishedContent = await prisma.contentItem.create({
+    data: {
+      type: 'banner',
+      title: 'VoucherHub Summer Demo',
+      body: 'Banner cong bo cac voucher dang ban trong du lieu mau TV4.',
+      status: 'published',
+      displayFrom: daysFromNow(-7),
+      displayTo: daysFromNow(30),
+      authorUserId: admin.id
+    }
+  })
+
+  const policyContent = await prisma.contentItem.create({
+    data: {
+      type: 'policy',
+      title: 'Chinh sach hoan tien demo',
+      body: 'Admin chi hoan tien don da thanh toan khi voucher code chua duoc su dung.',
+      status: 'published',
+      authorUserId: admin.id
+    }
+  })
+
+  await prisma.contentItem.create({
+    data: {
+      type: 'announcement',
+      title: 'Thong bao bao tri cong doi tac',
+      body: 'Noi dung nhap de admin co the chinh sua, xuat ban hoac luu tru.',
+      status: 'draft',
+      authorUserId: admin.id
+    }
+  })
+
+  await prisma.auditLog.createMany({
+    data: [
+      {
+        actorUserId: admin.id,
+        action: 'seed.database',
+        entityType: 'database',
+        metadata: { scope: 'TV4', roles: 3, tables: 15 }
+      },
+      {
+        actorUserId: admin.id,
+        action: 'content.publish',
+        entityType: 'content_item',
+        entityId: publishedContent.id,
+        metadata: { title: publishedContent.title, type: publishedContent.type }
+      },
+      {
+        actorUserId: admin.id,
+        action: 'content.publish',
+        entityType: 'content_item',
+        entityId: policyContent.id,
+        metadata: { title: policyContent.title, type: policyContent.type }
+      },
+      {
+        actorUserId: admin.id,
+        action: 'order.demo-ready',
+        entityType: 'order',
+        entityId: refundableOrder.id,
+        metadata: { flow: 'FLOW-010', expectedAction: 'refund' }
+      }
+    ]
+  })
+
+  console.log('Seed complete.')
+  console.log(`Demo pending order for cancel: ${pendingOrder.id}`)
+  console.log(`Demo paid order with used code: ${paidOrder.id}`)
+  console.log(`Demo refundable paid order: ${refundableOrder.id}`)
+  console.log(`Demo unused code: ${unusedCode.code}`)
 }
 
 main()
-  .catch((e) => {
-    console.error('Seed failed:', e)
+  .catch((error) => {
+    console.error('Seed failed:', error)
     process.exit(1)
   })
   .finally(async () => {

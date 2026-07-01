@@ -168,4 +168,19 @@ npm run db:migrate -- reset   # hoặc xóa volume Postgres rồi migrate + seed
 | 7 | FLOW-010 | FR-20 |
 | 8 | FLOW-011, FLOW-012 | FR-22, FR-23 |
 
+## 7. TV4 verification command
+
+After `npm run db:migrate`, `npm run db:seed`, and `npm run dev`, run:
+
+```bash
+npm run tv4:verify
+```
+
+The script checks:
+
+- `GET /api/admin/dashboard` exposes order, content, and audit totals.
+- `GET /api/admin/orders`, `/content`, and `/audit-logs` return database-backed lists.
+- `POST/PATCH/DELETE /api/admin/content` can create, publish, and archive content.
+- `GET /api/admin/audit-logs` contains the generated content archive audit record.
+
 > FLOW-004 (đánh giá), FLOW-008 (báo cáo đối tác), FLOW-009 (quản lý người dùng) có thể demo bổ sung nếu còn thời gian.
