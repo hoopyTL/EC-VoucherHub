@@ -122,8 +122,8 @@ async function main() {
       name: 'Voucher Highlands Coffee giảm 50k toàn menu',
       description: 'Áp dụng cho mọi đồ uống tại các chi nhánh Highlands toàn quốc.',
       imageUrl: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93',
-      originalPrice: 50000.00,
-      salePrice: 35000.00,
+      originalPrice: 50000.0,
+      salePrice: 35000.0,
       saleStart: new Date(),
       saleEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 ngày
       usageStart: new Date(),

@@ -171,7 +171,7 @@ Voucher (DR-03) — Sản phẩm
 ├── sale_start_date, sale_end_date  (RB-03)
 ├── use_start_date, use_end_date   (RB-03)
 ├── max_uses_per_code (default: 1) (RB-07)
-├── status: DRAFT | PENDING_APPROVAL | APPROVED | REJECTED | ON_SALE | PAUSED | EXPIRED
+├── status: DRAFT | PENDING_REVIEW | APPROVED | REJECTED | ON_SALE | PAUSED | DISCONTINUED
 ├── version (optimistic locking)
 ├── applicable_branches: Branch[] (M2M)
 └── created_at, updated_at
@@ -194,15 +194,13 @@ OrderItem
 ├── quantity, unit_price, subtotal
 └── created_at
 
-VoucherCode (DR-05) — Mã phát hành
-├── id, order_item_id (FK), voucher_id (FK), user_id (FK owner)
+IssuedVoucherCode (DR-05) — Mã phát hành
+├── id, order_id (FK), order_item_id (FK), voucher_product_id (FK), owner_user_id (FK owner)
 ├── code (unique, crypto-random, RB-06)
-├── qr_data
-├── status: ACTIVE | USED | EXPIRED | CANCELLED
-├── uses_remaining (RB-07)
-├── used_at, used_by_partner_id, used_at_branch_id
+├── status: UNUSED | USED | EXPIRED | CANCELLED | LOCKED
+├── remaining_uses (RB-07)
 ├── issued_at, expires_at
-└── created_at
+└── created_at, updated_at
 
 Review (DR-06)
 ├── id, user_id (FK), voucher_id (FK), voucher_code_id (FK)
@@ -243,9 +241,10 @@ Voucher 1---N Review
 
 ### Voucher Status Flow (State Machine)
 ```
-DRAFT → PENDING_APPROVAL → APPROVED → ON_SALE → PAUSED ↔ ON_SALE
-                        ↘ REJECTED → DRAFT (sửa & gửi lại)
-                                     ON_SALE → EXPIRED (tự động)
+DRAFT → PENDING_REVIEW → APPROVED → ON_SALE → PAUSED ↔ ON_SALE
+                       ↘ REJECTED → DRAFT (sửa & gửi lại)
+              APPROVED ↘ REJECTED (thu hồi duyệt trước khi công bố)
+                         ON_SALE / PAUSED → DISCONTINUED (ngưng bán vĩnh viễn)
 ```
 
 ### Order Status Flow
@@ -257,9 +256,11 @@ CONFIRMED → REFUNDED (admin hoàn tiền mô phỏng)
 
 ### VoucherCode Status Flow
 ```
-ACTIVE → USED (đối tác xác nhận sử dụng)
+UNUSED → USED (đối tác xác nhận sử dụng)
       ↘ EXPIRED (hết hạn tự động)
       ↘ CANCELLED (đơn hàng bị hủy/hoàn, RB-13)
+      ↘ LOCKED (Admin khóa điều tra)
+LOCKED → UNUSED (mở khóa) / EXPIRED (hết hạn khi đang khóa) / CANCELLED (hủy trực tiếp)
 ```
 
 ---

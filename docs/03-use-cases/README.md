@@ -251,7 +251,7 @@ flowchart LR
 - **Luồng ngoại lệ**:
   - 2a. Giá bán ≥ giá gốc → từ chối.
   - 2b. Thiếu thời gian bán/sử dụng → từ chối.
-  - Cập nhật voucher ngoài trạng thái `nhap`/`tu_choi` → từ chối.
+  - Cập nhật voucher ngoài trạng thái `nhap` → từ chối. (Voucher `tu_choi` phải chuyển về `nhap` trước khi sửa.)
   - Thao tác voucher không thuộc mình → từ chối (phạm vi sở hữu).
 - **Hậu điều kiện**: voucher `nhap` thuộc đối tác.
 
@@ -259,7 +259,7 @@ flowchart LR
 
 - **Actor**: Đối_tác
 - **FR/FLOW**: FR-13 / FLOW-006
-- **Tiền điều kiện**: voucher `nhap` hoặc `tu_choi`.
+- **Tiền điều kiện**: voucher `nhap`.
 - **Kích hoạt**: bấm gửi duyệt.
 - **Luồng chính**:
   1. Hệ_thống re-validate giá + thời gian.
@@ -343,7 +343,8 @@ flowchart LR
   1. Duyệt voucher `cho_duyet` → `da_duyet`.
   2. Công bố `da_duyet` → `dang_ban`.
 - **Luồng thay thế**:
-  - Từ chối → `tu_choi` + lý do.
+  - Từ chối `cho_duyet` → `tu_choi` + lý do.
+  - Thu hồi duyệt `da_duyet` → `tu_choi` + lý do (phát hiện sai sót trước khi công bố).
   - Tạm ngưng `dang_ban` → `tam_ngung` + ẩn khỏi danh sách bán.
 - **Luồng ngoại lệ**:
   - Công bố khi không phải `da_duyet` → từ chối.

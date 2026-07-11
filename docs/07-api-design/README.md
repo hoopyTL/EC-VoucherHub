@@ -71,7 +71,7 @@ Client luôn kiểm tra `success` trước khi đọc `data`. Không bao giờ t
 | GET | `/vouchers` | Tìm/lọc voucher đang bán | công khai | FR-04 |
 | GET | `/vouchers/:id` | Chi tiết voucher | công khai | FR-05 |
 | POST | `/vouchers` | Tạo voucher (`nhap`) | Đối tác | FR-12 |
-| PATCH | `/vouchers/:id` | Sửa voucher (`nhap`/`tu_choi`) | Đối tác | FR-12 |
+| PATCH | `/vouchers/:id` | Sửa voucher (`nhap`) | Đối tác | FR-12 |
 | GET | `/partner/vouchers` | Voucher của đối tác + thống kê | Đối tác | FR-12 |
 | POST | `/vouchers/:id/submission` | Gửi duyệt → `cho_duyet` | Đối tác | FR-13 |
 | PATCH | `/admin/vouchers/:id/approval` | Duyệt/từ chối | Admin | FR-19 |
