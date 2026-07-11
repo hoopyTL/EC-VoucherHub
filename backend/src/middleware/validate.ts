@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express'
 import { ZodSchema, ZodError } from 'zod'
+import { BadRequestError } from './error-handler'
 
 /**
  * Middleware factory: validate req.body bằng Zod schema.
@@ -18,11 +19,10 @@ export const validate = (schema: ZodSchema) => {
           message: e.message,
         }))
 
-        // Import tại đây để tránh circular dependency
-        const { BadRequestError } = require('./error-handler')
         next(new BadRequestError('validation failed', details))
         return
       }
+
       next(err)
     }
   }
