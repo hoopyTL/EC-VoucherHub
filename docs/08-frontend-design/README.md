@@ -3,6 +3,10 @@
 > SPA responsive — React + Vite, 3 vai trò (Khách_hàng, Đối_tác/Nhân_viên, Quản_trị_viên).
 > Nguồn: `docs/02-srs/` (FR/FLOW), `docs/07-api-design/`. Selectors dùng `data-testid` để E2E (`docs/09-testing/`) bám theo.
 
+> Trạng thái migration: React là nguồn chuẩn. Figma phục vụ đề xuất, thảo luận
+> và duyệt thiết kế; không có đồng bộ hai chiều. Hướng dẫn capture và cộng tác:
+> [`figma-workflow.md`](figma-workflow.md).
+
 ## 1. Nguyên tắc thiết kế
 
 - **Responsive-first** (NFR-05): mọi màn hình dùng trên desktop + mobile; layout co theo breakpoint.
@@ -42,7 +46,6 @@
 | Thanh toán (checkout) | `/checkout` | FR-07, FR-08 / FLOW-003 |
 | Đơn hàng của tôi | `/orders` | FR-09 / FLOW-003 |
 | Chi tiết đơn + mã voucher | `/orders/:id` | FR-09 / FLOW-003 |
-| Gửi đánh giá | `/vouchers/:id/review` | FR-10 / FLOW-004 |
 
 ### Đối tác / Nhân viên
 | Màn hình | Route | FR/FLOW |
@@ -63,8 +66,6 @@
 | Quản lý đối tác (duyệt) | `/admin/partners` | FR-18 / FLOW-005 |
 | Duyệt voucher | `/admin/vouchers` | FR-19 / FLOW-006 |
 | Quản lý đơn hàng | `/admin/orders` | FR-20 / FLOW-010 |
-| Quản lý nội dung | `/admin/content` | FR-21 / FLOW-011 |
-| Nhật ký hệ thống | `/admin/audit-logs` | FR-23 / FLOW-012 |
 
 ## 4. Sơ đồ điều hướng
 
@@ -81,7 +82,6 @@ flowchart TD
     cart --> checkout[Thanh toán /checkout]
     checkout --> orders[Đơn của tôi /orders]
     orders --> orderDetail[Chi tiết đơn + mã /orders/:id]
-    orderDetail --> review[Đánh giá]
 
     pdash --> pvouchers[Voucher của tôi]
     pvouchers --> veditor[Tạo/sửa voucher]
@@ -92,8 +92,6 @@ flowchart TD
     adash --> apartners[Duyệt đối tác]
     adash --> avouchers[Duyệt voucher]
     adash --> aorders[Đơn hàng]
-    adash --> acontent[Nội dung]
-    adash --> alogs[Nhật ký]
 ```
 
 ## 5. Spec component theo màn hình (chính)
@@ -166,6 +164,6 @@ Mỗi màn hình gọi API phải xử lý đủ:
 | Nhóm | Màn hình | FR | FLOW |
 | --- | --- | --- | --- |
 | Auth | register, login, profile | FR-01..03 | FLOW-001 |
-| Khách | home, search, detail, cart, checkout, orders, review | FR-04..10 | FLOW-002..004 |
+| Khách | home, search, detail, cart, checkout, orders | FR-04..09 | FLOW-002..003 |
 | Đối tác | register, vouchers, editor, redeem, reports | FR-11..16 | FLOW-005..008 |
-| Admin | dashboard, users, partners, vouchers, orders, content, logs | FR-17..23 | FLOW-009..012 |
+| Admin | dashboard, users, partners, vouchers, orders | FR-17..20, FR-22 | FLOW-005, FLOW-006, FLOW-009..011 |
