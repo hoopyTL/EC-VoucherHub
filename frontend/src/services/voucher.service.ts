@@ -113,14 +113,14 @@ function buildSearchQuery(params: VoucherSearchParams): Record<string, string | 
 
 /** Search/browse the public voucher catalogue (Requirement 11). */
 export async function searchVouchers(params: VoucherSearchParams = {}): Promise<SearchVouchersResponse> {
-  const { data } = await api.get<SearchVouchersResponse>('/vouchers', {
+  const { data } = await api.get<{ success: boolean; data: SearchVouchersResponse }>('/vouchers', {
     params: buildSearchQuery(params)
   })
-  return data
+  return data.data
 }
 
 /** Fetch a single voucher's detail view (Requirement 12). */
 export async function getVoucherDetail(id: string): Promise<VoucherDetailResponse> {
-  const { data } = await api.get<VoucherDetailResponse>(`/vouchers/${id}`)
-  return data
+  const { data } = await api.get<{ success: boolean; data: VoucherDetailResponse }>(`/vouchers/${id}`)
+  return data.data
 }

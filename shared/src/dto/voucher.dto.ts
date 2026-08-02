@@ -43,30 +43,37 @@ export interface VoucherResponse {
   id: string
   partnerId: string
   categoryId: number | null
-  name: string
+  title: string
   description: string
   imageUrl: string | null
   originalPrice: string // Decimal format
   salePrice: string // Decimal format
-  saleStart: string // ISO Date
-  saleEnd: string // ISO Date
-  usageStart: string // ISO Date
-  usageEnd: string // ISO Date
+  salePeriodStart: string // ISO Date
+  salePeriodEnd: string // ISO Date
+  usagePeriodStart: string // ISO Date
+  usagePeriodEnd: string // ISO Date
   totalQuantity: number
+  soldQuantity: number
   remainingQuantity: number
+  discountPercentage: number
   isMultiUse: boolean
   usesPerCode: number | null
   status: string
   createdAt: string
   updatedAt: string
+  partner: { businessName: string }
+  category: string
+  terms: string | null
+  voucherBranches: any[]
 }
 
 export interface VoucherListResponse {
-  items: VoucherResponse[]
-  total: number
-  page: number
-  limit: number
-  totalPages: number
+  vouchers: VoucherResponse[]
+  pagination: {
+    page: number
+    limit: number
+    total: number
+  }
 }
 
 export interface CreateVoucherDto {

@@ -52,7 +52,7 @@ app.get('/', (_req, res) => {
 // API routes
 app.use('/api/cart', cartRoutes)
 app.use('/api/orders', orderRoutes)
-app.use('/api/search/vouchers', searchRoutes)
+app.use('/api/vouchers', searchRoutes)
 
 //task 06
 app.use('/api', devAuth, partnerRoutes)

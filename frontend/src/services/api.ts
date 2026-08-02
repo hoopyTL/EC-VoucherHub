@@ -38,7 +38,7 @@ const CSRF_COOKIE = 'csrf_token'
  * dev server proxies `/api` to the backend. Can be overridden via the
  * `VITE_API_BASE_URL` environment variable for non-proxied deployments.
  */
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api/v1'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api'
 const IS_DESIGN_PREVIEW = import.meta.env.VITE_DESIGN_PREVIEW === 'true'
 
 // ---------------------------------------------------------------------------

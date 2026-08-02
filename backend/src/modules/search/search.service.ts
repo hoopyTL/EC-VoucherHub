@@ -14,44 +14,48 @@ const toVoucherResponse = (vp: any): VoucherResponse => {
     id: vp.id,
     partnerId: vp.partnerId,
     categoryId: vp.categoryId,
-    name: vp.name,
+    title: vp.name,
     description: vp.description,
     imageUrl: vp.imageUrl,
     originalPrice: formatDecimal(vp.originalPrice),
     salePrice: formatDecimal(vp.salePrice),
-    saleStart: vp.saleStart.toISOString(),
-    saleEnd: vp.saleEnd.toISOString(),
-    usageStart: vp.usageStart.toISOString(),
-    usageEnd: vp.usageEnd.toISOString(),
+    salePeriodStart: vp.saleStart.toISOString(),
+    salePeriodEnd: vp.saleEnd.toISOString(),
+    usagePeriodStart: vp.usageStart.toISOString(),
+    usagePeriodEnd: vp.usageEnd.toISOString(),
     totalQuantity: vp.totalQuantity,
+    soldQuantity: vp.totalQuantity - vp.remainingQuantity,
     remainingQuantity: vp.remainingQuantity,
+    discountPercentage: Math.round(((vp.originalPrice - vp.salePrice) / vp.originalPrice) * 100),
     isMultiUse: vp.isMultiUse,
     usesPerCode: vp.usesPerCode,
     status: vp.status,
     createdAt: vp.createdAt.toISOString(),
     updatedAt: vp.updatedAt.toISOString(),
+    partner: { businessName: vp.partner?.legalName || 'Unknown Partner' },
+    category: 'Ẩm thực', // Hardcode tạm chờ bảng categories
+    terms: null,
+    voucherBranches: [] // Hardcode tạm chờ bảng branches
   }
 }
 
 /**
  * Tìm kiếm và lọc voucher (chỉ lấy voucher ON_SALE)
  */
-export const searchVouchers = async (
-  query: SearchVoucherQueryDto
-): Promise<VoucherListResponse> => {
+export const searchVouchers = async (query: SearchVoucherQueryDto): Promise<VoucherListResponse> => {
   const { keyword, minPrice, maxPrice, page = 1, limit = 20 } = query
   const skip = (page - 1) * limit
 
   // Xây dựng điều kiện lọc (chỉ lấy voucher đang bán)
   const whereConditions: Prisma.VoucherProductWhereInput = {
-    status: 'ON_SALE',
+    status: 'ON_SALE'
   }
 
   // Lọc theo từ khóa
   if (keyword) {
     whereConditions.OR = [
       { name: { contains: keyword, mode: 'insensitive' } },
-      { description: { contains: keyword, mode: 'insensitive' } },
+      { description: { contains: keyword, mode: 'insensitive' } }
     ]
   }
 
@@ -71,18 +75,20 @@ export const searchVouchers = async (
     prisma.voucherProduct.count({ where: whereConditions }),
     prisma.voucherProduct.findMany({
       where: whereConditions,
+      include: { partner: true },
       orderBy: { createdAt: 'desc' },
       skip,
-      take: limit,
-    }),
+      take: limit
+    })
   ])
 
   return {
-    items: vouchers.map(toVoucherResponse),
-    total,
-    page,
-    limit,
-    totalPages: Math.ceil(total / limit),
+    vouchers: vouchers.map(toVoucherResponse),
+    pagination: {
+      page,
+      limit,
+      total
+    }
   }
 }
 
@@ -91,10 +97,11 @@ export const searchVouchers = async (
  */
 export const getVoucherDetail = async (id: string): Promise<VoucherResponse> => {
   const voucher = await prisma.voucherProduct.findFirst({
-    where: { 
+    where: {
       id,
       status: 'ON_SALE' // Chỉ cho phép xem chi tiết voucher đang bán
     },
+    include: { partner: true }
   })
 
   if (!voucher) {
