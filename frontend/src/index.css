@@ -1,0 +1,105 @@
+/**
+ * Global baseline for the VoucherHub design system.
+ * Tokens live in src/theme/tokens.ts; this file sets the document-level
+ * defaults (canvas background, base font, selection, scrollbar, focus ring).
+ */
+
+:root {
+  --vh-canvas: #e8e7e4;
+  --vh-surface: #ffffff;
+  --vh-ink: #0b0b0b;
+  --vh-slate: #6b6b6b;
+  --vh-hairline: #e2e2e2;
+
+  font-family:
+    'Inter',
+    system-ui,
+    -apple-system,
+    Helvetica,
+    Arial,
+    sans-serif;
+  line-height: 1.6;
+  font-weight: 400;
+  color: var(--vh-ink);
+  color-scheme: light;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: var(--vh-canvas);
+  color: var(--vh-ink);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: 'Hanken Grotesk', system-ui, sans-serif;
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+::selection {
+  background: var(--vh-ink);
+  color: var(--vh-surface);
+}
+
+/* Slim, monochrome scrollbar to match the minimalist aesthetic. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #c4c7c7;
+  border-radius: 9999px;
+  border: 2px solid var(--vh-canvas);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a8abab;
+}
+
+/* Accessible keyboard focus ring (ink outline, never removed silently). */
+:focus-visible {
+  outline: 2px solid var(--vh-ink);
+  outline-offset: 2px;
+}
+
+@media (max-width: 720px) {
+  .public-main,
+  .workspace-main {
+    padding: 24px 16px !important;
+  }
+
+  .workspace-shell {
+    flex-direction: column;
+  }
+
+  .workspace-sidebar {
+    width: 100% !important;
+    border-right: 0 !important;
+    border-bottom: 1px solid var(--vh-hairline);
+    overflow-x: auto;
+  }
+
+  .workspace-sidebar nav {
+    flex-direction: row !important;
+    min-width: max-content;
+  }
+
+  table {
+    min-width: 680px;
+  }
+}
