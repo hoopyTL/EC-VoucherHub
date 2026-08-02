@@ -21,7 +21,7 @@ export const searchVoucherQuerySchema = z.object({
     .transform((val) => (val ? parseInt(val, 10) : undefined))
     .refine((val) => val === undefined || !isNaN(val), { message: 'categoryId phải là số nguyên' }),
   region: z.string().optional(),
-  
+
   // Phân trang
   page: z
     .string()
@@ -32,7 +32,7 @@ export const searchVoucherQuerySchema = z.object({
     .string()
     .optional()
     .transform((val) => (val ? parseInt(val, 10) : 20))
-    .refine((val) => val === undefined || (!isNaN(val) && val > 0 && val <= 100), { message: 'limit từ 1 đến 100' }),
+    .refine((val) => val === undefined || (!isNaN(val) && val > 0 && val <= 100), { message: 'limit từ 1 đến 100' })
 })
 
 export type SearchVoucherQueryDto = z.infer<typeof searchVoucherQuerySchema>
@@ -67,4 +67,74 @@ export interface VoucherListResponse {
   page: number
   limit: number
   totalPages: number
+}
+
+export interface CreateVoucherDto {
+  categoryId?: number | null
+
+  name: string
+  description: string
+
+  imageUrl?: string | null
+
+  originalPrice: number
+  salePrice: number
+
+  saleStart: string
+  saleEnd: string
+
+  usageStart: string
+  usageEnd: string
+
+  totalQuantity: number
+
+  isMultiUse: boolean
+  usesPerCode?: number | null
+
+  branchIds?: number[]
+}
+
+export type UpdateVoucherDto = Partial<CreateVoucherDto>
+
+export interface VoucherApprovalDto {
+  action: 'approve' | 'reject'
+  reason?: string
+}
+
+export interface VoucherStatusDto {
+  action: 'publish' | 'suspend' | 'unpublish'
+}
+
+export interface VoucherDto {
+  id: string
+  partnerId: string
+
+  categoryId: number | null
+
+  name: string
+  description: string
+
+  imageUrl: string | null
+
+  originalPrice: string
+  salePrice: string
+
+  saleStart: string
+  saleEnd: string
+
+  usageStart: string
+  usageEnd: string
+
+  totalQuantity: number
+  remainingQuantity: number
+
+  isMultiUse: boolean
+  usesPerCode: number | null
+
+  status: 'DRAFT' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'ON_SALE' | 'PAUSED' | 'DISCONTINUED'
+
+  rejectReason: string | null
+
+  createdAt: string
+  updatedAt: string
 }

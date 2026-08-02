@@ -9,3 +9,17 @@ declare namespace Express {
     }
   }
 }
+
+declare global {
+  namespace Express {
+    interface Request {
+      validated?: unknown
+      user?: {
+        id: string
+        role: string
+      }
+    }
+  }
+}
+
+export {}
