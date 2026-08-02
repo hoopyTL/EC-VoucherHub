@@ -12,6 +12,12 @@ import { ApiResponse } from '~/utils/api-response'
 import partnerRoutes from '~/modules/partners/partner.routes'
 import { devAuth } from '~/middlewares/dev-auth'
 //
+
+// task 007
+import voucherRoutes from '~/modules/vouchers/voucher.routes'
+// catalogy
+import categoryRoutes from '~/modules/categories/category.routes'
+
 const app = express()
 
 // Security
@@ -42,6 +48,10 @@ app.get('/', (_req, res) => {
 
 //task 06
 app.use('/api', devAuth, partnerRoutes)
+
+app.use('/api', categoryRoutes)
+//task 007
+app.use('/api', devAuth, voucherRoutes)
 
 // Error handling
 app.use(notFoundHandler)

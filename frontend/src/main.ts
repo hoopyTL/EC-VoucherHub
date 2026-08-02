@@ -1,330 +1,640 @@
-// @voucher/client — Entry point placeholder
-//console.log('🎨 VoucherHub Client — ready for implementation')
 const API = 'http://localhost:4000/api'
 
-const root = document.querySelector<HTMLDivElement>('#root')
-
-if (!root) {
-  throw new Error('Root element not found')
-}
+const root = document.querySelector<HTMLDivElement>('#root')!
 
 root.innerHTML = `
   <div style="
-    max-width: 800px;
+    max-width: 900px;
     margin: 30px auto;
     font-family: Arial, sans-serif;
     line-height: 1.5;
   ">
-    <h1>VoucherHub - Test TASK-006</h1>
+    <h1>VoucherHub - Test TASK-007</h1>
 
-    <div style="padding:15px; background:#f4f4f4; margin-bottom:20px;">
-      <h3>Thông tin test</h3>
+    <hr />
 
-      <label>User ID</label><br>
-      <input
-        id="userId"
-        placeholder="Dán user id từ Prisma Studio"
-        style="width:100%; padding:8px; margin-bottom:10px;"
-      >
+    <h2>Thông tin test</h2>
 
-      <label>Role</label><br>
-      <select id="role" style="padding:8px;">
-        <option value="PARTNER">PARTNER</option>
-        <option value="ADMIN">ADMIN</option>
-        <option value="CUSTOMER">CUSTOMER</option>
-      </select>
-    </div>
-
-    <hr>
-
-    <h2>1. Đăng ký Partner</h2>
-
+    <label>User ID</label>
     <input
-      id="legalName"
-      placeholder="Tên doanh nghiệp"
-      value="ABC Food Company"
-      style="width:100%; padding:8px; margin-bottom:8px;"
-    >
+      id="userId"
+      placeholder="User ID của Partner"
+      style="width:100%;padding:8px;margin-bottom:10px"
+    />
 
-    <input
-      id="taxCode"
-      placeholder="Mã số thuế"
-      value="0312345678"
-      style="width:100%; padding:8px; margin-bottom:8px;"
+    <label>Role</label>
+    <select
+      id="role"
+      style="width:100%;padding:8px;margin-bottom:10px"
     >
+      <option value="PARTNER">PARTNER</option>
+      <option value="ADMIN">ADMIN</option>
+      <option value="CUSTOMER">CUSTOMER</option>
+    </select>
 
-    <input
-      id="representative"
-      placeholder="Người đại diện"
-      value="Nguyen Van A"
-      style="width:100%; padding:8px; margin-bottom:8px;"
-    >
-
-    <button id="registerPartner">
-      Đăng ký Partner
+    <button id="loadData">
+      Tải dữ liệu từ Database
     </button>
 
-    <button id="getPartner">
-      Xem Partner của tôi
-    </button>
+    <p id="loadStatus"></p>
 
-    <hr>
+    <hr />
 
-    <h2>2. Cập nhật Partner</h2>
+    <h2>1. Tạo Voucher</h2>
 
-    <input
-      id="newLegalName"
-      placeholder="Tên doanh nghiệp mới"
-      value="ABC Food Company Updated"
-      style="width:100%; padding:8px; margin-bottom:8px;"
+    <label>Danh mục</label>
+    <select
+      id="categoryId"
+      style="width:100%;padding:8px;margin-bottom:8px"
     >
+      <option value="">
+        -- Chọn danh mục --
+      </option>
+    </select>
 
-    <button id="updatePartner">
-      Cập nhật
-    </button>
-
-    <hr>
-
-    <h2>3. Chi nhánh</h2>
-
+    <label>Tên Voucher</label>
     <input
-      id="branchName"
-      placeholder="Tên chi nhánh"
-      value="Chi nhánh Quận 1"
-      style="width:100%; padding:8px; margin-bottom:8px;"
-    >
+      id="name"
+      value="Voucher Buffet 200K"
+      style="width:100%;padding:8px;margin-bottom:8px"
+    />
 
+    <label>Mô tả</label>
     <input
-      id="branchAddress"
-      placeholder="Địa chỉ"
-      value="123 Nguyễn Huệ"
-      style="width:100%; padding:8px; margin-bottom:8px;"
-    >
+      id="description"
+      value="Voucher dùng cho buffet cuối tuần"
+      style="width:100%;padding:8px;margin-bottom:8px"
+    />
 
+    <label>Giá gốc</label>
     <input
-      id="branchRegion"
-      placeholder="Khu vực"
-      value="HCM"
-      style="width:100%; padding:8px; margin-bottom:8px;"
-    >
-
-    <button id="createBranch">
-      Thêm chi nhánh
-    </button>
-
-    <br><br>
-
-    <input
-      id="branchId"
+      id="originalPrice"
       type="number"
-      placeholder="Branch ID"
-      style="padding:8px;"
-    >
+      value="200000"
+      style="width:100%;padding:8px;margin-bottom:8px"
+    />
 
-    <button id="deleteBranch">
-      Xóa chi nhánh
+    <label>Giá bán</label>
+    <input
+      id="salePrice"
+      type="number"
+      value="150000"
+      style="width:100%;padding:8px;margin-bottom:8px"
+    />
+
+    <label>Ngày bắt đầu bán</label>
+    <input
+      id="saleStart"
+      type="datetime-local"
+      value="2026-08-03T00:00"
+      style="width:100%;padding:8px;margin-bottom:8px"
+    />
+
+    <label>Ngày kết thúc bán</label>
+    <input
+      id="saleEnd"
+      type="datetime-local"
+      value="2026-08-20T23:59"
+      style="width:100%;padding:8px;margin-bottom:8px"
+    />
+
+    <label>Ngày bắt đầu sử dụng</label>
+    <input
+      id="usageStart"
+      type="datetime-local"
+      value="2026-08-03T00:00"
+      style="width:100%;padding:8px;margin-bottom:8px"
+    />
+
+    <label>Ngày hết hạn sử dụng</label>
+    <input
+      id="usageEnd"
+      type="datetime-local"
+      value="2026-09-30T23:59"
+      style="width:100%;padding:8px;margin-bottom:8px"
+    />
+
+    <label>Tổng số lượng</label>
+    <input
+      id="totalQuantity"
+      type="number"
+      value="100"
+      style="width:100%;padding:8px;margin-bottom:8px"
+    />
+
+    <label>
+      <input id="isMultiUse" type="checkbox" />
+      Voucher dùng nhiều lần
+    </label>
+
+    <br /><br />
+
+    <label>Số lần sử dụng mỗi code</label>
+    <input
+      id="usesPerCode"
+      type="number"
+      placeholder="Chỉ nhập nếu dùng nhiều lần"
+      style="width:100%;padding:8px;margin-bottom:8px"
+    />
+
+    <label>Chi nhánh áp dụng</label>
+
+    <select
+      id="branchIds"
+      multiple
+      size="5"
+      style="width:100%;padding:8px;margin-bottom:8px"
+    ></select>
+
+    <small>
+      Giữ Ctrl để chọn nhiều chi nhánh.
+      Không chọn = không giới hạn chi nhánh.
+    </small>
+
+    <br /><br />
+
+    <button id="createVoucher">
+      Tạo Voucher
     </button>
 
-    <hr>
+    <hr />
 
-    <h2>4. Admin duyệt Partner</h2>
+    <h2>2. Voucher của Partner</h2>
+
+    <button id="reloadVouchers">
+      Tải lại danh sách Voucher
+    </button>
+
+    <br /><br />
+
+    <label>Chọn Voucher</label>
+
+    <select
+      id="voucherId"
+      style="width:100%;padding:8px;margin-bottom:10px"
+    >
+      <option value="">
+        -- Chọn Voucher --
+      </option>
+    </select>
+
+    <hr />
+
+    <h2>3. Sửa Voucher DRAFT</h2>
+
+    <label>Tên mới</label>
 
     <input
-      id="partnerId"
-      placeholder="Partner ID"
-      style="width:100%; padding:8px; margin-bottom:8px;"
-    >
+      id="updateName"
+      value="Voucher Buffet 200K Updated"
+      style="width:100%;padding:8px;margin-bottom:10px"
+    />
 
-    <button id="approvePartner">
+    <button id="updateVoucher">
+      Cập nhật Voucher
+    </button>
+
+    <hr />
+
+    <h2>4. Partner gửi duyệt</h2>
+
+    <button id="submitVoucher">
+      Submit Voucher
+    </button>
+
+    <button id="returnDraft">
+      Return to Draft
+    </button>
+
+    <hr />
+
+    <h2>5. Admin duyệt Voucher</h2>
+
+    <button id="approveVoucher">
       Approve
     </button>
 
-    <button id="rejectPartner">
+    <button id="rejectVoucher">
       Reject
     </button>
 
-    <button id="lockPartner">
-      Lock
+    <hr />
+
+    <h2>6. Admin thay đổi trạng thái</h2>
+
+    <button id="publishVoucher">
+      Publish
     </button>
 
-    <button id="unlockPartner">
-      Unlock
+    <button id="suspendVoucher">
+      Suspend
     </button>
 
-    <hr>
+    <button id="unpublishVoucher">
+      Unpublish
+    </button>
+
+    <hr />
 
     <h2>Response</h2>
 
-    <pre id="result" style="
-      padding:15px;
-      background:#111;
-      color:#eee;
-      min-height:150px;
-      white-space:pre-wrap;
-      overflow:auto;
-    "></pre>
+    <pre
+      id="response"
+      style="
+        background:#f4f4f4;
+        padding:15px;
+        border-radius:6px;
+        white-space:pre-wrap;
+        min-height:120px;
+      "
+    ></pre>
   </div>
 `
 
-function value(id: string) {
-  return document.querySelector<HTMLInputElement>(`#${id}`)!.value
+function value(id: string): string {
+  const element = document.querySelector<HTMLInputElement | HTMLSelectElement>(`#${id}`)
+
+  return element?.value.trim() ?? ''
 }
 
-function getHeaders(json = false): HeadersInit {
+function getHeaders(includeJson = false): HeadersInit {
   const headers: Record<string, string> = {
     'x-user-id': value('userId'),
-    'x-role': document.querySelector<HTMLSelectElement>('#role')!.value
+    'x-role': value('role') || 'PARTNER'
   }
 
-  if (json) {
+  if (includeJson) {
     headers['Content-Type'] = 'application/json'
   }
 
   return headers
 }
 
-const result = document.querySelector<HTMLPreElement>('#result')!
+function showResponse(status: number, data: unknown): void {
+  const output = document.querySelector<HTMLPreElement>('#response')!
 
-async function request(url: string, options: RequestInit = {}) {
+  output.textContent = JSON.stringify(
+    {
+      httpStatus: status,
+      response: data
+    },
+    null,
+    2
+  )
+}
+
+async function fetchApi(path: string, options: RequestInit = {}) {
   try {
-    result.textContent = 'Đang gửi request...'
+    const response = await fetch(`${API}${path}`, options)
 
-    const response = await fetch(`${API}${url}`, options)
+    const data = response.status === 204 ? null : await response.json()
 
-    let data: unknown
+    showResponse(response.status, data)
 
-    if (response.status === 204) {
-      data = {
-        success: true,
-        message: 'No content'
-      }
-    } else {
-      data = await response.json()
+    return {
+      status: response.status,
+      data
     }
-
-    result.textContent = JSON.stringify(
-      {
-        httpStatus: response.status,
-        response: data
-      },
-      null,
-      2
-    )
-
-    return data
   } catch (error) {
-    result.textContent = error instanceof Error ? error.message : 'Request failed'
+    const message = error instanceof Error ? error.message : 'Unknown error'
 
-    return null
+    showResponse(0, {
+      success: false,
+      error: message
+    })
+
+    return {
+      status: 0,
+      data: null
+    }
   }
 }
 
-// --------------------
-// Partner
-// --------------------
+function toIso(value: string): string {
+  return new Date(value).toISOString()
+}
 
-document.querySelector('#registerPartner')!.addEventListener('click', async () => {
-  await request('/partners', {
-    method: 'POST',
-    headers: getHeaders(true),
-    body: JSON.stringify({
-      legalName: value('legalName'),
-      taxCode: value('taxCode'),
-      representative: value('representative')
-    })
-  })
-})
+function selectedBranchIds(): number[] {
+  const select = document.querySelector<HTMLSelectElement>('#branchIds')
 
-document.querySelector('#getPartner')!.addEventListener('click', async () => {
-  await request('/partner', {
+  if (!select) {
+    return []
+  }
+
+  return Array.from(select.selectedOptions).map((option) => Number(option.value))
+}
+
+type Category = {
+  id: number
+  name: string
+}
+
+type Branch = {
+  id: number
+  name: string
+  address: string
+  region: string
+}
+
+type Voucher = {
+  id: string
+  name: string
+  status: string
+}
+
+async function loadCategories(): Promise<void> {
+  const response = await fetch(`${API}/categories`)
+
+  const result = await response.json()
+
+  if (!result.success) {
+    return
+  }
+
+  const select = document.querySelector<HTMLSelectElement>('#categoryId')!
+
+  select.innerHTML = '<option value="">-- Chọn danh mục --</option>'
+
+  for (const category of result.data as Category[]) {
+    const option = document.createElement('option')
+
+    option.value = String(category.id)
+
+    option.textContent = category.name
+
+    select.appendChild(option)
+  }
+}
+
+async function loadBranches(): Promise<void> {
+  const result = await fetchApi('/partner/branches/options', {
     headers: getHeaders()
   })
+
+  if (result.status !== 200 || !result.data) {
+    return
+  }
+
+  const response = result.data as {
+    success: boolean
+    data: Branch[]
+  }
+
+  if (!response.success) {
+    return
+  }
+
+  const select = document.querySelector<HTMLSelectElement>('#branchIds')!
+
+  select.innerHTML = ''
+
+  for (const branch of response.data) {
+    const option = document.createElement('option')
+
+    option.value = String(branch.id)
+
+    option.textContent = `${branch.name} - ${branch.region}`
+
+    select.appendChild(option)
+  }
+}
+
+async function loadVouchers(): Promise<void> {
+  const result = await fetchApi('/partner/vouchers', {
+    headers: getHeaders()
+  })
+
+  if (result.status !== 200 || !result.data) {
+    return
+  }
+
+  const response = result.data as {
+    success: boolean
+    data: Voucher[]
+  }
+
+  if (!response.success) {
+    return
+  }
+
+  const select = document.querySelector<HTMLSelectElement>('#voucherId')!
+
+  const current = select.value
+
+  select.innerHTML = '<option value="">-- Chọn Voucher --</option>'
+
+  for (const voucher of response.data) {
+    const option = document.createElement('option')
+
+    option.value = voucher.id
+
+    option.textContent = `${voucher.name} - ${voucher.status}`
+
+    select.appendChild(option)
+  }
+
+  if (response.data.some((voucher) => voucher.id === current)) {
+    select.value = current
+  }
+}
+
+async function reloadDatabaseData(): Promise<void> {
+  await loadCategories()
+  await loadBranches()
+  await loadVouchers()
+
+  const status = document.querySelector<HTMLParagraphElement>('#loadStatus')!
+
+  status.textContent = 'Đã tải Category, Branch và Voucher từ database.'
+}
+
+document.querySelector('#loadData')?.addEventListener('click', reloadDatabaseData)
+
+document.querySelector('#reloadVouchers')?.addEventListener('click', loadVouchers)
+
+document.querySelector('#createVoucher')?.addEventListener('click', async () => {
+  const categoryId = value('categoryId')
+
+  const usesPerCode = value('usesPerCode')
+
+  const isMultiUse = document.querySelector<HTMLInputElement>('#isMultiUse')?.checked ?? false
+
+  const body: Record<string, unknown> = {
+    name: value('name'),
+    description: value('description'),
+
+    originalPrice: Number(value('originalPrice')),
+
+    salePrice: Number(value('salePrice')),
+
+    saleStart: toIso(value('saleStart')),
+
+    saleEnd: toIso(value('saleEnd')),
+
+    usageStart: toIso(value('usageStart')),
+
+    usageEnd: toIso(value('usageEnd')),
+
+    totalQuantity: Number(value('totalQuantity')),
+
+    isMultiUse
+  }
+
+  if (categoryId) {
+    body.categoryId = Number(categoryId)
+  }
+
+  if (usesPerCode) {
+    body.usesPerCode = Number(usesPerCode)
+  }
+
+  const branches = selectedBranchIds()
+
+  if (branches.length > 0) {
+    body.branchIds = branches
+  }
+
+  const result = await fetchApi('/vouchers', {
+    method: 'POST',
+    headers: getHeaders(true),
+    body: JSON.stringify(body)
+  })
+
+  if (result.status === 201) {
+    await loadVouchers()
+  }
 })
 
-document.querySelector('#updatePartner')!.addEventListener('click', async () => {
-  await request('/partner', {
+document.querySelector('#updateVoucher')?.addEventListener('click', async () => {
+  const voucherId = value('voucherId')
+
+  if (!voucherId) {
+    alert('Hãy chọn Voucher')
+    return
+  }
+
+  const result = await fetchApi(`/vouchers/${voucherId}`, {
     method: 'PATCH',
     headers: getHeaders(true),
     body: JSON.stringify({
-      legalName: value('newLegalName')
+      name: value('updateName'),
+      categoryId: value('categoryId') ? Number(value('categoryId')) : undefined
     })
   })
+
+  if (result.status === 200) {
+    await loadVouchers()
+  }
 })
 
-// --------------------
-// Branch
-// --------------------
+document.querySelector('#submitVoucher')?.addEventListener('click', async () => {
+  const voucherId = value('voucherId')
 
-document.querySelector('#createBranch')!.addEventListener('click', async () => {
-  await request('/partner/branches', {
+  if (!voucherId) {
+    alert('Hãy chọn Voucher')
+    return
+  }
+
+  const result = await fetchApi(`/vouchers/${voucherId}/submission`, {
     method: 'POST',
-    headers: getHeaders(true),
-    body: JSON.stringify({
-      name: value('branchName'),
-      address: value('branchAddress'),
-      region: value('branchRegion')
-    })
-  })
-})
-
-document.querySelector('#deleteBranch')!.addEventListener('click', async () => {
-  const branchId = value('branchId')
-
-  await request(`/partner/branches/${branchId}`, {
-    method: 'DELETE',
     headers: getHeaders()
   })
+
+  if (result.status === 200) {
+    await loadVouchers()
+  }
 })
 
-// --------------------
-// Admin
-// --------------------
+document.querySelector('#returnDraft')?.addEventListener('click', async () => {
+  const voucherId = value('voucherId')
 
-document.querySelector('#approvePartner')!.addEventListener('click', async () => {
-  const partnerId = value('partnerId')
+  if (!voucherId) {
+    alert('Hãy chọn Voucher')
+    return
+  }
 
-  await request(`/admin/partners/${partnerId}/approval`, {
+  const result = await fetchApi(`/vouchers/${voucherId}/draft`, {
+    method: 'POST',
+    headers: getHeaders()
+  })
+
+  if (result.status === 200) {
+    await loadVouchers()
+  }
+})
+
+document.querySelector('#approveVoucher')?.addEventListener('click', async () => {
+  const voucherId = value('voucherId')
+
+  if (!voucherId) {
+    alert('Hãy chọn Voucher')
+    return
+  }
+
+  const result = await fetchApi(`/admin/vouchers/${voucherId}/approval`, {
     method: 'PATCH',
     headers: getHeaders(true),
     body: JSON.stringify({
       action: 'approve'
     })
   })
+
+  if (result.status === 200) {
+    await loadVouchers()
+  }
 })
 
-document.querySelector('#rejectPartner')!.addEventListener('click', async () => {
-  const partnerId = value('partnerId')
+document.querySelector('#rejectVoucher')?.addEventListener('click', async () => {
+  const voucherId = value('voucherId')
 
-  await request(`/admin/partners/${partnerId}/approval`, {
+  if (!voucherId) {
+    alert('Hãy chọn Voucher')
+    return
+  }
+
+  const result = await fetchApi(`/admin/vouchers/${voucherId}/approval`, {
     method: 'PATCH',
     headers: getHeaders(true),
     body: JSON.stringify({
       action: 'reject',
-      reason: 'Thông tin chưa hợp lệ'
+      reason: 'Voucher information is not valid'
     })
   })
+
+  if (result.status === 200) {
+    await loadVouchers()
+  }
 })
 
-document.querySelector('#lockPartner')!.addEventListener('click', async () => {
-  const partnerId = value('partnerId')
+document.querySelector('#publishVoucher')?.addEventListener('click', async () => {
+  await changeStatus('publish')
+})
 
-  await request(`/admin/partners/${partnerId}/lock`, {
+document.querySelector('#suspendVoucher')?.addEventListener('click', async () => {
+  await changeStatus('suspend')
+})
+
+document.querySelector('#unpublishVoucher')?.addEventListener('click', async () => {
+  await changeStatus('unpublish')
+})
+
+async function changeStatus(action: 'publish' | 'suspend' | 'unpublish'): Promise<void> {
+  const voucherId = value('voucherId')
+
+  if (!voucherId) {
+    alert('Hãy chọn Voucher')
+    return
+  }
+
+  const result = await fetchApi(`/admin/vouchers/${voucherId}/status`, {
     method: 'PATCH',
     headers: getHeaders(true),
     body: JSON.stringify({
-      action: 'lock'
+      action
     })
   })
-})
 
-document.querySelector('#unlockPartner')!.addEventListener('click', async () => {
-  const partnerId = value('partnerId')
-
-  await request(`/admin/partners/${partnerId}/lock`, {
-    method: 'PATCH',
-    headers: getHeaders(true),
-    body: JSON.stringify({
-      action: 'unlock'
-    })
-  })
-})
+  if (result.status === 200) {
+    await loadVouchers()
+  }
+}
