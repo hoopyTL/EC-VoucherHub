@@ -50,6 +50,12 @@ const toOrderResponse = (
         name: string
       }
     }>
+    issuedVoucherCodes?: Array<{
+      code: string
+      voucherProductId: string
+      status: string
+      expiresAt: Date
+    }>
   },
 ): OrderResponse => {
   const items: OrderItemResponse[] = order.orderItems.map((oi) => ({
@@ -71,6 +77,14 @@ const toOrderResponse = (
     paidAt: order.paidAt?.toISOString() ?? null,
     createdAt: order.createdAt.toISOString(),
     updatedAt: order.updatedAt.toISOString(),
+    codes: order.status === 'PAID' && order.issuedVoucherCodes 
+      ? order.issuedVoucherCodes.map(c => ({
+          code: c.code,
+          voucherProductId: c.voucherProductId,
+          status: c.status,
+          expiresAt: c.expiresAt.toISOString()
+        }))
+      : undefined
   }
 }
 
@@ -246,7 +260,10 @@ export const getOrderDetail = async (
 ): Promise<OrderResponse> => {
   const order = await prisma.order.findUnique({
     where: { id: orderId },
-    include: orderInclude,
+    include: {
+      ...orderInclude,
+      issuedVoucherCodes: true
+    },
   })
 
   if (!order) {

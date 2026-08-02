@@ -62,6 +62,7 @@ export interface OrderResponse {
   paidAt: string | null
   createdAt: string
   updatedAt: string
+  codes?: VoucherCodeIssuedResponse[]
 }
 
 export interface OrderListResponse {

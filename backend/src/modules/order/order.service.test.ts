@@ -115,3 +115,56 @@ describe('Order Service - Payment', () => {
     expect(prismaMock.order.update).not.toHaveBeenCalled()
   })
 })
+
+describe('Order Service - getOrderDetail', () => {
+  const customerId = 'cust-1'
+  const orderId = 'order-1'
+  
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('Trả về lỗi 403 nếu đơn hàng không thuộc về customer', async () => {
+    prismaMock.order.findUnique.mockResolvedValue({ id: orderId, customerId: 'other-cust' })
+    await expect(import('./order.service').then(m => m.getOrderDetail(customerId, orderId))).rejects.toThrow(ForbiddenError)
+  })
+
+  it('Ẩn mảng codes nếu đơn hàng chưa PAID', async () => {
+    prismaMock.order.findUnique.mockResolvedValue({
+      id: orderId,
+      customerId,
+      status: 'PENDING_PAYMENT',
+      totalAmount: { toFixed: () => '100.00' },
+      paymentMethod: 'SIMULATED',
+      giftRecipient: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      paidAt: null,
+      orderItems: [],
+      issuedVoucherCodes: [{ code: 'SECRET-CODE' }] // Giả lập lọt code
+    })
+    const m = await import('./order.service')
+    const result = await m.getOrderDetail(customerId, orderId)
+    expect(result.codes).toBeUndefined()
+  })
+
+  it('Trả về mảng codes nếu đơn hàng đã PAID', async () => {
+    prismaMock.order.findUnique.mockResolvedValue({
+      id: orderId,
+      customerId,
+      status: 'PAID',
+      totalAmount: { toFixed: () => '200.00' },
+      paymentMethod: 'SIMULATED',
+      giftRecipient: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      paidAt: new Date(),
+      orderItems: [],
+      issuedVoucherCodes: [{ code: 'A1B2C3D4E5F6', voucherProductId: 'vp-1', status: 'UNUSED', expiresAt: new Date() }]
+    })
+    const m = await import('./order.service')
+    const result = await m.getOrderDetail(customerId, orderId)
+    expect(result.codes).toHaveLength(1)
+    expect(result.codes![0].code).toBe('A1B2C3D4E5F6')
+  })
+})

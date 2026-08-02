@@ -48,7 +48,7 @@
 | TASK-009 | Cart & Order Service                                               | FR-06, FR-07                  | TASK-008                 |
 | TASK-010 | Payment Sim + phát hành Voucher_code (**lõi hệ thống**) | FR-08, R19.2, R24.3           | TASK-009                 |
 | TASK-011 | **Checkpoint** — Mua → Thanh toán → Phát hành (ĐÃ ĐẠT) | —                            | TASK-010                 |
-| TASK-012 | Nhận voucher đã mua & lịch sử đơn                           | FR-09                         | TASK-010                 |
+| TASK-012 | Nhận voucher đã mua & lịch sử đơn (ĐÃ ĐẠT)                  | FR-09                         | TASK-010                 |
 | TASK-020 | Frontend — Giao diện Khách hàng (FLOW-001..004)                | FR-01,02,04,05,06,07,08,09,10 | TASK-010, 012, 014 (TV3) |
 
 **Lưu ý phối hợp**: TASK-008 chờ TASK-007 (voucher product của TV3); TASK-020 chờ thêm TASK-014 (review của TV3). Đồng bộ lịch với TV3.

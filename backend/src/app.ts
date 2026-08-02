@@ -9,8 +9,8 @@ import { errorHandler } from './middleware/error-handler'
 // Route imports
 import cartRoutes from './modules/cart/cart.routes'
 import orderRoutes from './modules/order/order.routes'
+import searchRoutes from './modules/search/search.routes'
 import { notFoundHandler } from '~/middlewares/not-found'
-import { errorHandler } from '~/middlewares/error-handler'
 import { ApiResponse } from '~/utils/api-response'
 
 const app = express()
@@ -42,6 +42,7 @@ app.get('/', (_req, res) => {
 // API routes
 app.use('/api/cart', cartRoutes)
 app.use('/api/orders', orderRoutes)
+app.use('/api/search/vouchers', searchRoutes)
 
 // handling error — phải ở cuối, sau tất cả routes
 app.use(errorHandler)
