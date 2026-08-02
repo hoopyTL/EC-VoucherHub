@@ -1,0 +1,15 @@
+// Vitest global test setup for the client package.
+// Cleans up the rendered DOM between tests to avoid cross-test leakage.
+import { afterEach, beforeAll } from 'vitest'
+import { cleanup } from '@testing-library/react'
+// Initialise i18n so components using useTranslation() render in tests
+// (English bundle / fallback). Importing for the side effect is enough.
+import i18n from './i18n'
+
+beforeAll(async () => {
+  await i18n.changeLanguage('en')
+})
+
+afterEach(() => {
+  cleanup()
+})

@@ -6,7 +6,7 @@
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | Vite + React 19 + Tailwind CSS + shadcn/ui |
+| Frontend | Vite 5 + React 18 + TypeScript (responsive SPA) |
 | Backend | Node.js + Express.js |
 | Database | PostgreSQL + Prisma ORM |
 | Auth | JWT + bcrypt + Role-based middleware |
@@ -57,11 +57,22 @@ npm run db:seed
 npm run dev
 ```
 
+Để xem toàn bộ UI với dữ liệu mẫu, không cần backend hoặc database:
+
+```bash
+npm run dev:design --workspace=frontend
+```
+
+Design Preview không gửi request tới backend và tự cấp vai trò theo nhóm route
+`/partner` hoặc `/admin`. Xem quy trình thiết kế tại
+[`docs/08-frontend-design/figma-workflow.md`](docs/08-frontend-design/figma-workflow.md).
+
 ### Scripts
 
 | Command | Description |
 |---------|------------|
 | `npm run dev` | Start backend + frontend in dev mode |
+| `npm run dev:design --workspace=frontend` | Chạy frontend với mock data cố định để review/capture thiết kế |
 | `npm run build` | Build all workspaces (shared → server → client) |
 | `npm test` | Run tests across all workspaces |
 | `npm run lint` | Lint all workspaces (ESLint) |

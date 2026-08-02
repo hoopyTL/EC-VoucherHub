@@ -1,0 +1,335 @@
+import type { AxiosAdapter, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
+
+const NOW = '2026-08-02T08:00:00.000Z'
+const SALE_START = '2026-07-01T00:00:00.000Z'
+const SALE_END = '2026-12-31T23:59:59.000Z'
+
+const BRANCHES = [
+  {
+    id: 'branch-d1',
+    name: 'VoucherHub Quận 1',
+    address: '12 Nguyễn Huệ, Quận 1, TP.HCM',
+    region: 'TP.HCM',
+    contact: '028 3822 1234',
+    isActive: true,
+    partnerId: 'partner-1',
+    createdAt: NOW,
+    updatedAt: NOW
+  },
+  {
+    id: 'branch-d2',
+    name: 'VoucherHub Thảo Điền',
+    address: '48 Xuân Thủy, TP. Thủ Đức, TP.HCM',
+    region: 'TP.HCM',
+    contact: '028 3744 5678',
+    isActive: true,
+    partnerId: 'partner-1',
+    createdAt: NOW,
+    updatedAt: NOW
+  }
+]
+
+function voucher(
+  id: string,
+  title: string,
+  category: string,
+  originalPrice: number,
+  salePrice: number,
+  soldQuantity: number
+) {
+  return {
+    id,
+    title,
+    description: `${title} với quy trình sử dụng đơn giản tại các chi nhánh áp dụng.`,
+    category,
+    originalPrice: String(originalPrice),
+    salePrice: String(salePrice),
+    totalQuantity: 100,
+    soldQuantity,
+    salePeriodStart: SALE_START,
+    salePeriodEnd: SALE_END,
+    usagePeriodStart: SALE_START,
+    usagePeriodEnd: SALE_END,
+    terms: 'Áp dụng một lần. Không quy đổi thành tiền mặt.',
+    imageUrl: null,
+    status: 'APPROVED',
+    rejectionReason: null,
+    partnerId: 'partner-1',
+    createdAt: NOW,
+    updatedAt: NOW,
+    partner: { businessName: 'Saigon Select' },
+    voucherBranches: BRANCHES.map((branch, index) => ({
+      id: `link-${id}-${index + 1}`,
+      voucherId: id,
+      branchId: branch.id,
+      branch
+    }))
+  }
+}
+
+const VOUCHERS = [
+  voucher('voucher-1', 'Buffet tối dành cho hai người', 'Ẩm thực', 1200000, 790000, 68),
+  voucher('voucher-2', 'Liệu trình spa thư giãn 90 phút', 'Làm đẹp', 950000, 620000, 42),
+  voucher('voucher-3', 'Staycation cuối tuần tại Sài Gòn', 'Du lịch', 2800000, 1990000, 31),
+  voucher('voucher-4', 'Combo cà phê rang xay thủ công', 'Đồ uống', 420000, 289000, 55),
+  voucher('voucher-5', 'Vé xem phim và bắp nước', 'Giải trí', 320000, 219000, 73),
+  voucher('voucher-6', 'Lớp làm gốm cho người mới', 'Trải nghiệm', 700000, 490000, 24)
+]
+
+const CART = {
+  items: [
+    {
+      id: 'cart-item-1',
+      voucherId: 'voucher-1',
+      title: VOUCHERS[0].title,
+      unitPrice: 790000,
+      quantity: 1,
+      subtotal: 790000
+    },
+    {
+      id: 'cart-item-2',
+      voucherId: 'voucher-4',
+      title: VOUCHERS[3].title,
+      unitPrice: 289000,
+      quantity: 2,
+      subtotal: 578000
+    }
+  ],
+  total: 1368000
+}
+
+const ORDER_ITEMS = CART.items.map((item) => ({
+  id: `order-${item.id}`,
+  orderId: 'order-demo-001',
+  voucherId: item.voucherId,
+  quantity: item.quantity,
+  unitPrice: String(item.unitPrice),
+  subtotal: String(item.subtotal),
+  voucher: { id: item.voucherId, title: item.title }
+}))
+
+const ORDER = {
+  id: 'order-demo-001',
+  userId: 'customer-preview',
+  totalAmount: String(CART.total),
+  status: 'PAID',
+  recipientName: 'Nguyễn Minh Anh',
+  recipientEmail: 'minhanh@example.com',
+  recipientPhone: '0901234567',
+  createdAt: NOW,
+  updatedAt: NOW,
+  orderItems: ORDER_ITEMS
+}
+
+const CODES = [
+  {
+    id: 'code-1',
+    code: 'VH-DEMO-2026',
+    status: 'ACTIVE',
+    voucherId: 'voucher-1',
+    orderId: ORDER.id,
+    ownerId: ORDER.userId,
+    redeemedAt: null,
+    redemptionBranchId: null,
+    createdAt: NOW,
+    updatedAt: NOW,
+    voucher: {
+      id: 'voucher-1',
+      title: VOUCHERS[0].title,
+      description: VOUCHERS[0].description,
+      category: VOUCHERS[0].category,
+      usagePeriodStart: SALE_START,
+      usagePeriodEnd: SALE_END,
+      terms: VOUCHERS[0].terms
+    },
+    order: { id: ORDER.id, createdAt: NOW, status: ORDER.status }
+  }
+]
+
+const PARTNER_VOUCHERS = {
+  vouchers: VOUCHERS.slice(0, 5).map((item, index) => ({
+    ...item,
+    status: index === 1 ? 'DRAFT' : index === 2 ? 'PENDING_APPROVAL' : 'APPROVED'
+  })),
+  pagination: { page: 1, limit: 100, total: 5 }
+}
+
+const USERS = {
+  users: [
+    {
+      accountType: 'USER',
+      id: 'user-1',
+      email: 'minhanh@example.com',
+      phone: '0901234567',
+      name: 'Nguyễn Minh Anh',
+      role: 'CUSTOMER',
+      status: 'ACTIVE',
+      createdAt: NOW,
+      updatedAt: NOW
+    },
+    {
+      accountType: 'USER',
+      id: 'user-2',
+      email: 'admin@voucherhub.vn',
+      phone: null,
+      name: 'Trần Hoàng Nam',
+      role: 'ADMIN',
+      status: 'ACTIVE',
+      createdAt: NOW,
+      updatedAt: NOW
+    }
+  ],
+  partners: [
+    {
+      accountType: 'PARTNER',
+      id: 'partner-1',
+      email: 'hello@saigonselect.vn',
+      phone: '02838221234',
+      name: 'Saigon Select',
+      representativeName: 'Lê Thanh Hà',
+      status: 'APPROVED',
+      createdAt: NOW,
+      updatedAt: NOW
+    }
+  ],
+  pagination: { page: 1, limit: 20, userTotal: 2, partnerTotal: 1, total: 3 }
+}
+
+const PENDING_PARTNER = {
+  id: 'partner-pending-1',
+  email: 'contact@anviet.vn',
+  phone: '0908889999',
+  businessName: 'Ẩm Thực An Việt',
+  businessRegNumber: '0312345678',
+  taxId: '0312345678',
+  representativeName: 'Phạm Thu An',
+  representativeContact: '0908889999',
+  status: 'PENDING_APPROVAL',
+  rejectionReason: null,
+  createdAt: NOW,
+  updatedAt: NOW
+}
+
+const DASHBOARD = {
+  revenue: { total: 486000000, today: 12800000, thisWeek: 68400000, thisMonth: 172000000 },
+  ordersByStatus: { PENDING_PAYMENT: 18, PAID: 246, CANCELLED: 9 },
+  topVouchers: VOUCHERS.slice(0, 3).map((item) => ({
+    voucherId: item.id,
+    title: item.title,
+    soldQuantity: item.soldQuantity,
+    salePrice: Number(item.salePrice),
+    partnerName: item.partner.businessName
+  })),
+  partnerPerformance: [
+    { partnerId: 'partner-1', businessName: 'Saigon Select', voucherCount: 12, orderCount: 146, revenue: 286000000 },
+    { partnerId: 'partner-2', businessName: 'An Việt', voucherCount: 8, orderCount: 82, revenue: 128000000 }
+  ]
+}
+
+const ANALYTICS = {
+  windowDays: 7,
+  revenueSeries: [18, 24, 20, 31, 28, 39, 42].map((value, index) => ({
+    date: `2026-07-${26 + index}`,
+    revenue: value * 1000000,
+    orders: value
+  })),
+  signupSeries: [4, 7, 5, 11, 8, 13, 10].map((signups, index) => ({
+    date: `2026-07-${26 + index}`,
+    signups
+  })),
+  categoryBreakdown: [
+    { category: 'Ẩm thực', revenue: 186000000, unitsSold: 186 },
+    { category: 'Du lịch', revenue: 144000000, unitsSold: 72 },
+    { category: 'Làm đẹp', revenue: 96000000, unitsSold: 154 }
+  ],
+  funnel: { ordersCreated: 290, ordersPaid: 246, ordersCancelled: 9, paidConversionRate: 0.848 }
+}
+
+function response(config: InternalAxiosRequestConfig, data: unknown, status = 200): AxiosResponse {
+  return {
+    data,
+    status,
+    statusText: status === 200 ? 'OK' : 'Created',
+    headers: {},
+    config
+  }
+}
+
+function pathFor(config: InternalAxiosRequestConfig): string {
+  const raw = config.url ?? '/'
+  return raw.split('?')[0].replace(/^\/api\/v1/, '')
+}
+
+function authPayload(path: string) {
+  const role = path.includes('partner') ? 'PARTNER' : 'CUSTOMER'
+  return {
+    token: 'design-preview-token',
+    user: { id: `${role.toLowerCase()}-preview`, name: 'Tài khoản xem trước', role }
+  }
+}
+
+function publicPayload(path: string) {
+  if (path === '/vouchers') {
+    return { vouchers: VOUCHERS, pagination: { page: 1, limit: 12, total: VOUCHERS.length } }
+  }
+  if (path.startsWith('/vouchers/')) {
+    const id = path.split('/').at(-1)
+    const item = VOUCHERS.find((candidate) => candidate.id === id) ?? VOUCHERS[0]
+    return { ...item, remainingQuantity: item.totalQuantity - item.soldQuantity, discountPercentage: 34 }
+  }
+  return undefined
+}
+
+function customerPayload(path: string, method: string) {
+  if (path === '/cart' || path.startsWith('/cart/')) return CART
+  if (path === '/orders' && method === 'get') return [ORDER]
+  if (path === '/orders') return ORDER
+  if (path.endsWith('/pay')) return { order: ORDER, issuedCodeCount: 3 }
+  if (path.startsWith('/orders/')) return ORDER
+  if (path === '/my-codes') return CODES
+  if (path.startsWith('/my-codes/')) return CODES[0]
+  return undefined
+}
+
+function partnerPayload(path: string) {
+  if (path === '/partner/branches') return BRANCHES
+  if (path === '/partner/vouchers') return PARTNER_VOUCHERS
+  if (path.includes('/partner/vouchers/')) return PARTNER_VOUCHERS.vouchers[0]
+  if (path === '/partner/verify-code') {
+    return {
+      ...CODES[0],
+      applicableBranches: BRANCHES
+    }
+  }
+  if (path === '/partner/redeem-code') {
+    return { ...CODES[0], status: 'USED', redeemedAt: NOW, redemptionBranchId: BRANCHES[0].id }
+  }
+  return undefined
+}
+
+function adminPayload(path: string) {
+  if (path === '/admin/dashboard/stats') return DASHBOARD
+  if (path === '/admin/analytics') return ANALYTICS
+  if (path === '/admin/users') return USERS
+  if (path === '/admin/partners/pending') {
+    return { partners: [PENDING_PARTNER], pagination: { page: 1, limit: 20, total: 1 } }
+  }
+  if (path === '/admin/vouchers/pending') {
+    return { vouchers: [{ ...VOUCHERS[2], status: 'PENDING_APPROVAL' }], pagination: { page: 1, limit: 20, total: 1 } }
+  }
+  if (path.includes('/admin/partners/')) return PENDING_PARTNER
+  if (path.includes('/admin/vouchers/')) return VOUCHERS[2]
+  if (path.includes('/admin/users/')) return { id: path.split('/')[3], accountType: 'USER', status: 'LOCKED' }
+  return undefined
+}
+
+/** Axios adapter used only when VITE_DESIGN_PREVIEW=true. No network is sent. */
+export const designPreviewAdapter: AxiosAdapter = async (config) => {
+  const path = pathFor(config)
+  const method = (config.method ?? 'get').toLowerCase()
+  const data = publicPayload(path) ?? customerPayload(path, method) ?? partnerPayload(path) ?? adminPayload(path)
+
+  if (data !== undefined) return response(config, data)
+  if (path.startsWith('/auth/')) return response(config, authPayload(path), method === 'post' ? 201 : 200)
+  return response(config, {})
+}
