@@ -8,6 +8,10 @@ import { notFoundHandler } from '~/middlewares/not-found'
 import { errorHandler } from '~/middlewares/error-handler'
 import { ApiResponse } from '~/utils/api-response'
 
+// task 06
+import partnerRoutes from '~/modules/partners/partner.routes'
+import { devAuth } from '~/middlewares/dev-auth'
+//
 const app = express()
 
 // Security
@@ -35,6 +39,9 @@ app.get('/', (_req, res) => {
 })
 
 // Future: app.use('/api/v1', router)
+
+//task 06
+app.use('/api', devAuth, partnerRoutes)
 
 // Error handling
 app.use(notFoundHandler)
