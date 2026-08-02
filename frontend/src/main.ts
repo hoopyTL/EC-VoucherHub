@@ -1,3 +1,5 @@
+import type { CreateVoucherDto, UpdateVoucherDto, VoucherDto } from '@voucher/shared'
+
 const API = 'http://localhost:4000/api'
 
 const root = document.querySelector<HTMLDivElement>('#root')!
@@ -66,6 +68,13 @@ root.innerHTML = `
       style="width:100%;padding:8px;margin-bottom:8px"
     />
 
+    <label>Image URL</label>
+    <input
+      id="imageUrl"
+      placeholder="https://example.com/image.jpg"
+      style="width:100%;padding:8px;margin-bottom:8px"
+    />
+
     <label>Giá gốc</label>
     <input
       id="originalPrice"
@@ -123,7 +132,10 @@ root.innerHTML = `
     />
 
     <label>
-      <input id="isMultiUse" type="checkbox" />
+      <input
+        id="isMultiUse"
+        type="checkbox"
+      />
       Voucher dùng nhiều lần
     </label>
 
@@ -133,7 +145,7 @@ root.innerHTML = `
     <input
       id="usesPerCode"
       type="number"
-      placeholder="Chỉ nhập nếu dùng nhiều lần"
+      placeholder="Chỉ nhập nếu voucher dùng nhiều lần"
       style="width:100%;padding:8px;margin-bottom:8px"
     />
 
@@ -310,8 +322,8 @@ async function fetchApi(path: string, options: RequestInit = {}) {
   }
 }
 
-function toIso(value: string): string {
-  return new Date(value).toISOString()
+function toIso(dateValue: string): string {
+  return new Date(dateValue).toISOString()
 }
 
 function selectedBranchIds(): number[] {
@@ -332,37 +344,40 @@ type Category = {
 type Branch = {
   id: number
   name: string
-  address: string
-  region: string
+  address?: string
+  region?: string
 }
 
-type Voucher = {
-  id: string
-  name: string
-  status: string
+type ApiResponse<T> = {
+  success: boolean
+  data: T
 }
 
 async function loadCategories(): Promise<void> {
-  const response = await fetch(`${API}/categories`)
+  try {
+    const response = await fetch(`${API}/categories`)
 
-  const result = await response.json()
+    const result = (await response.json()) as ApiResponse<Category[]>
 
-  if (!result.success) {
-    return
-  }
+    if (!result.success) {
+      return
+    }
 
-  const select = document.querySelector<HTMLSelectElement>('#categoryId')!
+    const select = document.querySelector<HTMLSelectElement>('#categoryId')!
 
-  select.innerHTML = '<option value="">-- Chọn danh mục --</option>'
+    select.innerHTML = '<option value="">-- Chọn danh mục --</option>'
 
-  for (const category of result.data as Category[]) {
-    const option = document.createElement('option')
+    for (const category of result.data) {
+      const option = document.createElement('option')
 
-    option.value = String(category.id)
+      option.value = String(category.id)
 
-    option.textContent = category.name
+      option.textContent = category.name
 
-    select.appendChild(option)
+      select.appendChild(option)
+    }
+  } catch (error) {
+    console.error('Cannot load categories:', error)
   }
 }
 
@@ -375,10 +390,7 @@ async function loadBranches(): Promise<void> {
     return
   }
 
-  const response = result.data as {
-    success: boolean
-    data: Branch[]
-  }
+  const response = result.data as ApiResponse<Branch[]>
 
   if (!response.success) {
     return
@@ -393,7 +405,7 @@ async function loadBranches(): Promise<void> {
 
     option.value = String(branch.id)
 
-    option.textContent = `${branch.name} - ${branch.region}`
+    option.textContent = branch.region ? `${branch.name} - ${branch.region}` : branch.name
 
     select.appendChild(option)
   }
@@ -408,10 +420,7 @@ async function loadVouchers(): Promise<void> {
     return
   }
 
-  const response = result.data as {
-    success: boolean
-    data: Voucher[]
-  }
+  const response = result.data as ApiResponse<VoucherDto[]>
 
   if (!response.success) {
     return
@@ -419,7 +428,7 @@ async function loadVouchers(): Promise<void> {
 
   const select = document.querySelector<HTMLSelectElement>('#voucherId')!
 
-  const current = select.value
+  const currentVoucherId = select.value
 
   select.innerHTML = '<option value="">-- Chọn Voucher --</option>'
 
@@ -433,17 +442,23 @@ async function loadVouchers(): Promise<void> {
     select.appendChild(option)
   }
 
-  if (response.data.some((voucher) => voucher.id === current)) {
-    select.value = current
+  const stillExists = response.data.some((voucher) => voucher.id === currentVoucherId)
+
+  if (stillExists) {
+    select.value = currentVoucherId
   }
 }
 
 async function reloadDatabaseData(): Promise<void> {
+  const status = document.querySelector<HTMLParagraphElement>('#loadStatus')!
+
+  void loadCategories()
+
+  status.textContent = 'Đang tải dữ liệu...'
+
   await loadCategories()
   await loadBranches()
   await loadVouchers()
-
-  const status = document.querySelector<HTMLParagraphElement>('#loadStatus')!
 
   status.textContent = 'Đã tải Category, Branch và Voucher từ database.'
 }
@@ -455,12 +470,15 @@ document.querySelector('#reloadVouchers')?.addEventListener('click', loadVoucher
 document.querySelector('#createVoucher')?.addEventListener('click', async () => {
   const categoryId = value('categoryId')
 
+  const imageUrl = value('imageUrl')
+
   const usesPerCode = value('usesPerCode')
 
   const isMultiUse = document.querySelector<HTMLInputElement>('#isMultiUse')?.checked ?? false
 
-  const body: Record<string, unknown> = {
+  const body: CreateVoucherDto = {
     name: value('name'),
+
     description: value('description'),
 
     originalPrice: Number(value('originalPrice')),
@@ -484,19 +502,25 @@ document.querySelector('#createVoucher')?.addEventListener('click', async () => 
     body.categoryId = Number(categoryId)
   }
 
+  if (imageUrl) {
+    body.imageUrl = imageUrl
+  }
+
   if (usesPerCode) {
     body.usesPerCode = Number(usesPerCode)
   }
 
-  const branches = selectedBranchIds()
+  const branchIds = selectedBranchIds()
 
-  if (branches.length > 0) {
-    body.branchIds = branches
+  if (branchIds.length > 0) {
+    body.branchIds = branchIds
   }
 
   const result = await fetchApi('/vouchers', {
     method: 'POST',
+
     headers: getHeaders(true),
+
     body: JSON.stringify(body)
   })
 
@@ -513,13 +537,22 @@ document.querySelector('#updateVoucher')?.addEventListener('click', async () => 
     return
   }
 
+  const body: UpdateVoucherDto = {
+    name: value('updateName')
+  }
+
+  const categoryId = value('categoryId')
+
+  if (categoryId) {
+    body.categoryId = Number(categoryId)
+  }
+
   const result = await fetchApi(`/vouchers/${voucherId}`, {
     method: 'PATCH',
+
     headers: getHeaders(true),
-    body: JSON.stringify({
-      name: value('updateName'),
-      categoryId: value('categoryId') ? Number(value('categoryId')) : undefined
-    })
+
+    body: JSON.stringify(body)
   })
 
   if (result.status === 200) {
@@ -537,6 +570,7 @@ document.querySelector('#submitVoucher')?.addEventListener('click', async () => 
 
   const result = await fetchApi(`/vouchers/${voucherId}/submission`, {
     method: 'POST',
+
     headers: getHeaders()
   })
 
@@ -555,6 +589,7 @@ document.querySelector('#returnDraft')?.addEventListener('click', async () => {
 
   const result = await fetchApi(`/vouchers/${voucherId}/draft`, {
     method: 'POST',
+
     headers: getHeaders()
   })
 
@@ -573,7 +608,9 @@ document.querySelector('#approveVoucher')?.addEventListener('click', async () =>
 
   const result = await fetchApi(`/admin/vouchers/${voucherId}/approval`, {
     method: 'PATCH',
+
     headers: getHeaders(true),
+
     body: JSON.stringify({
       action: 'approve'
     })
@@ -592,12 +629,21 @@ document.querySelector('#rejectVoucher')?.addEventListener('click', async () => 
     return
   }
 
+  const reason = window.prompt('Nhập lý do từ chối:', 'Thông tin voucher chưa hợp lệ')
+
+  if (!reason) {
+    return
+  }
+
   const result = await fetchApi(`/admin/vouchers/${voucherId}/approval`, {
     method: 'PATCH',
+
     headers: getHeaders(true),
+
     body: JSON.stringify({
       action: 'reject',
-      reason: 'Voucher information is not valid'
+
+      reason
     })
   })
 
@@ -628,7 +674,9 @@ async function changeStatus(action: 'publish' | 'suspend' | 'unpublish'): Promis
 
   const result = await fetchApi(`/admin/vouchers/${voucherId}/status`, {
     method: 'PATCH',
+
     headers: getHeaders(true),
+
     body: JSON.stringify({
       action
     })

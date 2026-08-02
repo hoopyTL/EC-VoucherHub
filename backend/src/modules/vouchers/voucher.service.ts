@@ -1,10 +1,10 @@
 import { ApprovalStatus, OperatingStatus, VoucherStatus } from '@prisma/client'
 
+import type { CreateVoucherDto, UpdateVoucherDto } from '@voucher/shared'
+
 import prisma from '~/configs/prisma'
 import { voucherTransitions } from '~/domain/transitions'
 import { AppError } from '~/utils/app-error'
-
-import type { CreateVoucherInput, UpdateVoucherInput } from './voucher.schema'
 
 async function getApprovedPartnerByOwner(userId: string) {
   const partner = await prisma.partner.findUnique({
@@ -14,7 +14,7 @@ async function getApprovedPartnerByOwner(userId: string) {
   })
 
   if (!partner) {
-    throw AppError.notFound('Partner')
+    throw AppError.notFound('Partner not found')
   }
 
   if (partner.approvalStatus !== ApprovalStatus.APPROVED) {
@@ -22,7 +22,7 @@ async function getApprovedPartnerByOwner(userId: string) {
   }
 
   if (partner.operatingStatus !== OperatingStatus.ACTIVE) {
-    throw AppError.forbidden('Partner is suspended')
+    throw AppError.forbidden('Partner is not active')
   }
 
   return partner
@@ -36,12 +36,16 @@ async function getOwnedVoucher(userId: string, voucherId: string) {
       id: voucherId
     },
     include: {
-      voucherProductBranches: true
+      voucherProductBranches: {
+        include: {
+          branch: true
+        }
+      }
     }
   })
 
   if (!voucher) {
-    throw AppError.notFound('Voucher')
+    throw AppError.notFound('Voucher not found')
   }
 
   if (voucher.partnerId !== partner.id) {
@@ -55,7 +59,7 @@ async function getOwnedVoucher(userId: string, voucherId: string) {
 }
 
 async function validateCategory(categoryId?: number | null) {
-  if (categoryId === undefined || categoryId === null) {
+  if (categoryId == null) {
     return
   }
 
@@ -66,21 +70,19 @@ async function validateCategory(categoryId?: number | null) {
   })
 
   if (!category) {
-    throw AppError.notFound('Category')
+    throw AppError.validation('Category not found')
   }
 }
 
 async function validateBranches(partnerId: string, branchIds?: number[]) {
-  if (!branchIds || branchIds.length === 0) {
+  if (!branchIds?.length) {
     return
   }
-
-  const uniqueBranchIds = [...new Set(branchIds)]
 
   const branches = await prisma.branch.findMany({
     where: {
       id: {
-        in: uniqueBranchIds
+        in: branchIds
       },
       partnerId
     },
@@ -89,46 +91,49 @@ async function validateBranches(partnerId: string, branchIds?: number[]) {
     }
   })
 
-  if (branches.length !== uniqueBranchIds.length) {
-    throw AppError.badRequest('One or more branches do not belong to this partner')
+  if (branches.length !== branchIds.length) {
+    throw AppError.validation('One or more branches are invalid')
   }
 }
 
-function validateVoucherValues(data: {
+function validateVoucherValues(input: {
   originalPrice: number
   salePrice: number
-  saleStart: Date
-  saleEnd: Date
-  usageStart: Date
-  usageEnd: Date
+
+  saleStart: string | Date
+  saleEnd: string | Date
+
+  usageStart: string | Date
+  usageEnd: string | Date
+
   isMultiUse: boolean
-  usesPerCode: number | null
+  usesPerCode?: number | null
 }) {
-  if (data.salePrice >= data.originalPrice) {
-    throw AppError.unprocessable('salePrice must be less than originalPrice')
+  if (input.salePrice >= input.originalPrice) {
+    throw AppError.unprocessable('Sale price must be lower than original price')
   }
 
-  if (data.saleStart >= data.saleEnd) {
-    throw AppError.unprocessable('saleEnd must be after saleStart')
+  if (new Date(input.saleStart) >= new Date(input.saleEnd)) {
+    throw AppError.unprocessable('Sale end must be after sale start')
   }
 
-  if (data.usageStart >= data.usageEnd) {
-    throw AppError.unprocessable('usageEnd must be after usageStart')
+  if (new Date(input.usageStart) >= new Date(input.usageEnd)) {
+    throw AppError.unprocessable('Usage end must be after usage start')
   }
 
-  if (data.isMultiUse && !data.usesPerCode) {
-    throw AppError.unprocessable('usesPerCode is required for multi-use voucher')
+  if (input.isMultiUse && !input.usesPerCode) {
+    throw AppError.unprocessable('Uses per code is required for multi-use voucher')
   }
 
-  if (!data.isMultiUse && data.usesPerCode) {
-    throw AppError.unprocessable('usesPerCode is only allowed for multi-use voucher')
+  if (!input.isMultiUse && input.usesPerCode != null) {
+    throw AppError.unprocessable('Uses per code must be empty for single-use voucher')
   }
 }
 
 function assertTransition(currentStatus: VoucherStatus, nextStatus: VoucherStatus) {
   const allowed = voucherTransitions[currentStatus]
 
-  if (!allowed.includes(nextStatus)) {
+  if (!allowed || !allowed.includes(nextStatus)) {
     throw AppError.unprocessable(`Cannot change voucher status from ${currentStatus} to ${nextStatus}`)
   }
 }
@@ -146,51 +151,57 @@ export async function getPartnerBranches(userId: string) {
   })
 }
 
-export async function createVoucher(userId: string, data: CreateVoucherInput) {
+export async function createVoucher(userId: string, input: CreateVoucherDto) {
   const partner = await getApprovedPartnerByOwner(userId)
 
-  await validateCategory(data.categoryId)
-  await validateBranches(partner.id, data.branchIds)
+  await validateCategory(input.categoryId)
 
-  validateVoucherValues({
-    originalPrice: data.originalPrice,
-    salePrice: data.salePrice,
-    saleStart: new Date(data.saleStart),
-    saleEnd: new Date(data.saleEnd),
-    usageStart: new Date(data.usageStart),
-    usageEnd: new Date(data.usageEnd),
-    isMultiUse: data.isMultiUse,
-    usesPerCode: data.usesPerCode ?? null
-  })
+  await validateBranches(partner.id, input.branchIds)
+
+  validateVoucherValues(input)
 
   return prisma.$transaction(async (tx) => {
     const voucher = await tx.voucherProduct.create({
       data: {
         partnerId: partner.id,
-        categoryId: data.categoryId ?? null,
-        name: data.name,
-        description: data.description,
-        imageUrl: data.imageUrl ?? null,
-        originalPrice: data.originalPrice,
-        salePrice: data.salePrice,
-        saleStart: new Date(data.saleStart),
-        saleEnd: new Date(data.saleEnd),
-        usageStart: new Date(data.usageStart),
-        usageEnd: new Date(data.usageEnd),
-        totalQuantity: data.totalQuantity,
-        remainingQuantity: data.totalQuantity,
-        isMultiUse: data.isMultiUse,
-        usesPerCode: data.usesPerCode ?? null,
+
+        categoryId: input.categoryId ?? null,
+
+        name: input.name,
+
+        description: input.description,
+
+        imageUrl: input.imageUrl ?? null,
+
+        originalPrice: input.originalPrice,
+
+        salePrice: input.salePrice,
+
+        saleStart: new Date(input.saleStart),
+
+        saleEnd: new Date(input.saleEnd),
+
+        usageStart: new Date(input.usageStart),
+
+        usageEnd: new Date(input.usageEnd),
+
+        totalQuantity: input.totalQuantity,
+
+        remainingQuantity: input.totalQuantity,
+
+        isMultiUse: input.isMultiUse,
+
+        usesPerCode: input.usesPerCode ?? null,
+
         status: VoucherStatus.DRAFT
       }
     })
 
-    if (data.branchIds && data.branchIds.length > 0) {
-      const uniqueBranchIds = [...new Set(data.branchIds)]
-
+    if (input.branchIds?.length) {
       await tx.voucherProductBranch.createMany({
-        data: uniqueBranchIds.map((branchId) => ({
+        data: input.branchIds.map((branchId) => ({
           voucherProductId: voucher.id,
+
           branchId
         }))
       })
@@ -202,6 +213,7 @@ export async function createVoucher(userId: string, data: CreateVoucherInput) {
       },
       include: {
         category: true,
+
         voucherProductBranches: {
           include: {
             branch: true
@@ -219,53 +231,60 @@ export async function getPartnerVouchers(userId: string) {
     where: {
       partnerId: partner.id
     },
+
     include: {
       category: true,
+
       voucherProductBranches: {
         include: {
           branch: true
         }
       }
     },
+
     orderBy: {
       createdAt: 'desc'
     }
   })
 }
 
-export async function updateVoucher(userId: string, voucherId: string, data: UpdateVoucherInput) {
+export async function updateVoucher(userId: string, voucherId: string, input: UpdateVoucherDto) {
   const { partner, voucher } = await getOwnedVoucher(userId, voucherId)
 
   if (voucher.status !== VoucherStatus.DRAFT) {
     throw AppError.unprocessable('Only draft voucher can be updated')
   }
 
-  await validateCategory(data.categoryId)
-  await validateBranches(partner.id, data.branchIds)
+  await validateCategory(input.categoryId)
 
-  const originalPrice = data.originalPrice ?? Number(voucher.originalPrice)
+  await validateBranches(partner.id, input.branchIds)
 
-  const salePrice = data.salePrice ?? Number(voucher.salePrice)
+  const originalPrice = input.originalPrice ?? Number(voucher.originalPrice)
 
-  const saleStart = data.saleStart ? new Date(data.saleStart) : voucher.saleStart
+  const salePrice = input.salePrice ?? Number(voucher.salePrice)
 
-  const saleEnd = data.saleEnd ? new Date(data.saleEnd) : voucher.saleEnd
+  const saleStart = input.saleStart ?? voucher.saleStart
 
-  const usageStart = data.usageStart ? new Date(data.usageStart) : voucher.usageStart
+  const saleEnd = input.saleEnd ?? voucher.saleEnd
 
-  const usageEnd = data.usageEnd ? new Date(data.usageEnd) : voucher.usageEnd
+  const usageStart = input.usageStart ?? voucher.usageStart
 
-  const isMultiUse = data.isMultiUse ?? voucher.isMultiUse
+  const usageEnd = input.usageEnd ?? voucher.usageEnd
 
-  const usesPerCode = data.usesPerCode !== undefined ? data.usesPerCode : voucher.usesPerCode
+  const isMultiUse = input.isMultiUse ?? voucher.isMultiUse
+
+  const usesPerCode = input.usesPerCode !== undefined ? input.usesPerCode : voucher.usesPerCode
 
   validateVoucherValues({
     originalPrice,
     salePrice,
+
     saleStart,
     saleEnd,
+
     usageStart,
     usageEnd,
+
     isMultiUse,
     usesPerCode
   })
@@ -275,37 +294,50 @@ export async function updateVoucher(userId: string, voucherId: string, data: Upd
       where: {
         id: voucherId
       },
+
       data: {
-        categoryId: data.categoryId,
-        name: data.name,
-        description: data.description,
-        imageUrl: data.imageUrl,
-        originalPrice: data.originalPrice,
-        salePrice: data.salePrice,
-        saleStart: data.saleStart ? new Date(data.saleStart) : undefined,
-        saleEnd: data.saleEnd ? new Date(data.saleEnd) : undefined,
-        usageStart: data.usageStart ? new Date(data.usageStart) : undefined,
-        usageEnd: data.usageEnd ? new Date(data.usageEnd) : undefined,
-        totalQuantity: data.totalQuantity,
-        remainingQuantity: data.totalQuantity !== undefined ? data.totalQuantity : undefined,
-        isMultiUse: data.isMultiUse,
-        usesPerCode: data.usesPerCode
+        categoryId: input.categoryId,
+
+        name: input.name,
+
+        description: input.description,
+
+        imageUrl: input.imageUrl,
+
+        originalPrice: input.originalPrice,
+
+        salePrice: input.salePrice,
+
+        saleStart: input.saleStart ? new Date(input.saleStart) : undefined,
+
+        saleEnd: input.saleEnd ? new Date(input.saleEnd) : undefined,
+
+        usageStart: input.usageStart ? new Date(input.usageStart) : undefined,
+
+        usageEnd: input.usageEnd ? new Date(input.usageEnd) : undefined,
+
+        totalQuantity: input.totalQuantity,
+
+        remainingQuantity: input.totalQuantity !== undefined ? input.totalQuantity : undefined,
+
+        isMultiUse: input.isMultiUse,
+
+        usesPerCode: input.usesPerCode
       }
     })
 
-    if (data.branchIds !== undefined) {
+    if (input.branchIds !== undefined) {
       await tx.voucherProductBranch.deleteMany({
         where: {
           voucherProductId: voucherId
         }
       })
 
-      const uniqueBranchIds = [...new Set(data.branchIds)]
-
-      if (uniqueBranchIds.length > 0) {
+      if (input.branchIds.length) {
         await tx.voucherProductBranch.createMany({
-          data: uniqueBranchIds.map((branchId) => ({
+          data: input.branchIds.map((branchId) => ({
             voucherProductId: voucherId,
+
             branchId
           }))
         })
@@ -316,8 +348,10 @@ export async function updateVoucher(userId: string, voucherId: string, data: Upd
       where: {
         id: voucherId
       },
+
       include: {
         category: true,
+
         voucherProductBranches: {
           include: {
             branch: true
@@ -337,8 +371,10 @@ export async function submitVoucher(userId: string, voucherId: string) {
     where: {
       id: voucherId
     },
+
     data: {
       status: VoucherStatus.PENDING_REVIEW,
+
       rejectReason: null
     }
   })
@@ -353,6 +389,7 @@ export async function returnRejectedVoucherToDraft(userId: string, voucherId: st
     where: {
       id: voucherId
     },
+
     data: {
       status: VoucherStatus.DRAFT
     }
@@ -367,7 +404,7 @@ export async function reviewVoucher(voucherId: string, action: 'approve' | 'reje
   })
 
   if (!voucher) {
-    throw AppError.notFound('Voucher')
+    throw AppError.notFound('Voucher not found')
   }
 
   const nextStatus = action === 'approve' ? VoucherStatus.APPROVED : VoucherStatus.REJECTED
@@ -375,15 +412,17 @@ export async function reviewVoucher(voucherId: string, action: 'approve' | 'reje
   assertTransition(voucher.status, nextStatus)
 
   if (action === 'reject' && !reason) {
-    throw AppError.badRequest('Reject reason is required')
+    throw AppError.validation('Reject reason is required')
   }
 
   return prisma.voucherProduct.update({
     where: {
       id: voucherId
     },
+
     data: {
       status: nextStatus,
+
       rejectReason: action === 'reject' ? reason : null
     }
   })
@@ -397,18 +436,18 @@ export async function changeVoucherStatus(voucherId: string, action: 'publish' |
   })
 
   if (!voucher) {
-    throw AppError.notFound('Voucher')
+    throw AppError.notFound('Voucher not found')
   }
 
-  let nextStatus: VoucherStatus
+  const nextStatusMap = {
+    publish: VoucherStatus.ON_SALE,
 
-  if (action === 'publish') {
-    nextStatus = VoucherStatus.ON_SALE
-  } else if (action === 'suspend') {
-    nextStatus = VoucherStatus.PAUSED
-  } else {
-    nextStatus = VoucherStatus.DISCONTINUED
+    suspend: VoucherStatus.PAUSED,
+
+    unpublish: VoucherStatus.DISCONTINUED
   }
+
+  const nextStatus = nextStatusMap[action]
 
   assertTransition(voucher.status, nextStatus)
 
@@ -416,6 +455,7 @@ export async function changeVoucherStatus(voucherId: string, action: 'publish' |
     where: {
       id: voucherId
     },
+
     data: {
       status: nextStatus
     }

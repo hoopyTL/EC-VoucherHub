@@ -9,19 +9,19 @@ const voucherBaseSchema = z.object({
 
   imageUrl: z.url('invalid image url').max(512).nullable().optional(),
 
-  originalPrice: z.coerce.number().positive('originalPrice must be greater than 0'),
+  originalPrice: z.coerce.number().positive('original price must be greater than 0'),
 
-  salePrice: z.coerce.number().positive('salePrice must be greater than 0'),
+  salePrice: z.coerce.number().positive('sale price must be greater than 0'),
 
-  saleStart: z.iso.datetime('invalid saleStart'),
+  saleStart: z.iso.datetime('invalid sale start date'),
 
-  saleEnd: z.iso.datetime('invalid saleEnd'),
+  saleEnd: z.iso.datetime('invalid sale end date'),
 
-  usageStart: z.iso.datetime('invalid usageStart'),
+  usageStart: z.iso.datetime('invalid usage start date'),
 
-  usageEnd: z.iso.datetime('invalid usageEnd'),
+  usageEnd: z.iso.datetime('invalid usage end date'),
 
-  totalQuantity: z.coerce.number().int().positive('totalQuantity must be greater than 0'),
+  totalQuantity: z.coerce.number().int().positive('total quantity must be greater than 0'),
 
   isMultiUse: z.boolean().default(false),
 
@@ -35,29 +35,23 @@ export const createVoucherSchema = voucherBaseSchema.superRefine((data, ctx) => 
     ctx.addIssue({
       code: 'custom',
       path: ['salePrice'],
-      message: 'salePrice must be less than originalPrice'
+      message: 'sale price must be lower than original price'
     })
   }
 
-  const saleStart = new Date(data.saleStart)
-  const saleEnd = new Date(data.saleEnd)
-
-  if (saleStart >= saleEnd) {
+  if (new Date(data.saleStart) >= new Date(data.saleEnd)) {
     ctx.addIssue({
       code: 'custom',
       path: ['saleEnd'],
-      message: 'saleEnd must be after saleStart'
+      message: 'sale end must be after sale start'
     })
   }
 
-  const usageStart = new Date(data.usageStart)
-  const usageEnd = new Date(data.usageEnd)
-
-  if (usageStart >= usageEnd) {
+  if (new Date(data.usageStart) >= new Date(data.usageEnd)) {
     ctx.addIssue({
       code: 'custom',
       path: ['usageEnd'],
-      message: 'usageEnd must be after usageStart'
+      message: 'usage end must be after usage start'
     })
   }
 
@@ -65,26 +59,26 @@ export const createVoucherSchema = voucherBaseSchema.superRefine((data, ctx) => 
     ctx.addIssue({
       code: 'custom',
       path: ['usesPerCode'],
-      message: 'usesPerCode is required for multi-use voucher'
+      message: 'uses per code is required for multi-use voucher'
     })
   }
 
-  if (!data.isMultiUse && data.usesPerCode) {
+  if (!data.isMultiUse && data.usesPerCode != null) {
     ctx.addIssue({
       code: 'custom',
       path: ['usesPerCode'],
-      message: 'usesPerCode is only allowed for multi-use voucher'
+      message: 'uses per code must be empty for single-use voucher'
     })
   }
 
   if (data.branchIds) {
-    const uniqueBranchIds = new Set(data.branchIds)
+    const uniqueBranches = new Set(data.branchIds)
 
-    if (uniqueBranchIds.size !== data.branchIds.length) {
+    if (uniqueBranches.size !== data.branchIds.length) {
       ctx.addIssue({
         code: 'custom',
         path: ['branchIds'],
-        message: 'branchIds must not contain duplicates'
+        message: 'branch ids must not contain duplicates'
       })
     }
   }
@@ -115,11 +109,3 @@ export const voucherApprovalSchema = z
 export const voucherStatusSchema = z.object({
   action: z.enum(['publish', 'suspend', 'unpublish'])
 })
-
-export type CreateVoucherInput = z.infer<typeof createVoucherSchema>
-
-export type UpdateVoucherInput = z.infer<typeof updateVoucherSchema>
-
-export type VoucherApprovalInput = z.infer<typeof voucherApprovalSchema>
-
-export type VoucherStatusInput = z.infer<typeof voucherStatusSchema>
