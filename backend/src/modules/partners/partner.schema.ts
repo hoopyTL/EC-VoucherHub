@@ -24,6 +24,11 @@ export const branchIdParamSchema = z.object({
   id: z.coerce.number().int().positive('invalid branch id')
 })
 
+export const adminPartnerBranchParamSchema = z.object({
+  partnerId: z.string().uuid('invalid partner id'),
+  id: z.coerce.number().int().positive('invalid branch id')
+})
+
 export const approvalPartnerSchema = z.object({
   action: z.enum(['approve', 'reject']),
   reason: z.string().trim().min(1).optional()

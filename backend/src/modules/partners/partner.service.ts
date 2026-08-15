@@ -1,12 +1,11 @@
 import { ApprovalStatus, OperatingStatus, Prisma } from '@prisma/client'
+import type { CreateBranchDto, CreatePartnerDto, UpdateBranchDto, UpdatePartnerDto } from '@voucher/shared'
 
 import prisma from '~/configs/prisma'
 import { AppError } from '~/utils/app-error'
 
-import type { CreateBranchInput, CreatePartnerInput, UpdateBranchInput, UpdatePartnerInput } from './partner.schema'
-
 export class PartnerService {
-  async registerPartner(userId: string, data: CreatePartnerInput) {
+  async registerPartner(userId: string, data: CreatePartnerDto) {
     const existingPartner = await prisma.partner.findUnique({
       where: { ownerUserId: userId }
     })
@@ -56,7 +55,7 @@ export class PartnerService {
     return partner
   }
 
-  async updatePartner(userId: string, data: UpdatePartnerInput) {
+  async updatePartner(userId: string, data: UpdatePartnerDto) {
     const partner = await this.getPartnerByOwner(userId)
 
     if (data.taxCode && data.taxCode !== partner.taxCode) {
@@ -75,7 +74,12 @@ export class PartnerService {
     })
   }
 
-  async addBranch(userId: string, data: CreateBranchInput) {
+  async listBranches(userId: string) {
+    const partner = await this.getPartnerByOwner(userId)
+    return partner.branches
+  }
+
+  async addBranch(userId: string, data: CreateBranchDto) {
     const partner = await this.getPartnerByOwner(userId)
 
     return prisma.branch.create({
@@ -88,7 +92,7 @@ export class PartnerService {
     })
   }
 
-  async updateBranch(userId: string, branchId: number, data: UpdateBranchInput) {
+  async updateBranch(userId: string, branchId: number, data: UpdateBranchDto) {
     const partner = await this.getPartnerByOwner(userId)
 
     const branch = await prisma.branch.findUnique({
@@ -113,7 +117,15 @@ export class PartnerService {
     const partner = await this.getPartnerByOwner(userId)
 
     const branch = await prisma.branch.findUnique({
-      where: { id: branchId }
+      where: { id: branchId },
+      include: {
+        _count: {
+          select: {
+            voucherProductBranches: true,
+            usageLogs: true
+          }
+        }
+      }
     })
 
     if (!branch) {
@@ -122,6 +134,37 @@ export class PartnerService {
 
     if (branch.partnerId !== partner.id) {
       throw AppError.forbidden('Branch is outside partner scope')
+    }
+
+    const activeVoucherUsingBranch = await prisma.voucherProduct.count({
+      where: {
+        partnerId: partner.id,
+        status: {
+          in: ['PENDING_REVIEW', 'APPROVED', 'ON_SALE', 'PAUSED']
+        },
+        OR: [
+          {
+            voucherProductBranches: {
+              some: { branchId }
+            }
+          },
+          {
+            // An empty branch list means the voucher applies to every branch
+            // owned by this partner.
+            voucherProductBranches: {
+              none: {}
+            }
+          }
+        ]
+      }
+    })
+
+    if (branch._count.voucherProductBranches > 0 || activeVoucherUsingBranch > 0) {
+      throw AppError.conflict('Branch is being used by one or more vouchers and cannot be deleted')
+    }
+
+    if (branch._count.usageLogs > 0) {
+      throw AppError.conflict('Branch has voucher usage history and cannot be deleted')
     }
 
     await prisma.branch.delete({
@@ -155,6 +198,43 @@ export class PartnerService {
     })
   }
 
+  async listPendingPartners(page = 1, limit = 20) {
+    const skip = (page - 1) * limit
+    const where = { approvalStatus: ApprovalStatus.PENDING }
+    const [partners, total] = await prisma.$transaction([
+      prisma.partner.findMany({
+        where,
+        include: { owner: true, branches: true },
+        orderBy: { createdAt: 'asc' },
+        skip,
+        take: limit
+      }),
+      prisma.partner.count({ where })
+    ])
+    return { partners, page, limit, total }
+  }
+
+  async listPartners(page = 1, limit = 20) {
+    const skip = (page - 1) * limit
+    const [partners, total] = await prisma.$transaction([
+      prisma.partner.findMany({
+        include: { owner: true, branches: true },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit
+      }),
+      prisma.partner.count()
+    ])
+    return { partners, page, limit, total }
+  }
+
+  async updateBranchAsAdmin(partnerId: string, branchId: number, data: UpdateBranchDto) {
+    const branch = await prisma.branch.findUnique({ where: { id: branchId } })
+    if (!branch) throw AppError.notFound('Branch')
+    if (branch.partnerId !== partnerId) throw AppError.forbidden('Branch is outside partner scope')
+    return prisma.branch.update({ where: { id: branchId }, data })
+  }
+
   async changeOperatingStatus(partnerId: string, action: 'lock' | 'unlock') {
     const partner = await prisma.partner.findUnique({
       where: { id: partnerId }
@@ -164,11 +244,22 @@ export class PartnerService {
       throw AppError.notFound('Partner')
     }
 
-    return prisma.partner.update({
-      where: { id: partnerId },
-      data: {
-        operatingStatus: action === 'lock' ? OperatingStatus.SUSPENDED : OperatingStatus.ACTIVE
+    return prisma.$transaction(async (tx) => {
+      const updated = await tx.partner.update({
+        where: { id: partnerId },
+        data: {
+          operatingStatus: action === 'lock' ? OperatingStatus.SUSPENDED : OperatingStatus.ACTIVE
+        }
+      })
+
+      if (action === 'lock') {
+        await tx.voucherProduct.updateMany({
+          where: { partnerId, status: 'ON_SALE' },
+          data: { status: 'PAUSED' }
+        })
       }
+
+      return updated
     })
   }
 }
