@@ -18,6 +18,7 @@ import { devAuth } from '~/middlewares/dev-auth'
 import voucherRoutes from '~/modules/vouchers/voucher.routes'
 // catalogy
 import categoryRoutes from '~/modules/categories/category.routes'
+import redemptionRoutes from '~/modules/redemptions/redemption.routes'
 
 const app = express()
 
@@ -54,6 +55,7 @@ app.use('/api', devAuth, partnerRoutes)
 app.use('/api', categoryRoutes)
 //task 007
 app.use('/api', devAuth, voucherRoutes)
+app.use('/api', devAuth, redemptionRoutes)
 
 // Error handling
 app.use(notFoundHandler)
