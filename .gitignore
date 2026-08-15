@@ -27,6 +27,9 @@ node_modules/
 dist/
 build/
 
+# User-uploaded media
+backend/uploads/
+
 # Compiled output accidentally emitted next to TS sources
 **/src/**/*.js
 **/src/**/*.js.map

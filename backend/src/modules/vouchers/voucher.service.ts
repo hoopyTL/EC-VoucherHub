@@ -1,4 +1,4 @@
-import { ApprovalStatus, OperatingStatus, VoucherStatus } from '@prisma/client'
+import { ApprovalStatus, OperatingStatus, VoucherCodeStatus, VoucherStatus } from '@prisma/client'
 
 import type { CreateVoucherDto, UpdateVoucherDto } from '@voucher/shared'
 
@@ -227,7 +227,7 @@ export async function createVoucher(userId: string, input: CreateVoucherDto) {
 export async function getPartnerVouchers(userId: string) {
   const partner = await getApprovedPartnerByOwner(userId)
 
-  return prisma.voucherProduct.findMany({
+  const vouchers = await prisma.voucherProduct.findMany({
     where: {
       partnerId: partner.id
     },
@@ -246,6 +246,96 @@ export async function getPartnerVouchers(userId: string) {
       createdAt: 'desc'
     }
   })
+  return addVoucherStatistics(vouchers)
+}
+
+function validateVoucherCanBeSubmitted(voucher: {
+  originalPrice: unknown
+  salePrice: unknown
+  saleStart: Date
+  saleEnd: Date
+  usageStart: Date
+  usageEnd: Date
+  totalQuantity: number
+  isMultiUse: boolean
+  usesPerCode: number | null
+}) {
+  validateVoucherValues({
+    originalPrice: Number(voucher.originalPrice),
+    salePrice: Number(voucher.salePrice),
+    saleStart: voucher.saleStart,
+    saleEnd: voucher.saleEnd,
+    usageStart: voucher.usageStart,
+    usageEnd: voucher.usageEnd,
+    isMultiUse: voucher.isMultiUse,
+    usesPerCode: voucher.usesPerCode
+  })
+  if (voucher.totalQuantity <= 0) throw AppError.unprocessable('Total quantity must be greater than 0')
+  if (voucher.saleEnd <= new Date()) throw AppError.unprocessable('Sale end must be in the future')
+}
+
+async function addVoucherStatistics<T extends { id: string; totalQuantity: number; remainingQuantity: number }>(
+  vouchers: T[]
+) {
+  if (vouchers.length === 0) return []
+  const grouped = await prisma.issuedVoucherCode.groupBy({
+    by: ['voucherProductId', 'status'],
+    where: { voucherProductId: { in: vouchers.map((voucher) => voucher.id) } },
+    _count: { _all: true }
+  })
+  return vouchers.map((voucher) => {
+    const rows = grouped.filter((row) => row.voucherProductId === voucher.id)
+    const count = (status?: VoucherCodeStatus) =>
+      rows
+        .filter((row) => status === undefined || row.status === status)
+        .reduce((total, row) => total + row._count._all, 0)
+    return {
+      ...voucher,
+      soldQuantity: Math.max(0, voucher.totalQuantity - voucher.remainingQuantity),
+      issuedCodeCount: count(),
+      usedCodeCount: count(VoucherCodeStatus.USED),
+      expiredCodeCount: count(VoucherCodeStatus.EXPIRED)
+    }
+  })
+}
+
+export async function getAdminVouchers() {
+  const vouchers = await prisma.voucherProduct.findMany({
+    where: {
+      status: {
+        in: [
+          VoucherStatus.PENDING_REVIEW,
+          VoucherStatus.APPROVED,
+          VoucherStatus.REJECTED,
+          VoucherStatus.ON_SALE,
+          VoucherStatus.PAUSED,
+          VoucherStatus.DISCONTINUED
+        ]
+      }
+    },
+    include: {
+      partner: {
+        select: {
+          id: true,
+          legalName: true,
+          taxCode: true,
+          representative: true
+        }
+      },
+      category: true,
+      voucherProductBranches: {
+        include: { branch: true }
+      }
+    },
+    orderBy: { updatedAt: 'desc' }
+  })
+  return addVoucherStatistics(vouchers)
+}
+
+export async function getPartnerVoucher(userId: string, voucherId: string) {
+  const { voucher } = await getOwnedVoucher(userId, voucherId)
+  const [result] = await addVoucherStatistics([voucher])
+  return result
 }
 
 export async function updateVoucher(userId: string, voucherId: string, input: UpdateVoucherDto) {
@@ -366,6 +456,7 @@ export async function submitVoucher(userId: string, voucherId: string) {
   const { voucher } = await getOwnedVoucher(userId, voucherId)
 
   assertTransition(voucher.status, VoucherStatus.PENDING_REVIEW)
+  validateVoucherCanBeSubmitted(voucher)
 
   return prisma.voucherProduct.update({
     where: {
@@ -398,9 +489,8 @@ export async function returnRejectedVoucherToDraft(userId: string, voucherId: st
 
 export async function reviewVoucher(voucherId: string, action: 'approve' | 'reject', reason?: string) {
   const voucher = await prisma.voucherProduct.findUnique({
-    where: {
-      id: voucherId
-    }
+    where: { id: voucherId },
+    include: { partner: true }
   })
 
   if (!voucher) {
@@ -413,6 +503,16 @@ export async function reviewVoucher(voucherId: string, action: 'approve' | 'reje
 
   if (action === 'reject' && !reason) {
     throw AppError.validation('Reject reason is required')
+  }
+
+  if (action === 'approve') {
+    if (
+      voucher.partner.approvalStatus !== ApprovalStatus.APPROVED ||
+      voucher.partner.operatingStatus !== OperatingStatus.ACTIVE
+    ) {
+      throw AppError.unprocessable('Voucher partner is not approved and active')
+    }
+    validateVoucherCanBeSubmitted(voucher)
   }
 
   return prisma.voucherProduct.update({
@@ -430,9 +530,8 @@ export async function reviewVoucher(voucherId: string, action: 'approve' | 'reje
 
 export async function changeVoucherStatus(voucherId: string, action: 'publish' | 'suspend' | 'unpublish') {
   const voucher = await prisma.voucherProduct.findUnique({
-    where: {
-      id: voucherId
-    }
+    where: { id: voucherId },
+    include: { partner: true }
   })
 
   if (!voucher) {
@@ -450,6 +549,17 @@ export async function changeVoucherStatus(voucherId: string, action: 'publish' |
   const nextStatus = nextStatusMap[action]
 
   assertTransition(voucher.status, nextStatus)
+
+  if (action === 'publish') {
+    if (
+      voucher.partner.approvalStatus !== ApprovalStatus.APPROVED ||
+      voucher.partner.operatingStatus !== OperatingStatus.ACTIVE
+    ) {
+      throw AppError.unprocessable('Voucher partner is not approved and active')
+    }
+    validateVoucherCanBeSubmitted(voucher)
+    if (voucher.remainingQuantity <= 0) throw AppError.unprocessable('Voucher is sold out')
+  }
 
   return prisma.voucherProduct.update({
     where: {

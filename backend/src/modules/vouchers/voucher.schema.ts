@@ -7,7 +7,12 @@ const voucherBaseSchema = z.object({
 
   description: z.string().trim().min(1, 'description is required'),
 
-  imageUrl: z.url('invalid image url').max(512).nullable().optional(),
+  imageUrl: z
+    .string()
+    .max(512)
+    .refine((value) => value.startsWith('/uploads/vouchers/') || /^https?:\/\//i.test(value), 'invalid image url')
+    .nullable()
+    .optional(),
 
   originalPrice: z.coerce.number().positive('original price must be greater than 0'),
 

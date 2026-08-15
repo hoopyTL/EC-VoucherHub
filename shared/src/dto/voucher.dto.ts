@@ -56,6 +56,10 @@ export interface VoucherDto {
 
   totalQuantity: number
   remainingQuantity: number
+  soldQuantity?: number
+  issuedCodeCount?: number
+  usedCodeCount?: number
+  expiredCodeCount?: number
 
   isMultiUse: boolean
   usesPerCode: number | null

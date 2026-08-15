@@ -2,17 +2,31 @@ import type { Request, Response } from 'express'
 
 import { asyncHandler } from '~/utils/async-handler'
 import { ApiResponse } from '~/utils/api-response'
+import { AppError } from '~/utils/app-error'
 
 import {
   changeVoucherStatus,
   createVoucher,
   getPartnerBranches,
+  getPartnerVoucher,
   getPartnerVouchers,
+  getAdminVouchers,
   returnRejectedVoucherToDraft,
   reviewVoucher,
   submitVoucher,
   updateVoucher
 } from './voucher.service'
+
+export const uploadVoucherImageHandler = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.file) {
+    throw AppError.validation('Voucher image is required')
+  }
+  ApiResponse.created(res, { url: `/uploads/vouchers/${req.file.filename}` })
+})
+
+export const getAdminVouchersHandler = asyncHandler(async (_req: Request, res: Response) => {
+  ApiResponse.success(res, await getAdminVouchers())
+})
 
 export const createVoucherHandler = asyncHandler(async (req: Request, res: Response) => {
   const voucher = await createVoucher(req.user!.id, req.body)
@@ -24,6 +38,12 @@ export const getPartnerVouchersHandler = asyncHandler(async (req: Request, res: 
   const vouchers = await getPartnerVouchers(req.user!.id)
 
   ApiResponse.success(res, vouchers)
+})
+
+export const getPartnerVoucherHandler = asyncHandler(async (req: Request, res: Response) => {
+  const voucher = await getPartnerVoucher(req.user!.id, String(req.params.id))
+
+  ApiResponse.success(res, voucher)
 })
 
 export const getPartnerBranchesHandler = asyncHandler(async (req: Request, res: Response) => {
