@@ -6,12 +6,12 @@ const rootDir = process.cwd()
 
 export default defineConfig({
   testDir: '.',
-  testMatch: ['task004-*.spec.ts'],
+  testMatch: ['*.spec.ts'],
   fullyParallel: false,
   workers: 1,
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? [['line'], ['html', { open: 'never' }]] : 'line',
-  outputDir: '../test-results/task004',
+  outputDir: '../test-results/e2e',
   use: {
     baseURL: frontendUrl,
     trace: 'on-first-retry',

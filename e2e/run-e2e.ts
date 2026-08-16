@@ -35,11 +35,11 @@ async function main(): Promise<void> {
   const migrateCode = await run('npm', ['run', 'db:deploy', '--workspace=backend'])
   if (migrateCode !== 0) process.exit(migrateCode)
 
-  const database = await import('./setup-task004-db')
+  const database = await import('./setup-e2e-db')
   try {
-    await database.setupTask004Database()
+    await database.setupE2eDatabase()
   } finally {
-    await database.disconnectTask004Database()
+    await database.disconnectE2eDatabase()
   }
 
   const playwrightArgs = [
@@ -53,7 +53,7 @@ async function main(): Promise<void> {
   process.exitCode = await run('npm', playwrightArgs)
 }
 
-void main().catch(async (error: unknown) => {
+void main().catch((error: unknown) => {
   console.error(error)
   process.exitCode = 1
 })

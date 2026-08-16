@@ -5,7 +5,7 @@ import { E2E_PASSWORD, e2eUsers } from './fixtures/task004'
 
 const prisma = new PrismaClient()
 
-async function resetUsers(): Promise<void> {
+async function resetDatabase(): Promise<void> {
   await prisma.usageLog.deleteMany()
   await prisma.issuedVoucherCode.deleteMany()
   await prisma.orderItem.deleteMany()
@@ -19,8 +19,8 @@ async function resetUsers(): Promise<void> {
   await prisma.user.deleteMany()
 }
 
-export async function setupTask004Database(): Promise<void> {
-  await resetUsers()
+export async function setupE2eDatabase(): Promise<void> {
+  await resetDatabase()
 
   const roles = new Map<string, number>()
   for (const name of ['ADMIN', 'PARTNER', 'CUSTOMER']) {
@@ -32,12 +32,24 @@ export async function setupTask004Database(): Promise<void> {
   for (const user of Object.values(e2eUsers)) {
     const roleId = roles.get(user.role)
     if (!roleId) throw new Error(`Missing E2E role: ${user.role}`)
-    await prisma.user.create({
+    const created = await prisma.user.create({
       data: { email: user.email, fullName: user.fullName, roleId, passwordHash }
     })
+    if (user.role === 'PARTNER') {
+      await prisma.partner.create({
+        data: {
+          ownerUserId: created.id,
+          legalName: 'E2E Approved Partner',
+          taxCode: 'E2E-APPROVED-001',
+          representative: user.fullName,
+          approvalStatus: 'APPROVED',
+          branches: { create: { name: 'E2E Main Branch', address: '1 Test Street', region: 'Hà Nội' } }
+        }
+      })
+    }
   }
 }
 
-export async function disconnectTask004Database(): Promise<void> {
+export async function disconnectE2eDatabase(): Promise<void> {
   await prisma.$disconnect()
 }
