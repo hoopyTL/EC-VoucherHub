@@ -13,7 +13,14 @@ import {
 
 export const authRoutes = Router()
 const authWriteLimiter = rateLimit({ windowMs: 15 * 60 * 1000, maxRequests: 20 })
-const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, maxRequests: 10 })
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  maxRequests: 10,
+  keyGenerator: (req) => {
+    const identifier = typeof req.body?.identifier === 'string' ? req.body.identifier.trim().toLowerCase() : 'unknown'
+    return `${req.ip ?? req.socket.remoteAddress ?? 'unknown'}:${identifier}`
+  }
+})
 const passwordLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   maxRequests: 5,
