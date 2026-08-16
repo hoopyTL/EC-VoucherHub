@@ -200,6 +200,47 @@ describe('UsersPage', () => {
     expect(await screen.findByText(/đã mở khóa alice/i)).toBeDefined()
   })
 
+  it('changes a user role after confirmation and refreshes the list', async () => {
+    const customer = makeUser({ role: 'CUSTOMER' })
+    const partner = makeUser({ role: 'PARTNER' })
+    const getSpy = vi
+      .spyOn(api, 'get')
+      .mockResolvedValueOnce({ data: backendEnvelope(makeResult({ items: [customer] })) } as never)
+      .mockResolvedValueOnce({ data: backendEnvelope(makeResult({ items: [partner] })) } as never)
+    const patchSpy = vi.spyOn(api, 'patch').mockResolvedValue({
+      data: { success: true, data: backendEnvelope(makeResult({ items: [partner] })).data.items[0] }
+    } as never)
+
+    renderPage()
+    await screen.findByText('Alice')
+    fireEvent.click(screen.getByRole('button', { name: /đổi vai trò alice/i }))
+
+    const dialog = screen.getByRole('dialog')
+    fireEvent.change(within(dialog).getByLabelText('Vai trò mới'), { target: { value: 'PARTNER' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Xác nhận đổi' }))
+
+    await waitFor(() => {
+      expect(patchSpy).toHaveBeenCalledWith('/admin/users/u-1/role', { role: 'PARTNER' })
+    })
+    await waitFor(() => expect(getSpy).toHaveBeenCalledTimes(2))
+    expect(await screen.findByText(/đã đổi vai trò alice thành đối tác/i)).toBeDefined()
+  })
+
+  it('does not change role when the confirmation is cancelled', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue({ data: backendEnvelope(makeResult({ items: [makeUser()] })) } as never)
+    const patchSpy = vi.spyOn(api, 'patch')
+
+    renderPage()
+    await screen.findByText('Alice')
+    fireEvent.click(screen.getByRole('button', { name: /đổi vai trò alice/i }))
+    const dialog = screen.getByRole('dialog')
+    fireEvent.change(within(dialog).getByLabelText('Vai trò mới'), { target: { value: 'ADMIN' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Hủy' }))
+
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(patchSpy).not.toHaveBeenCalled()
+  })
+
   it('surfaces a server error when a lock action fails', async () => {
     vi.spyOn(api, 'get').mockResolvedValue({
       data: backendEnvelope(makeResult({ items: [makeUser({ status: 'ACTIVE' })] }))

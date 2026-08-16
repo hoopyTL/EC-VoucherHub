@@ -7,6 +7,7 @@
  *   - GET   /admin/users                 → {@link listUsers}          (Req 5.1, 5.2)
  *   - PATCH /admin/users/:id/lock        → {@link lockUser}           (Req 5.3)
  *   - PATCH /admin/users/:id/unlock      → {@link unlockUser}         (Req 5.4)
+ *   - PATCH /admin/users/:id/role        → {@link changeUserRole}     (TASK-004 RBAC)
  *   - GET   /admin/partners/pending      → {@link listPendingPartners} (Req 6.1; FR-ADM-02)
  *   - PATCH /admin/partners/:id/approve  → {@link approvePartner}     (Req 6.2; FR-ADM-02)
  *   - PATCH /admin/partners/:id/reject   → {@link rejectPartner}      (Req 6.3; FR-ADM-02)
@@ -112,6 +113,12 @@ export async function unlockUser(id: string): Promise<AccountStatusChange> {
   const { data: response } = await api.patch<ApiEnvelope<BackendUserView>>(`/admin/users/${id}/unlock`)
   const user = toAdminAccount(response.data)
   return { id: user.id, accountType: user.accountType, status: user.status }
+}
+
+/** Change an account's canonical RBAC role. */
+export async function changeUserRole(id: string, role: UserRole): Promise<AdminAccount> {
+  const { data: response } = await api.patch<ApiEnvelope<BackendUserView>>(`/admin/users/${id}/role`, { role })
+  return toAdminAccount(response.data)
 }
 
 // ---------------------------------------------------------------------------

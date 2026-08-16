@@ -18,8 +18,8 @@
  */
 import { useState, type CSSProperties, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AccountStatus } from '@ui-contracts'
-import { getAdminApiError, listUsers, lockUser, unlockUser } from '../../services/admin'
+import { AccountStatus, UserRole } from '@ui-contracts'
+import { changeUserRole, getAdminApiError, listUsers, lockUser, unlockUser } from '../../services/admin'
 import type { AdminAccount, ListUsersResult } from '../../types/admin'
 import { Badge, Button, Input, LoadingSpinner, Modal, variantForStatus } from '../../components/ui'
 import { formatStatus } from '../../utils/format'
@@ -63,6 +63,8 @@ export function UsersPage() {
 
   // Account pending a lock/unlock confirmation (null when no prompt is shown).
   const [pending, setPending] = useState<AdminAccount | null>(null)
+  const [rolePending, setRolePending] = useState<AdminAccount | null>(null)
+  const [selectedRole, setSelectedRole] = useState<UserRole>(UserRole.CUSTOMER)
   const [actionError, setActionError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
 
@@ -85,6 +87,18 @@ export function UsersPage() {
     }
   })
 
+  const roleMutation = useMutation({
+    mutationFn: ({ account, role }: { account: AdminAccount; role: UserRole }) => changeUserRole(account.id, role),
+    onSuccess: async (updated) => {
+      await invalidate()
+      setNotice(`Đã đổi vai trò ${updated.name} thành ${formatStatus(updated.role)}.`)
+      setRolePending(null)
+    },
+    onError: (err) => {
+      setActionError(getAdminApiError(err, 'Không thể đổi vai trò. Vui lòng thử lại.'))
+    }
+  })
+
   const accounts = data ? combineAccounts(data) : []
   const page = cursorHistory.length
 
@@ -101,11 +115,18 @@ export function UsersPage() {
     setPending(account)
   }
 
+  function openRoleConfirm(account: AdminAccount) {
+    setActionError(null)
+    setNotice(null)
+    setSelectedRole(account.role)
+    setRolePending(account)
+  }
+
   return (
     <section style={{ maxWidth: 1000, margin: '0 auto' }}>
       <h1 style={pageTitleStyle}>Quản lý người dùng</h1>
       <p style={{ color: colors.slate, marginTop: 0, fontSize: 16 }}>
-        Xem, tìm kiếm, khóa hoặc mở khóa tài khoản khách hàng và đối tác.
+        Xem, tìm kiếm, đổi vai trò, khóa hoặc mở khóa tài khoản khách hàng và đối tác.
       </p>
 
       <form onSubmit={handleSearch} style={searchRowStyle} role='search'>
@@ -190,14 +211,24 @@ export function UsersPage() {
                         <Badge variant={variantForStatus(account.status)}>{formatStatus(account.status)}</Badge>
                       </td>
                       <td style={tdActionStyle}>
-                        <Button
-                          size='sm'
-                          variant={locked ? 'secondary' : 'danger'}
-                          onClick={() => openConfirm(account)}
-                          aria-label={`${locked ? 'Mở khóa' : 'Khóa'} ${account.name}`}
-                        >
-                          {locked ? 'Mở khóa' : 'Khóa'}
-                        </Button>
+                        <div style={actionGroupStyle}>
+                          <Button
+                            size='sm'
+                            variant='secondary'
+                            onClick={() => openRoleConfirm(account)}
+                            aria-label={`Đổi vai trò ${account.name}`}
+                          >
+                            Đổi vai trò
+                          </Button>
+                          <Button
+                            size='sm'
+                            variant={locked ? 'secondary' : 'danger'}
+                            onClick={() => openConfirm(account)}
+                            aria-label={`${locked ? 'Mở khóa' : 'Khóa'} ${account.name}`}
+                          >
+                            {locked ? 'Mở khóa' : 'Khóa'}
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   )
@@ -275,6 +306,54 @@ export function UsersPage() {
           </p>
         )}
       </Modal>
+
+      <Modal
+        isOpen={rolePending !== null}
+        onClose={() => setRolePending(null)}
+        title='Đổi vai trò tài khoản'
+        size='sm'
+        footer={
+          <>
+            <Button variant='secondary' onClick={() => setRolePending(null)} type='button'>
+              Hủy
+            </Button>
+            <Button
+              isLoading={roleMutation.isPending}
+              disabled={!rolePending || selectedRole === rolePending.role}
+              onClick={() => rolePending && roleMutation.mutate({ account: rolePending, role: selectedRole })}
+            >
+              Xác nhận đổi
+            </Button>
+          </>
+        }
+      >
+        {actionError && (
+          <div role='alert' style={alertStyle}>
+            {actionError}
+          </div>
+        )}
+        {rolePending && (
+          <>
+            <p style={{ marginTop: 0 }}>
+              Chọn vai trò mới cho <strong>{rolePending.name}</strong>.
+            </p>
+            <label htmlFor='new-user-role' style={selectLabelStyle}>
+              Vai trò mới
+            </label>
+            <select
+              id='new-user-role'
+              value={selectedRole}
+              onChange={(event) => setSelectedRole(event.target.value as UserRole)}
+              disabled={roleMutation.isPending}
+              style={selectStyle}
+            >
+              <option value={UserRole.CUSTOMER}>Customer</option>
+              <option value={UserRole.PARTNER}>Partner</option>
+              <option value={UserRole.ADMIN}>Administrator</option>
+            </select>
+          </>
+        )}
+      </Modal>
     </section>
   )
 }
@@ -342,6 +421,34 @@ const tdActionStyle: CSSProperties = {
   ...tdStyle,
   textAlign: 'right',
   whiteSpace: 'nowrap'
+}
+
+const actionGroupStyle: CSSProperties = {
+  display: 'flex',
+  justifyContent: 'flex-end',
+  gap: 8
+}
+
+const selectLabelStyle: CSSProperties = {
+  display: 'block',
+  marginBottom: 8,
+  fontFamily: fonts.display,
+  fontSize: 12,
+  fontWeight: 600,
+  textTransform: 'uppercase',
+  letterSpacing: '0.06em',
+  color: colors.slate
+}
+
+const selectStyle: CSSProperties = {
+  width: '100%',
+  minHeight: 44,
+  padding: '10px 12px',
+  border: `1px solid ${colors.hairlineStrong}`,
+  borderRadius: radius.md,
+  background: colors.surface,
+  color: colors.ink,
+  font: 'inherit'
 }
 
 const alertStyle: CSSProperties = {
