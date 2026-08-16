@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import type { AxiosAdapter } from 'axios'
-import { api, getAccessToken, setAccessToken, clearAccessToken } from './api'
+import { api, getAccessToken, setAccessToken, clearAccessToken, USER_STORAGE_KEY } from './api'
 
 describe('api in-memory access token', () => {
   beforeEach(() => {
@@ -76,11 +76,12 @@ describe('api request interceptor', () => {
   })
 })
 
-describe('api 401 refresh-and-retry interceptor', () => {
+describe('api 401 session interceptor', () => {
   const originalLocation = window.location
 
   beforeEach(() => {
     clearAccessToken()
+    localStorage.clear()
     Object.defineProperty(window, 'location', {
       configurable: true,
       writable: true,
@@ -98,52 +99,20 @@ describe('api 401 refresh-and-retry interceptor', () => {
     })
   })
 
-  it('transparently refreshes once and retries the original request on a 401', async () => {
+  it('clears the session and redirects without retrying a protected request', async () => {
     setAccessToken('expired-token')
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify({ id: 'u1', name: 'A', role: 'CUSTOMER' }))
     let calls = 0
 
     api.defaults.adapter = async (config) => {
-      const url = config.url ?? ''
-      // The refresh call succeeds with a new token.
-      if (url.includes('/auth/refresh')) {
-        return {
-          data: { token: 'fresh-token', user: { id: 'u1', name: 'A', role: 'CUSTOMER' } },
-          status: 200,
-          statusText: 'OK',
-          headers: {},
-          config
-        }
-      }
-      // The protected call 401s the first time, succeeds after refresh.
       calls += 1
-      if (calls === 1) {
-        return Promise.reject({ response: { status: 401 }, config })
-      }
-      return {
-        data: { ok: true },
-        status: 200,
-        statusText: 'OK',
-        headers: {},
-        config
-      }
-    }
-
-    const res = await api.get('/protected')
-    expect(res.status).toBe(200)
-    // The access token was replaced by the refreshed one.
-    expect(getAccessToken()).toBe('fresh-token')
-  })
-
-  it('clears the session and redirects to /login when refresh also fails', async () => {
-    setAccessToken('expired-token')
-
-    api.defaults.adapter = async (config) => {
-      // Both the protected call and the refresh call fail with 401.
       return Promise.reject({ response: { status: 401 }, config })
     }
 
     await expect(api.get('/protected')).rejects.toBeDefined()
+    expect(calls).toBe(1)
     expect(getAccessToken()).toBeNull()
+    expect(localStorage.getItem(USER_STORAGE_KEY)).toBeNull()
     expect(window.location.href).toBe('/login')
   })
 

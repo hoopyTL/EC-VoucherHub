@@ -1,19 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { act, render, renderHook, screen, waitFor } from '@testing-library/react'
-import { StrictMode, type ReactNode } from 'react'
+import { act, render, renderHook, screen } from '@testing-library/react'
+import type { ReactNode } from 'react'
 import { UserRole } from '@ui-contracts'
 import { AuthProvider } from './AuthContext'
 import { useAuth } from '../hooks/useAuth'
 import { api, clearAccessToken, getAccessToken, USER_STORAGE_KEY } from '../services/api'
 
 const wrapper = ({ children }: { children: ReactNode }) => <AuthProvider>{children}</AuthProvider>
-
-/** Wrapper that mounts the provider inside StrictMode (double-invokes effects). */
-const strictWrapper = ({ children }: { children: ReactNode }) => (
-  <StrictMode>
-    <AuthProvider>{children}</AuthProvider>
-  </StrictMode>
-)
 
 const sampleAuthResponse = {
   token: 'jwt-token-123',
@@ -39,70 +32,26 @@ describe('AuthProvider initial state', () => {
     vi.restoreAllMocks()
   })
 
-  it('starts unauthenticated when no session is persisted (no refresh probe)', () => {
+  it('starts unauthenticated when no session is persisted', () => {
     const postSpy = vi.spyOn(api, 'post')
     const { result } = renderHook(() => useAuth(), { wrapper })
     expect(result.current.isAuthenticated).toBe(false)
     expect(result.current.user).toBeNull()
     expect(result.current.token).toBeNull()
-    // With no persisted profile, no silent refresh is attempted.
     expect(postSpy).not.toHaveBeenCalled()
   })
 
-  it('restores a session via silent refresh when a user profile was persisted', async () => {
+  it('clears a stale profile without calling an unsupported refresh endpoint', () => {
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify({ id: 'u9', name: 'Bob', role: UserRole.PARTNER }))
-    const postSpy = vi.spyOn(api, 'post').mockResolvedValue({
-      data: {
-        token: 'refreshed-token',
-        user: { id: 'u9', name: 'Bob', role: UserRole.PARTNER }
-      }
-    } as never)
+    const postSpy = vi.spyOn(api, 'post')
 
     const { result } = renderHook(() => useAuth(), { wrapper })
 
-    // While the refresh probe is in flight, isLoading is true.
-    expect(result.current.isLoading).toBe(true)
-
-    await waitFor(() => expect(result.current.isAuthenticated).toBe(true))
-    expect(postSpy).toHaveBeenCalledWith('/auth/refresh')
-    expect(result.current.token).toBe('refreshed-token')
-    expect(result.current.user).toEqual({
-      id: 'u9',
-      name: 'Bob',
-      role: UserRole.PARTNER
-    })
-  })
-
-  it('drops the session when the silent refresh fails', async () => {
-    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify({ id: 'u9', name: 'Bob', role: UserRole.PARTNER }))
-    vi.spyOn(api, 'post').mockRejectedValue({ response: { status: 401 } })
-
-    const { result } = renderHook(() => useAuth(), { wrapper })
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false))
+    expect(result.current.isLoading).toBe(false)
     expect(result.current.isAuthenticated).toBe(false)
     expect(result.current.user).toBeNull()
-    // The orphaned profile is cleared.
     expect(localStorage.getItem(USER_STORAGE_KEY)).toBeNull()
-  })
-
-  it('finishes restoring under StrictMode double-invoke (no stuck loading spinner)', async () => {
-    // Regression: StrictMode mounts → unmounts → remounts the provider. A
-    // cleanup-based cancellation flag would discard the only in-flight refresh
-    // and leave isLoading stuck true forever. The probe must still resolve.
-    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify({ id: 'u9', name: 'Bob', role: UserRole.PARTNER }))
-    vi.spyOn(api, 'post').mockResolvedValue({
-      data: {
-        token: 'refreshed-token',
-        user: { id: 'u9', name: 'Bob', role: UserRole.PARTNER }
-      }
-    } as never)
-
-    const { result } = renderHook(() => useAuth(), { wrapper: strictWrapper })
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false))
-    expect(result.current.isAuthenticated).toBe(true)
-    expect(result.current.token).toBe('refreshed-token')
+    expect(postSpy).not.toHaveBeenCalled()
   })
 })
 
@@ -150,6 +99,28 @@ describe('AuthProvider login', () => {
     expect(getAccessToken()).toBe('jwt-token-123')
     expect(localStorage.getItem('voucher_system_auth_token')).toBeNull()
     expect(localStorage.getItem(USER_STORAGE_KEY)).toContain('Alice')
+  })
+
+  it('clears the partial session when loading the post-login profile fails', async () => {
+    vi.spyOn(api, 'post').mockResolvedValue({
+      data: {
+        success: true,
+        data: { token: sampleAuthResponse.token, user: { id: 'u1', role: UserRole.CUSTOMER } }
+      }
+    } as never)
+    vi.spyOn(api, 'get').mockRejectedValue(new Error('profile unavailable'))
+
+    const { result } = renderHook(() => useAuth(), { wrapper })
+
+    await act(async () => {
+      await expect(
+        result.current.login({ emailOrPhone: 'alice@example.com', password: 'password123' })
+      ).rejects.toThrow('profile unavailable')
+    })
+
+    expect(result.current.isAuthenticated).toBe(false)
+    expect(getAccessToken()).toBeNull()
+    expect(localStorage.getItem(USER_STORAGE_KEY)).toBeNull()
   })
 })
 
