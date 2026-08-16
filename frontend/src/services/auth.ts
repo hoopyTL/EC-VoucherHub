@@ -4,7 +4,7 @@
  * Thin typed wrappers over the shared Axios {@link api} client for the
  * self-service password lifecycle. The shared client attaches the bearer token
  * automatically, so `changePassword` requires an authenticated session while
- * `forgotPassword` / `resetPassword` are public.
+ * `forgotPassword` is public.
  *
  *   - POST  /auth/password-reset → {@link forgotPassword}  (Req 2.4)
  *   - PATCH /auth/password       → {@link changePassword}  (Req 2.6, authenticated)
@@ -26,15 +26,9 @@ export interface ForgotPasswordResult {
    * are registered.
    */
   message: string
-  /**
-   * The reset token. The backend only includes this outside production so the
-   * flow can be exercised without real email/SMS delivery — it is surfaced in a
-   * clearly-labelled "Demo only" helper, never in production.
-   */
-  resetToken?: string
 }
 
-/** Result of a reset-password or change-password call. */
+/** Result of a change-password call. */
 export interface MessageResult {
   message: string
 }
@@ -46,27 +40,12 @@ export interface MessageResult {
  * verbatim (never branching on whether the account exists).
  */
 export async function forgotPassword(emailOrPhone: string): Promise<ForgotPasswordResult> {
-  const { data: response } = await api.post<ApiEnvelope<{ requested: true; resetCode: string }>>(
-    '/auth/password-reset',
-    { identifier: emailOrPhone }
-  )
-  return {
-    message: 'If the account exists, password reset instructions have been created.',
-    resetToken: response.data.resetCode
-  }
-}
-
-/**
- * Reset a password using a token from the reset link (Req 2.5). The backend
- * enforces the same minimum length as registration (8 characters) and rejects
- * invalid/expired tokens with a 400.
- */
-export async function resetPassword(token: string, newPassword: string): Promise<MessageResult> {
-  const { data } = await api.post<MessageResult>('/auth/reset-password', {
-    token,
-    newPassword
+  await api.post<ApiEnvelope<{ requested: true; resetCode: string }>>('/auth/password-reset', {
+    identifier: emailOrPhone
   })
-  return data
+  return {
+    message: 'If the account exists, password reset instructions have been created.'
+  }
 }
 
 /**

@@ -29,7 +29,7 @@ import {
 } from '../services/api'
 
 const IS_DESIGN_PREVIEW = import.meta.env.VITE_DESIGN_PREVIEW === 'true'
-const DESIGN_GUEST_PATHS = ['/login', '/register', '/forgot-password', '/reset-password', '/partner/register'] as const
+const DESIGN_GUEST_PATHS = ['/login', '/register', '/forgot-password', '/partner/register'] as const
 
 /** Re-exported so existing consumers (`ProtectedRoute`) keep working while the
  * canonical definition lives in the shared types package. */
