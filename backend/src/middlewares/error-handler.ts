@@ -2,7 +2,6 @@ import type { Request, Response, NextFunction } from 'express'
 
 import { AppError } from '~/utils/app-error'
 import { ErrorCode } from '~/utils/error-codes'
-import { env } from '~/configs/env'
 
 interface ErrorResponseBody {
   success: false
@@ -14,16 +13,19 @@ interface ErrorResponseBody {
 }
 
 export function errorHandler(err: Error, _req: Request, res: Response, _next: NextFunction): void {
+  void _next
   // 1. AppError
   if (err instanceof AppError) {
+    const isServerError = err.statusCode >= 500
     const body: ErrorResponseBody = {
       success: false,
       error: {
         code: err.code,
-        message: err.message,
-        ...(err.details !== undefined && { details: err.details })
+        message: isServerError ? 'An unexpected error occurred' : err.message,
+        ...(!isServerError && err.details !== undefined && { details: err.details })
       }
     }
+    if (isServerError) console.error('Server error:', err)
     res.status(err.statusCode).json(body)
     return
   }
@@ -100,8 +102,7 @@ export function errorHandler(err: Error, _req: Request, res: Response, _next: Ne
     success: false,
     error: {
       code: ErrorCode.INTERNAL_ERROR,
-      message: env.NODE_ENV === 'production' ? 'An unexpected error occurred' : err.message || 'Internal server error',
-      ...(env.NODE_ENV !== 'production' && { details: { stack: err.stack } })
+      message: 'An unexpected error occurred'
     }
   }
   res.status(500).json(body)
