@@ -1,0 +1,10 @@
+
+ RUN  v4.1.10 D:/Project cá nhân/EC-VoucherHub/backend
+
+ ✓ src/modules/order/order.service.test.ts (8 tests) 21ms
+
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+   Start at  20:46:44
+   Duration  594ms (transform 116ms, setup 0ms, import 223ms, tests 21ms, environment 0ms)
+

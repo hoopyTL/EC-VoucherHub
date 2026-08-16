@@ -4,39 +4,33 @@
  * Holds the global auth state (`user`, `token`, `isAuthenticated`) using
  * React Context + useReducer and exposes `login` / `logout` actions.
  *
- * Session model (future-development.md §2.5 — httpOnly-cookie sessions):
+ * Session model (TASK-004 — stateless access-token sessions):
  *  - The ACCESS token (JWT) is kept in memory only (via the API client's
  *    `setAccessToken`), never in localStorage, so XSS cannot exfiltrate it and
  *    it is dropped on a full reload.
- *  - The REFRESH token lives in an httpOnly cookie the browser sends
- *    automatically. On mount, when a (non-sensitive) user profile was persisted
- *    from a previous session, the provider silently calls `/auth/refresh` to
- *    mint a fresh access token — restoring the session across reloads without
- *    ever persisting a token. `isLoading` is `true` during that probe.
- *  - Only the user profile (id/name/role) is persisted, purely so the UI can
- *    render instantly while the refresh completes.
+ *  - TASK-004 has no refresh-token endpoint. A full reload clears any stale
+ *    persisted profile and requires a new login.
  *
- * The public contract consumed by the routing layer (`ProtectedRoute`,
- * `GuestRoute`, `Header`) is unchanged: `user`, `token`, `isAuthenticated`,
- * `isLoading`, `login`, `logout`, plus the `UserRole` type re-export.
+ * The public contract provides session state plus login, profile update and
+ * logout actions to the routing and account layers.
  *
  * _Requirements: 2.1, 2.3, 20.2; future-development.md §2.5_
  */
-import { createContext, useCallback, useEffect, useMemo, useReducer, useRef, type ReactNode } from 'react'
-import type { AuthResponse, LoginRequest, UserRole } from '@ui-contracts'
+import { createContext, useCallback, useMemo, useReducer, type ReactNode } from 'react'
+import type { LoginRequest, UserRole } from '@ui-contracts'
 import {
   api,
   clearAccessToken,
   clearPersistedUser,
   getAccessToken,
   getPersistedUser,
-  refreshAccessToken,
   setAccessToken,
   setPersistedUser
 } from '../services/api'
+import { updateProfile as updateProfileRequest, type AuthProfile, type UpdateProfileInput } from '../services/auth'
 
 const IS_DESIGN_PREVIEW = import.meta.env.VITE_DESIGN_PREVIEW === 'true'
-const DESIGN_GUEST_PATHS = ['/login', '/register', '/forgot-password', '/reset-password', '/partner/register'] as const
+const DESIGN_GUEST_PATHS = ['/login', '/register', '/forgot-password', '/partner/register'] as const
 
 /** Re-exported so existing consumers (`ProtectedRoute`) keep working while the
  * canonical definition lives in the shared types package. */
@@ -54,21 +48,18 @@ export interface AuthState {
   user: AuthUser | null
   token: string | null
   isAuthenticated: boolean
-  /** True while the initial silent-refresh probe is in flight. */
+  /** Kept for route-guard compatibility; TASK-004 initialization is synchronous. */
   isRestoring: boolean
 }
 
 /** Actions and derived flags available to consumers of the auth context. */
 export interface AuthContextValue extends Omit<AuthState, 'isRestoring'> {
-  /**
-   * True while the initial auth state is being restored via a silent
-   * `/auth/refresh` probe (only when a previous session's profile was
-   * persisted). Consumers like `ProtectedRoute` show a spinner until this
-   * clears so a logged-in user is not bounced to `/login` on reload.
-   */
+  /** Kept for route compatibility; always false for TASK-004 sessions. */
   isLoading: boolean
   /** Authenticates with the backend, stores the token in memory, updates state. */
   login: (credentials: LoginRequest) => Promise<AuthUser>
+  /** Updates the backend profile and synchronizes global display state. */
+  updateProfile: (input: UpdateProfileInput) => Promise<AuthProfile>
   /** Clears the session (token + user) locally and revokes it server-side. */
   logout: () => void
 }
@@ -79,7 +70,7 @@ export interface AuthContextValue extends Omit<AuthState, 'isRestoring'> {
 
 type AuthAction =
   | { type: 'LOGIN'; payload: { user: AuthUser; token: string } }
-  | { type: 'RESTORE_DONE'; payload: { user: AuthUser; token: string } | null }
+  | { type: 'UPDATE_USER'; payload: AuthUser }
   | { type: 'LOGOUT' }
 
 function authReducer(state: AuthState, action: AuthAction): AuthState {
@@ -91,16 +82,8 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         isAuthenticated: true,
         isRestoring: false
       }
-    case 'RESTORE_DONE':
-      if (action.payload) {
-        return {
-          user: action.payload.user,
-          token: action.payload.token,
-          isAuthenticated: true,
-          isRestoring: false
-        }
-      }
-      return { user: null, token: null, isAuthenticated: false, isRestoring: false }
+    case 'UPDATE_USER':
+      return { ...state, user: action.payload }
     case 'LOGOUT':
       return { user: null, token: null, isAuthenticated: false, isRestoring: false }
     default:
@@ -149,15 +132,8 @@ function previewRoleForIdentifier(identifier: string): UserRole {
 }
 
 /**
- * Build the initial state. Three cases:
- *  1. An access token is already in memory AND a profile is persisted → the
- *     session is live (e.g. a fresh login earlier in the same page life, or a
- *     test that seeded the in-memory token). Start authenticated, no probe.
- *  2. A persisted profile but no in-memory token (the usual post-reload case)
- *     → a session *might* be restorable via the httpOnly refresh cookie, so we
- *     optimistically show the user and mark `isRestoring` until the silent
- *     `/auth/refresh` probe resolves.
- *  3. No persisted profile → start cleanly unauthenticated (no probe).
+ * A session is valid only when both the in-memory token and its display profile
+ * exist. A full reload loses the token, so stale profile storage is cleared.
  */
 function initAuthState(): AuthState {
   if (IS_DESIGN_PREVIEW && typeof window !== 'undefined') {
@@ -170,14 +146,12 @@ function initAuthState(): AuthState {
     }
   }
   const user = readPersistedUser()
-  if (!user) {
-    return { user: null, token: null, isAuthenticated: false, isRestoring: false }
-  }
   const token = getAccessToken()
-  if (token) {
+  if (user && token) {
     return { user, token, isAuthenticated: true, isRestoring: false }
   }
-  return { user, token: null, isAuthenticated: false, isRestoring: true }
+  if (user) clearPersistedUser()
+  return { user: null, token: null, isAuthenticated: false, isRestoring: false }
 }
 
 // ---------------------------------------------------------------------------
@@ -190,41 +164,24 @@ export interface AuthProviderProps {
   children: ReactNode
 }
 
+interface ApiEnvelope<T> {
+  success: true
+  data: T
+}
+
+interface BackendLoginResponse {
+  token: string
+  user: { id: string; role: UserRole }
+}
+
+interface BackendProfileResponse {
+  id: string
+  fullName: string
+  role: { name: UserRole }
+}
+
 export function AuthProvider({ children }: AuthProviderProps) {
   const [state, dispatch] = useReducer(authReducer, undefined, initAuthState)
-  // Guards the one-shot restore probe against React 18 StrictMode double-invoke.
-  const didRestore = useRef(false)
-
-  // On mount: if a profile was persisted, try to silently restore the session
-  // by exchanging the httpOnly refresh cookie for a fresh access token.
-  //
-  // The `didRestore` ref guarantees the probe runs exactly once even under
-  // React 18 StrictMode's intentional mount→unmount→mount double-invoke. We
-  // deliberately do NOT use a cleanup-based `cancelled` flag here: StrictMode
-  // would set it on the first (discarded) mount and, because the ref then
-  // blocks the second mount from starting a new probe, the in-flight refresh
-  // would resolve into a no-op — leaving `isRestoring` stuck true forever
-  // (an endless loading spinner). The provider lives at the app root and never
-  // genuinely unmounts, so dispatching after the async resolves is safe.
-  useEffect(() => {
-    if (didRestore.current) return
-    didRestore.current = true
-
-    if (!state.isRestoring) return
-
-    void (async () => {
-      const token = await refreshAccessToken()
-      const user = readPersistedUser()
-      if (token && user) {
-        dispatch({ type: 'RESTORE_DONE', payload: { user, token } })
-      } else {
-        clearAccessToken()
-        clearPersistedUser()
-        dispatch({ type: 'RESTORE_DONE', payload: null })
-      }
-    })()
-    // Run exactly once on mount.
-  }, [])
 
   const login = useCallback(async (credentials: LoginRequest): Promise<AuthUser> => {
     if (IS_DESIGN_PREVIEW) {
@@ -237,15 +194,56 @@ export function AuthProvider({ children }: AuthProviderProps) {
       dispatch({ type: 'LOGIN', payload: { user, token: 'design-preview-token' } })
       return user
     }
-    const { data } = await api.post<AuthResponse>('/auth/login', credentials)
-    setAccessToken(data.token)
-    persistUser(data.user)
-    dispatch({
-      type: 'LOGIN',
-      payload: { user: data.user, token: data.token }
+    const loginResponse = await api.post<ApiEnvelope<BackendLoginResponse>>('/auth/login', {
+      identifier: credentials.emailOrPhone,
+      password: credentials.password
     })
-    return data.user
+    const { token } = loginResponse.data.data
+    setAccessToken(token)
+
+    try {
+      const profileResponse = await api.get<ApiEnvelope<BackendProfileResponse>>('/me')
+      const profile = profileResponse.data.data
+      const user: AuthUser = { id: profile.id, name: profile.fullName, role: profile.role.name }
+      persistUser(user)
+      dispatch({
+        type: 'LOGIN',
+        payload: { user, token }
+      })
+      return user
+    } catch (error) {
+      clearAccessToken()
+      clearPersistedUser()
+      throw error
+    }
   }, [])
+
+  const updateProfile = useCallback(
+    async (input: UpdateProfileInput): Promise<AuthProfile> => {
+      if (IS_DESIGN_PREVIEW) {
+        const current = state.user ?? { id: 'customer-preview', name: input.fullName, role: 'CUSTOMER' as const }
+        const user = { ...current, name: input.fullName }
+        dispatch({ type: 'UPDATE_USER', payload: user })
+        return {
+          id: user.id,
+          email: input.email ?? null,
+          phone: input.phone ?? null,
+          fullName: user.name,
+          address: input.address ?? null,
+          status: 'ACTIVE',
+          role: { name: user.role },
+          createdAt: '',
+          updatedAt: ''
+        }
+      }
+      const profile = await updateProfileRequest(input)
+      const user: AuthUser = { id: profile.id, name: profile.fullName, role: profile.role.name }
+      persistUser(user)
+      dispatch({ type: 'UPDATE_USER', payload: user })
+      return profile
+    },
+    [state.user]
+  )
 
   const logout = useCallback(() => {
     if (IS_DESIGN_PREVIEW) {
@@ -266,9 +264,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       isAuthenticated: state.isAuthenticated,
       isLoading: state.isRestoring,
       login,
+      updateProfile,
       logout
     }),
-    [state, login, logout]
+    [state, login, updateProfile, logout]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

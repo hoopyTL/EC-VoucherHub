@@ -1,0 +1,51 @@
+
+ RUN  v4.1.10 D:/Project cá nhân/EC-VoucherHub/backend
+
+ ❯ src/modules/order/order.service.test.ts (8 tests | 2 failed) 17ms
+     ✓ Thanh toán thất bại (FAILURE) -> không phát hành mã, giữ status 4ms
+     ✓ Từ chối nếu đơn hàng không thuộc về customer 1ms
+     ✓ Từ chối nếu đơn hàng không phải PENDING_PAYMENT 0ms
+     ✓ Thành công (SUCCESS) -> giao dịch nguyên tử sinh mã và trừ tồn kho 5ms
+     ✓ Chống oversell (Hết hàng khi thanh toán) -> rollback qua ValidationError 0ms
+     ✓ Trả về lỗi 403 nếu đơn hàng không thuộc về customer 0ms
+     × Ẩn mảng codes nếu đơn hàng chưa PAID 4ms
+     × Trả về mảng codes nếu đơn hàng đã PAID 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/modules/order/order.service.test.ts > Order Service - getOrderDetail > Ẩn mảng codes nếu đơn hàng chưa PAID
+TypeError: Cannot read properties of undefined (reading 'toFixed')
+ ❯ formatDecimal src/modules/order/order.service.ts:28:49
+     26| // ─── Helpers ────────────────────────────────────────────────────────
+     27|
+     28| const formatDecimal = (d: Decimal): string => d.toFixed(2)
+       |                                                 ^
+     29|
+     30| /**
+ ❯ toOrderResponse src/modules/order/order.service.ts:73:18
+ ❯ Module.getOrderDetail src/modules/order/order.service.ts:277:10
+ ❯ src/modules/order/order.service.test.ts:144:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/modules/order/order.service.test.ts > Order Service - getOrderDetail > Trả về mảng codes nếu đơn hàng đã PAID
+TypeError: Cannot read properties of undefined (reading 'toFixed')
+ ❯ formatDecimal src/modules/order/order.service.ts:28:49
+     26| // ─── Helpers ────────────────────────────────────────────────────────
+     27|
+     28| const formatDecimal = (d: Decimal): string => d.toFixed(2)
+       |                                                 ^
+     29|
+     30| /**
+ ❯ toOrderResponse src/modules/order/order.service.ts:73:18
+ ❯ Module.getOrderDetail src/modules/order/order.service.ts:277:10
+ ❯ src/modules/order/order.service.test.ts:160:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 6 passed (8)
+   Start at  20:45:48
+   Duration  471ms (transform 93ms, setup 0ms, import 182ms, tests 17ms, environment 0ms)
+

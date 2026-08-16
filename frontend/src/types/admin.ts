@@ -101,57 +101,28 @@ export interface AnalyticsOverview {
 // User management (GET /admin/users)
 // ---------------------------------------------------------------------------
 
-/** A Customer/Admin account (User table) row surfaced to the admin. */
-export interface AdminUserView {
-  accountType: 'USER'
+/** A user account normalized for the admin table. */
+export interface AdminAccount {
+  accountType: 'USER' | 'PARTNER'
   id: string
   email: string | null
   phone: string | null
   name: string
   role: UserRole
   status: AccountStatus
-  /** ISO date string. */
-  createdAt: string
-  /** ISO date string. */
-  updatedAt: string
 }
-
-/** A Partner account row surfaced to the admin (business name under `name`). */
-export interface AdminPartnerView {
-  accountType: 'PARTNER'
-  id: string
-  email: string
-  phone: string | null
-  name: string
-  representativeName: string
-  status: AccountStatus
-  /** ISO date string. */
-  createdAt: string
-  /** ISO date string. */
-  updatedAt: string
-}
-
-/** A combined account row (User or Partner) used by the users table. */
-export type AdminAccount = AdminUserView | AdminPartnerView
 
 /** Result shape returned by GET /admin/users. */
 export interface ListUsersResult {
-  users: AdminUserView[]
-  partners: AdminPartnerView[]
-  pagination: {
-    page: number
-    limit: number
-    userTotal: number
-    partnerTotal: number
-    total: number
-  }
+  items: AdminAccount[]
+  nextCursor: string | null
 }
 
 /** Query params accepted by GET /admin/users. */
 export interface ListUsersParams {
   /** Case-insensitive search across name, email, and phone. */
   search?: string
-  page?: number
+  cursor?: string
   limit?: number
 }
 

@@ -26,7 +26,7 @@ function submitWith(value: string) {
   fireEvent.change(screen.getByLabelText(/email or phone/i), {
     target: { value }
   })
-  fireEvent.click(screen.getByRole('button', { name: /send reset link/i }))
+  fireEvent.click(screen.getByRole('button', { name: /request reset/i }))
 }
 
 describe('ForgotPasswordPage', () => {
@@ -41,7 +41,7 @@ describe('ForgotPasswordPage', () => {
   it('renders the email/phone field and a submit button', () => {
     renderPage()
     expect(screen.getByLabelText(/email or phone/i)).toBeDefined()
-    expect(screen.getByRole('button', { name: /send reset link/i })).toBeDefined()
+    expect(screen.getByRole('button', { name: /request reset/i })).toBeDefined()
   })
 
   it('calls the API and shows the generic message on submit (Req 2.4)', async () => {
@@ -70,23 +70,19 @@ describe('ForgotPasswordPage', () => {
   it('validates a required identifier without calling the API', async () => {
     renderPage()
 
-    fireEvent.click(screen.getByRole('button', { name: /send reset link/i }))
+    fireEvent.click(screen.getByRole('button', { name: /request reset/i }))
 
     expect(await screen.findByRole('alert')).toBeDefined()
     expect(forgotPasswordMock).not.toHaveBeenCalled()
   })
 
-  it('shows a "Demo only" reset link when the response includes a resetToken', async () => {
-    forgotPasswordMock.mockResolvedValue({
-      message: GENERIC_MESSAGE,
-      resetToken: 'demo-token-123'
-    })
+  it('does not expose an unsupported reset-completion link', async () => {
+    forgotPasswordMock.mockResolvedValue({ message: GENERIC_MESSAGE })
     renderPage()
 
     submitWith('user@example.com')
 
-    expect(await screen.findByText(/demo only/i)).toBeDefined()
-    const link = screen.getByRole('link', { name: /continue to reset password/i })
-    expect(link.getAttribute('href')).toBe('/reset-password?token=demo-token-123')
+    expect(await screen.findByText(GENERIC_MESSAGE)).toBeDefined()
+    expect(screen.queryByRole('link', { name: /continue to reset password/i })).toBeNull()
   })
 })

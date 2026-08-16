@@ -12,6 +12,7 @@ import orderRoutes from './modules/order/order.routes'
 import searchRoutes from './modules/search/search.routes'
 import { notFoundHandler } from '~/middlewares/not-found'
 import { ApiResponse } from '~/utils/api-response'
+import apiRouter from '~/modules'
 
 // task 06
 import partnerRoutes from '~/modules/partners/partner.routes'
@@ -50,6 +51,7 @@ app.get('/', (_req, res) => {
 })
 
 // API routes
+app.use('/api', apiRouter)
 app.use('/api/cart', cartRoutes)
 app.use('/api/orders', orderRoutes)
 app.use('/api/vouchers', searchRoutes)

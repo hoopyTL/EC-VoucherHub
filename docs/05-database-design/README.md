@@ -90,7 +90,8 @@ erDiagram
 | `id` | `uuid` | PK | |
 | `email` | `varchar(255)` | UNIQUE, nullable | |
 | `phone` | `varchar(20)` | UNIQUE, nullable | |
-| `password_hash` | `varchar(255)` | NOT NULL | |
+| `password_hash` | `varchar(255)` | NOT NULL | Băm bcrypt; không trả qua API |
+| `token_version` | `integer` | NOT NULL, DEFAULT 0 | Tăng khi đổi mật khẩu để vô hiệu access token cũ |
 | `role_id` | `int` | FK→`roles`, NOT NULL | |
 | `status` | `user_status` | NOT NULL, default `active` | |
 | `full_name` | `varchar(255)` | NOT NULL | |

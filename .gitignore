@@ -37,6 +37,7 @@ build/
 .env
 .env.local
 .env.*.local
+backend/.env.test
 
 # Prisma
 backend/prisma/*.db
@@ -47,3 +48,5 @@ backend/prisma/*.db-journal
 
 # Test coverage
 coverage/
+playwright-report/
+test-results/

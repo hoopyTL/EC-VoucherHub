@@ -5,12 +5,17 @@
     "outDir": "./dist",
     "module": "CommonJS",
     "moduleResolution": "node",
-    //"ignoreDeprecations": "6.0",
+    "ignoreDeprecations": "5.0",
     "baseUrl": ".",
     "paths": {
       "~/*": ["src/*"]
     }
   },
   "include": ["src"],
-  "references": [{ "path": "../shared" }]
+  "exclude": ["src/**/*.test.ts"],
+  "references": [
+    {
+      "path": "../shared"
+    }
+  ]
 }

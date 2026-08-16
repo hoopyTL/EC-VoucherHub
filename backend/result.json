@@ -1,0 +1,53 @@
+{
+  "success": true,
+  "data": {
+    "items": [
+      {
+        "id": "610ae389-46d0-400f-b649-f311ca004b59",
+        "partnerId": "1fcf3f3b-b833-4d0c-8ccf-f62252f62f87",
+        "categoryId": null,
+        "name": "Buffet Lẩu Nướng Gogi House",
+        "description": "Ăn lẩu nướng thả ga chuẩn vị Hàn Quốc.",
+        "imageUrl": null,
+        "originalPrice": "400000.00",
+        "salePrice": "299000.00",
+        "saleStart": "2026-08-02T09:16:08.713Z",
+        "saleEnd": "2026-09-01T09:16:08.713Z",
+        "usageStart": "2026-08-02T09:16:08.713Z",
+        "usageEnd": "2026-10-01T09:16:08.713Z",
+        "totalQuantity": 1000,
+        "remainingQuantity": 950,
+        "isMultiUse": false,
+        "usesPerCode": null,
+        "status": "ON_SALE",
+        "createdAt": "2026-08-02T09:16:08.717Z",
+        "updatedAt": "2026-08-02T09:16:08.717Z"
+      },
+      {
+        "id": "6dafb311-762a-49fb-92ca-c726a4d7e5f6",
+        "partnerId": "1fcf3f3b-b833-4d0c-8ccf-f62252f62f87",
+        "categoryId": null,
+        "name": "Voucher Buffet Hải Sản Giảm 50%",
+        "description": "Thưởng thức buffet hải sản tôm hùm, cua hoàng đế tại nhà hàng 5 sao.",
+        "imageUrl": null,
+        "originalPrice": "1000000.00",
+        "salePrice": "500000.00",
+        "saleStart": "2026-08-02T09:16:08.696Z",
+        "saleEnd": "2026-09-01T09:16:08.696Z",
+        "usageStart": "2026-08-02T09:16:08.696Z",
+        "usageEnd": "2026-10-01T09:16:08.696Z",
+        "totalQuantity": 100,
+        "remainingQuantity": 100,
+        "isMultiUse": false,
+        "usesPerCode": null,
+        "status": "ON_SALE",
+        "createdAt": "2026-08-02T09:16:08.701Z",
+        "updatedAt": "2026-08-02T09:16:08.701Z"
+      }
+    ],
+    "total": 2,
+    "page": 1,
+    "limit": 20,
+    "totalPages": 1
+  }
+}

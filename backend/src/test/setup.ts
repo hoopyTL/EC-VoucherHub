@@ -1,0 +1,13 @@
+import dotenv from 'dotenv'
+import { afterAll } from 'vitest'
+import { assertTestDatabaseUrl } from './database-url'
+
+dotenv.config({ path: '.env.test', override: true, quiet: true })
+
+assertTestDatabaseUrl(process.env.DATABASE_URL)
+process.env.NODE_ENV = 'test'
+
+afterAll(async () => {
+  const { default: prisma } = await import('~/configs/prisma')
+  await prisma.$disconnect()
+})

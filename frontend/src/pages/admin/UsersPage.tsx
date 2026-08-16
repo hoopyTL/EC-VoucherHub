@@ -7,22 +7,21 @@
  *   - Lock / unlock action buttons that call PATCH /admin/users/:id/{lock,unlock}
  *     (Req 5.3, 5.4) and refresh the list on success.
  *
- * Users and Partners live in separate backend tables and are returned as two
- * lists under a shared page/limit; this page merges them into one table, tagging
- * each row with its account type. Lock/unlock runs through TanStack Query and
- * invalidates the list so the table reflects authoritative server state.
+ * The API returns user accounts with their role and cursor pagination. The
+ * client adapter tags partner-role users for display. Lock/unlock runs through
+ * TanStack Query and invalidates the list so the table reflects server state.
  *
  * The app shell does not mount a global toast provider, so success/error
  * feedback is rendered as inline `role="alert"`/`role="status"` regions.
  *
  * _Requirements: 5.1, 5.2, 5.3, 5.4_
  */
-import { useMemo, useState, type CSSProperties, type FormEvent } from 'react'
+import { useState, type CSSProperties, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AccountStatus } from '@ui-contracts'
-import { getAdminApiError, listUsers, lockUser, unlockUser } from '../../services/admin'
+import { AccountStatus, UserRole } from '@ui-contracts'
+import { changeUserRole, getAdminApiError, listUsers, lockUser, unlockUser } from '../../services/admin'
 import type { AdminAccount, ListUsersResult } from '../../types/admin'
-import { Badge, Button, Input, LoadingSpinner, Modal, Pagination, variantForStatus } from '../../components/ui'
+import { Badge, Button, Input, LoadingSpinner, Modal, variantForStatus } from '../../components/ui'
 import { formatStatus } from '../../utils/format'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
 
@@ -33,12 +32,10 @@ const PAGE_LIMIT = 20
 const USERS_QUERY_KEY = 'admin-users'
 
 /**
- * Merge the separately-returned user and partner lists into a single ordered
- * collection for the table. Users are listed first, then partners; each row
- * keeps its `accountType` discriminator so the UI can label it.
+ * Return the normalized account collection supplied by the API adapter.
  */
 export function combineAccounts(result: ListUsersResult): AdminAccount[] {
-  return [...result.users, ...result.partners]
+  return result.items
 }
 
 /**
@@ -47,12 +44,6 @@ export function combineAccounts(result: ListUsersResult): AdminAccount[] {
  */
 export function isLocked(account: AdminAccount): boolean {
   return account.status === AccountStatus.LOCKED
-}
-
-/** Compute the number of pages, given the larger of the two subtotal counts. */
-export function totalPagesFor(result: ListUsersResult, limit: number): number {
-  const maxSubtotal = Math.max(result.pagination.userTotal, result.pagination.partnerTotal)
-  return Math.max(1, Math.ceil(maxSubtotal / limit))
 }
 
 /** A human label for the account type column. */
@@ -68,16 +59,18 @@ export function UsersPage() {
   // value bound to the input before submission.
   const [searchTerm, setSearchTerm] = useState('')
   const [searchInput, setSearchInput] = useState('')
-  const [page, setPage] = useState(1)
+  const [cursorHistory, setCursorHistory] = useState<(string | undefined)[]>([undefined])
 
   // Account pending a lock/unlock confirmation (null when no prompt is shown).
   const [pending, setPending] = useState<AdminAccount | null>(null)
+  const [rolePending, setRolePending] = useState<AdminAccount | null>(null)
+  const [selectedRole, setSelectedRole] = useState<UserRole>(UserRole.CUSTOMER)
   const [actionError, setActionError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: [USERS_QUERY_KEY, { search: searchTerm, page }],
-    queryFn: () => listUsers({ search: searchTerm, page, limit: PAGE_LIMIT })
+    queryKey: [USERS_QUERY_KEY, { search: searchTerm, cursor: cursorHistory.at(-1) }],
+    queryFn: () => listUsers({ search: searchTerm, cursor: cursorHistory.at(-1), limit: PAGE_LIMIT })
   })
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: [USERS_QUERY_KEY] })
@@ -94,13 +87,25 @@ export function UsersPage() {
     }
   })
 
-  const accounts = useMemo(() => (data ? combineAccounts(data) : []), [data])
-  const totalPages = data ? totalPagesFor(data, PAGE_LIMIT) : 1
+  const roleMutation = useMutation({
+    mutationFn: ({ account, role }: { account: AdminAccount; role: UserRole }) => changeUserRole(account.id, role),
+    onSuccess: async (updated) => {
+      await invalidate()
+      setNotice(`Đã đổi vai trò ${updated.name} thành ${formatStatus(updated.role)}.`)
+      setRolePending(null)
+    },
+    onError: (err) => {
+      setActionError(getAdminApiError(err, 'Không thể đổi vai trò. Vui lòng thử lại.'))
+    }
+  })
+
+  const accounts = data ? combineAccounts(data) : []
+  const page = cursorHistory.length
 
   function handleSearch(event: FormEvent) {
     event.preventDefault()
     setNotice(null)
-    setPage(1)
+    setCursorHistory([undefined])
     setSearchTerm(searchInput.trim())
   }
 
@@ -110,11 +115,18 @@ export function UsersPage() {
     setPending(account)
   }
 
+  function openRoleConfirm(account: AdminAccount) {
+    setActionError(null)
+    setNotice(null)
+    setSelectedRole(account.role)
+    setRolePending(account)
+  }
+
   return (
     <section style={{ maxWidth: 1000, margin: '0 auto' }}>
       <h1 style={pageTitleStyle}>Quản lý người dùng</h1>
       <p style={{ color: colors.slate, marginTop: 0, fontSize: 16 }}>
-        Xem, tìm kiếm, khóa hoặc mở khóa tài khoản khách hàng và đối tác.
+        Xem, tìm kiếm, đổi vai trò, khóa hoặc mở khóa tài khoản khách hàng và đối tác.
       </p>
 
       <form onSubmit={handleSearch} style={searchRowStyle} role='search'>
@@ -134,7 +146,7 @@ export function UsersPage() {
             onClick={() => {
               setSearchInput('')
               setSearchTerm('')
-              setPage(1)
+              setCursorHistory([undefined])
               setNotice(null)
             }}
           >
@@ -199,14 +211,24 @@ export function UsersPage() {
                         <Badge variant={variantForStatus(account.status)}>{formatStatus(account.status)}</Badge>
                       </td>
                       <td style={tdActionStyle}>
-                        <Button
-                          size='sm'
-                          variant={locked ? 'secondary' : 'danger'}
-                          onClick={() => openConfirm(account)}
-                          aria-label={`${locked ? 'Mở khóa' : 'Khóa'} ${account.name}`}
-                        >
-                          {locked ? 'Mở khóa' : 'Khóa'}
-                        </Button>
+                        <div style={actionGroupStyle}>
+                          <Button
+                            size='sm'
+                            variant='secondary'
+                            onClick={() => openRoleConfirm(account)}
+                            aria-label={`Đổi vai trò ${account.name}`}
+                          >
+                            Đổi vai trò
+                          </Button>
+                          <Button
+                            size='sm'
+                            variant={locked ? 'secondary' : 'danger'}
+                            onClick={() => openConfirm(account)}
+                            aria-label={`${locked ? 'Mở khóa' : 'Khóa'} ${account.name}`}
+                          >
+                            {locked ? 'Mở khóa' : 'Khóa'}
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   )
@@ -215,16 +237,30 @@ export function UsersPage() {
             </table>
           </div>
 
-          {totalPages > 1 && (
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
-              <Pagination
-                currentPage={page}
-                totalPages={totalPages}
-                onPageChange={(next) => {
+          {(page > 1 || data.nextCursor) && (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginTop: 16 }}>
+              <Button
+                variant='secondary'
+                disabled={page === 1}
+                onClick={() => {
                   setNotice(null)
-                  setPage(next)
+                  setCursorHistory((history) => history.slice(0, -1))
                 }}
-              />
+              >
+                Trang trước
+              </Button>
+              <span>Trang {page}</span>
+              <Button
+                variant='secondary'
+                disabled={!data.nextCursor}
+                onClick={() => {
+                  if (!data.nextCursor) return
+                  setNotice(null)
+                  setCursorHistory((history) => [...history, data.nextCursor ?? undefined])
+                }}
+              >
+                Trang sau
+              </Button>
             </div>
           )}
         </>
@@ -268,6 +304,54 @@ export function UsersPage() {
               </>
             )}
           </p>
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={rolePending !== null}
+        onClose={() => setRolePending(null)}
+        title='Đổi vai trò tài khoản'
+        size='sm'
+        footer={
+          <>
+            <Button variant='secondary' onClick={() => setRolePending(null)} type='button'>
+              Hủy
+            </Button>
+            <Button
+              isLoading={roleMutation.isPending}
+              disabled={!rolePending || selectedRole === rolePending.role}
+              onClick={() => rolePending && roleMutation.mutate({ account: rolePending, role: selectedRole })}
+            >
+              Xác nhận đổi
+            </Button>
+          </>
+        }
+      >
+        {actionError && (
+          <div role='alert' style={alertStyle}>
+            {actionError}
+          </div>
+        )}
+        {rolePending && (
+          <>
+            <p style={{ marginTop: 0 }}>
+              Chọn vai trò mới cho <strong>{rolePending.name}</strong>.
+            </p>
+            <label htmlFor='new-user-role' style={selectLabelStyle}>
+              Vai trò mới
+            </label>
+            <select
+              id='new-user-role'
+              value={selectedRole}
+              onChange={(event) => setSelectedRole(event.target.value as UserRole)}
+              disabled={roleMutation.isPending}
+              style={selectStyle}
+            >
+              <option value={UserRole.CUSTOMER}>Customer</option>
+              <option value={UserRole.PARTNER}>Partner</option>
+              <option value={UserRole.ADMIN}>Administrator</option>
+            </select>
+          </>
         )}
       </Modal>
     </section>
@@ -337,6 +421,34 @@ const tdActionStyle: CSSProperties = {
   ...tdStyle,
   textAlign: 'right',
   whiteSpace: 'nowrap'
+}
+
+const actionGroupStyle: CSSProperties = {
+  display: 'flex',
+  justifyContent: 'flex-end',
+  gap: 8
+}
+
+const selectLabelStyle: CSSProperties = {
+  display: 'block',
+  marginBottom: 8,
+  fontFamily: fonts.display,
+  fontSize: 12,
+  fontWeight: 600,
+  textTransform: 'uppercase',
+  letterSpacing: '0.06em',
+  color: colors.slate
+}
+
+const selectStyle: CSSProperties = {
+  width: '100%',
+  minHeight: 44,
+  padding: '10px 12px',
+  border: `1px solid ${colors.hairlineStrong}`,
+  borderRadius: radius.md,
+  background: colors.surface,
+  color: colors.ink,
+  font: 'inherit'
 }
 
 const alertStyle: CSSProperties = {

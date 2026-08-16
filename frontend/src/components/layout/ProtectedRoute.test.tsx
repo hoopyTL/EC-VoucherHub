@@ -11,6 +11,17 @@ function makeAuth(overrides: Partial<AuthContextValue>): AuthContextValue {
     isAuthenticated: false,
     isLoading: false,
     login: async () => ({ id: '', name: '', role: 'CUSTOMER' }),
+    updateProfile: async () => ({
+      id: '',
+      email: null,
+      phone: null,
+      fullName: '',
+      address: null,
+      status: 'ACTIVE',
+      role: { name: 'CUSTOMER' },
+      createdAt: '',
+      updatedAt: ''
+    }),
     logout: () => {},
     ...overrides
   }

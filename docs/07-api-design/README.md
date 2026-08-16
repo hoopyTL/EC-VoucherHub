@@ -20,10 +20,11 @@ Mọi response bọc trong một shape thống nhất (api-conventions §Respons
 // thành công
 { "success": true, "data": <T> }
 // lỗi đơn
-{ "success": false, "error": "<message>" }
+{ "success": false, "error": { "code": "UNAUTHORIZED", "message": "<message>" } }
 // lỗi nhiều trường
-{ "success": false, "error": "validation failed",
-  "details": [ { "field": "salePrice", "message": "phải nhỏ hơn giá gốc" } ] }
+{ "success": false, "error": { "code": "VALIDATION_ERROR",
+  "message": "Validation failed",
+  "details": [ { "field": "salePrice", "message": "phải nhỏ hơn giá gốc" } ] } }
 ```
 
 Client luôn kiểm tra `success` trước khi đọc `data`. Không bao giờ trả object trần.
@@ -31,13 +32,15 @@ Client luôn kiểm tra `success` trước khi đọc `data`. Không bao giờ t
 ### 1.3 Xác thực & phân quyền
 
 - Header: `Authorization: Bearer <JWT>`. Không bao giờ truyền token qua query string.
-- JWT payload: `{ sub: userId, role, partnerId?, branchId? }`. Middleware RBAC kiểm tra vai trò + phạm vi sở hữu trước khi vào handler (FR-03).
+- JWT payload: `{ sub: userId, role, partnerId? }`. Middleware kiểm tra vai trò; phạm vi sở hữu được kiểm tra tại service (FR-03).
+- Role sử dụng thống nhất trong API và database: `ADMIN`, `PARTNER`, `CUSTOMER`.
 - Endpoint công khai (không cần token): `POST /auth/register`, `POST /auth/login`, `POST /auth/password-reset`, `GET /vouchers`, `GET /vouchers/:id`.
 
 ### 1.4 Phân trang, lọc
 
 - Danh sách lớn dùng **cursor**: `?cursor=<id>&limit=<n>` (mặc định 20, cap 100), trả kèm `nextCursor`.
 - Lọc đặt ở query string, AND mặc định: `GET /vouchers?category=food&region=hcm&minPrice=0&maxPrice=500000`.
+- Endpoint auth giới hạn tần suất trả `429`, `Retry-After` và các header `X-RateLimit-*`.
 
 ### 1.5 Phân trang — shape dữ liệu danh sách
 
@@ -54,7 +57,7 @@ Client luôn kiểm tra `success` trước khi đọc `data`. Không bao giờ t
 | --- | --- | --- | --- | --- |
 | POST | `/auth/register` | Đăng ký Khách hàng | công khai | FR-01 |
 | POST | `/auth/login` | Đăng nhập → JWT | công khai | FR-02 |
-| POST | `/auth/logout` | Đăng xuất (huỷ phiên/refresh) | mọi vai trò | FR-02 |
+| POST | `/auth/logout` | Đăng xuất stateless (client xoá token) | mọi vai trò | FR-02 |
 | POST | `/auth/password-reset` | Yêu cầu mã đặt lại (mô phỏng) | công khai | FR-02 |
 | PATCH | `/auth/password` | Đổi mật khẩu | mọi vai trò | FR-02 |
 | GET | `/me` | Hồ sơ phiên hiện tại | mọi vai trò | FR-02 |
@@ -125,14 +128,14 @@ Client luôn kiểm tra `success` trước khi đọc `data`. Không bao giờ t
 **Request**
 ```jsonc
 { "email": "an@example.com",   // email HOẶC phone, ít nhất một
-  "phone": null,
   "password": "secret123",     // ≥ 8 ký tự
   "fullName": "Nguyễn An" }
 ```
 **201 Created**
 ```jsonc
 { "success": true,
-  "data": { "id": "clx...", "email": "an@example.com", "role": "KHACH_HANG" } }
+  "data": { "id": "clx...", "email": "an@example.com", "phone": null,
+    "role": "CUSTOMER", "verificationCode": "123456" } }
 ```
 **Validation & lỗi**: thiếu cả email+phone → 400; mật khẩu < 8 → 400 (`details`); định danh trùng → 409 (`email đã tồn tại`). Mật khẩu lưu băm, không trả về.
 
@@ -142,7 +145,7 @@ Client luôn kiểm tra `success` trước khi đọc `data`. Không bao giờ t
 **200 OK**
 ```jsonc
 { "success": true,
-  "data": { "token": "<JWT>", "user": { "id": "clx...", "role": "KHACH_HANG" } } }
+  "data": { "token": "<JWT>", "user": { "id": "clx...", "role": "CUSTOMER" } } }
 ```
 **Lỗi**: sai thông tin → 401; tài khoản `bi_khoa` → 403 (`tài khoản bị khoá`).
 

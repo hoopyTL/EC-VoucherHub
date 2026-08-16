@@ -54,3 +54,11 @@ export const UsageResult = {
   LOCKED: 'LOCKED'
 } as const
 export type UsageResult = (typeof UsageResult)[keyof typeof UsageResult]
+
+export const RoleName = {
+  ADMIN: 'ADMIN',
+  PARTNER: 'PARTNER',
+  CUSTOMER: 'CUSTOMER'
+} as const
+
+export type RoleName = (typeof RoleName)[keyof typeof RoleName]
