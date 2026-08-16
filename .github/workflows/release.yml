@@ -97,6 +97,15 @@ jobs:
         if: steps.test_scripts.outputs.has_tests == 'true'
         run: npm run test:coverage --workspace=backend
 
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Typecheck E2E
+        run: npm run typecheck:e2e
+
+      - name: TASK-004 E2E
+        run: npm run test:e2e
+
       - name: Block false-green release gate
         if: steps.test_scripts.outputs.has_tests != 'true'
         run: |
@@ -132,4 +141,4 @@ jobs:
 
             Notes:
             - `docker-compose.yml` is dev-only PostgreSQL, not a production deployment manifest.
-            - E2E is not configured in this repository yet.
+            - TASK-004 Playwright E2E covers FLOW-001 and FLOW-009 against PostgreSQL.

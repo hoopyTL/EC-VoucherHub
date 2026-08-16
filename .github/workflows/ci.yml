@@ -81,10 +81,29 @@ jobs:
       - name: Test with coverage
         run: npm run test:coverage --workspace=backend
 
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Typecheck E2E
+        run: npm run typecheck:e2e
+
+      - name: TASK-004 E2E
+        run: npm run test:e2e
+
       - name: Upload coverage
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: coverage
           path: "**/coverage/**"
+          if-no-files-found: ignore
+
+      - name: Upload Playwright artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: task004-playwright
+          path: |
+            playwright-report/
+            test-results/
           if-no-files-found: ignore

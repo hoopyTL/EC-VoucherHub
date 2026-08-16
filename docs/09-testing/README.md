@@ -97,6 +97,16 @@ Mỗi FLOW trong `docs/02-srs` → một test Playwright tag `@FLOW-XXX`, chạy
 
 Chạy một flow: `npm run test:e2e -- --grep @FLOW-003`.
 
+### TASK-004 automation hiện có
+
+- `e2e/task004-api.spec.ts`: kiểm tra API auth/profile/RBAC/admin users qua HTTP thật.
+- `e2e/task004-auth.spec.ts`: FLOW-001 đăng ký, đăng nhập và đổi mật khẩu qua Chromium.
+- `e2e/task004-admin-users.spec.ts`: FLOW-009 đăng nhập Admin, tìm kiếm, khóa và mở khóa qua Chromium.
+- `npm run test:e2e`: kiểm tra URL database, migrate và reset chính xác `voucherhub_test`, seed fixture, sau đó khởi động backend/frontend test trên cổng `4100/5174`.
+- Khi lỗi, Playwright giữ screenshot/video; CI retry giữ trace và upload `playwright-report/` cùng `test-results/`.
+
+Không chạy E2E nếu `backend/.env.test` không trỏ chính xác tới PostgreSQL local `voucherhub_test`. Runner chủ động từ chối database khác trước thao tác reset.
+
 ## 5. Integration test (luồng lõi)
 
 | Kịch bản | Phủ | TASK |
