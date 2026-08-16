@@ -15,6 +15,7 @@
  * _Requirements: 7.1, 7.2, 7.3, 7.4_
  */
 import { api } from './api'
+import type { ListVouchersDto } from '@voucher/shared'
 import type { Branch, BranchFormValues, PartnerVouchersResponse } from '../types/partner'
 
 interface ApiEnvelope<T> {
@@ -46,14 +47,33 @@ export async function deleteBranch(id: number): Promise<void> {
 }
 
 /**
- * Fetch a page of the partner's vouchers. The dashboard requests a large limit
- * so the derived counts cover the full catalogue rather than a single page.
+ * Fetch all partner voucher pages so dashboard totals cover the full catalogue.
+ * Pages are loaded sequentially to avoid request bursts on large catalogues.
  */
 export async function listPartnerVouchers(limit = 100): Promise<PartnerVouchersResponse> {
-  const { data } = await api.get<PartnerVouchersResponse>('/partner/vouchers', {
-    params: { limit }
-  })
-  return data
+  const getPage = (page: number) =>
+    api.get<ApiEnvelope<ListVouchersDto>>('/partner/vouchers', { params: { page, limit } })
+  const { data } = await getPage(1)
+  const records = [...data.data.vouchers]
+  const totalPages = Math.ceil(data.data.pagination.total / limit)
+  for (let page = 2; page <= totalPages; page += 1) {
+    const response = await getPage(page)
+    records.push(...response.data.data.vouchers)
+  }
+  return {
+    pagination: data.data.pagination,
+    vouchers: records.map((voucher) => ({
+      id: voucher.id,
+      title: voucher.name,
+      category: voucher.category?.name ?? 'Chưa phân loại',
+      originalPrice: voucher.originalPrice,
+      salePrice: voucher.salePrice,
+      totalQuantity: voucher.totalQuantity,
+      soldQuantity: voucher.soldQuantity,
+      status: voucher.status,
+      createdAt: voucher.createdAt
+    }))
+  }
 }
 
 /** Shape of the structured error body returned by the backend error handler. */

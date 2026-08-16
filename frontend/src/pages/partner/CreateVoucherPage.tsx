@@ -22,22 +22,23 @@
  *
  * _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
  */
-import { useEffect, useMemo, useState, type ChangeEvent, type CSSProperties, type FormEvent } from 'react'
+import { useEffect, useState, type ChangeEvent, type CSSProperties, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { CreateVoucherRequest } from '@ui-contracts'
 import { Button, Input, LoadingSpinner } from '../../components/ui'
-import { VOUCHER_CATEGORIES } from '../../constants/voucher'
 import { colors, fonts, radius } from '../../theme/tokens'
 import {
   createVoucher,
   getPartnerVoucher,
   getApiErrorMessage,
+  listVoucherCategories,
   listPartnerBranches,
   updatePartnerVoucher,
   uploadVoucherImage,
   PARTNER_BRANCHES_QUERY_KEY,
   PARTNER_VOUCHERS_QUERY_KEY,
+  VOUCHER_CATEGORIES_QUERY_KEY,
   type PartnerBranch
 } from '../../services/partnerVoucher'
 
@@ -49,11 +50,12 @@ interface FormState {
   originalPrice: string
   salePrice: string
   totalQuantity: string
+  isMultiUse: boolean
+  usesPerCode: string
   salePeriodStart: string
   salePeriodEnd: string
   usagePeriodStart: string
   usagePeriodEnd: string
-  terms: string
   imageUrl: string
 }
 
@@ -63,15 +65,16 @@ type FormErrors = Partial<Record<keyof FormState | 'branchIds', string>>
 const INITIAL_FORM: FormState = {
   title: '',
   description: '',
-  category: VOUCHER_CATEGORIES[0],
+  category: '',
   originalPrice: '',
   salePrice: '',
   totalQuantity: '',
+  isMultiUse: false,
+  usesPerCode: '',
   salePeriodStart: '',
   salePeriodEnd: '',
   usagePeriodStart: '',
   usagePeriodEnd: '',
-  terms: '',
   imageUrl: ''
 }
 
@@ -116,6 +119,10 @@ export function validateVoucherForm(form: FormState, selectedBranchIds: string[]
   if (!form.totalQuantity || !Number.isInteger(quantity) || quantity <= 0) {
     errors.totalQuantity = 'Số lượng phải là số nguyên lớn hơn 0.'
   }
+  const usesPerCode = Number(form.usesPerCode)
+  if (form.isMultiUse && (!form.usesPerCode || !Number.isInteger(usesPerCode) || usesPerCode <= 0)) {
+    errors.usesPerCode = 'Số lượt mỗi mã phải là số nguyên lớn hơn 0.'
+  }
 
   // Sale period (Req 8.3).
   if (!form.salePeriodStart) errors.salePeriodStart = 'Vui lòng chọn thời gian bắt đầu bán.'
@@ -141,8 +148,9 @@ export function validateVoucherForm(form: FormState, selectedBranchIds: string[]
   // Optional image URL — if provided, must be a valid http(s) URL.
   if (form.imageUrl.trim()) {
     try {
-      const parsed = new URL(form.imageUrl.trim())
-      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      const value = form.imageUrl.trim()
+      const parsed = value.startsWith('/uploads/vouchers/') ? null : new URL(value)
+      if (parsed && parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
         errors.imageUrl = 'Nhập URL ảnh http(s) hợp lệ.'
       }
     } catch {
@@ -171,6 +179,11 @@ export function CreateVoucherPage() {
     queryFn: listPartnerBranches
   })
 
+  const categoriesQuery = useQuery({
+    queryKey: VOUCHER_CATEGORIES_QUERY_KEY,
+    queryFn: listVoucherCategories
+  })
+
   const voucherQuery = useQuery({
     queryKey: [...PARTNER_VOUCHERS_QUERY_KEY, editId],
     queryFn: () => getPartnerVoucher(editId!),
@@ -183,22 +196,28 @@ export function CreateVoucherPage() {
     setForm({
       title: voucher.title,
       description: voucher.description,
-      category: voucher.category,
+      category: voucher.categoryId ? String(voucher.categoryId) : '',
       originalPrice: voucher.originalPrice,
       salePrice: voucher.salePrice,
       totalQuantity: String(voucher.totalQuantity),
+      isMultiUse: voucher.isMultiUse,
+      usesPerCode: voucher.usesPerCode ? String(voucher.usesPerCode) : '',
       salePeriodStart: voucher.salePeriodStart.slice(0, 16),
       salePeriodEnd: voucher.salePeriodEnd.slice(0, 16),
       usagePeriodStart: voucher.usagePeriodStart.slice(0, 16),
       usagePeriodEnd: voucher.usagePeriodEnd.slice(0, 16),
-      terms: voucher.terms ?? '',
       imageUrl: voucher.imageUrl ?? ''
     })
     setSelectedBranchIds(voucher.voucherBranches.map((link) => link.branchId))
   }, [voucherQuery.data])
 
-  // Only active branches can be attached to a new voucher (Req 8.5).
-  const activeBranches = useMemo(() => (branchesQuery.data ?? []).filter((b) => b.isActive), [branchesQuery.data])
+  useEffect(() => {
+    if (!editId && !form.category && categoriesQuery.data?.[0]) {
+      setField('category', String(categoriesQuery.data[0].id))
+    }
+  }, [categoriesQuery.data, editId, form.category])
+
+  const activeBranches = branchesQuery.data ?? []
 
   const createMutation = useMutation({
     mutationFn: (body: CreateVoucherRequest) => (editId ? updatePartnerVoucher(editId, body) : createVoucher(body)),
@@ -269,9 +288,10 @@ export function CreateVoucherPage() {
       salePeriodEnd,
       usagePeriodStart,
       usagePeriodEnd,
-      terms: form.terms.trim() ? form.terms.trim() : undefined,
       imageUrl: form.imageUrl.trim() ? form.imageUrl.trim() : undefined,
-      branchIds: selectedBranchIds
+      branchIds: selectedBranchIds,
+      isMultiUse: form.isMultiUse,
+      usesPerCode: form.isMultiUse ? Number(form.usesPerCode) : null
     }
 
     createMutation.mutate(body)
@@ -336,9 +356,12 @@ export function CreateVoucherPage() {
             onChange={(e) => setField('category', e.target.value)}
             style={selectStyle}
           >
-            {VOUCHER_CATEGORIES.map((category) => (
-              <option key={category} value={category}>
-                {category}
+            <option value='' disabled>
+              Chọn danh mục
+            </option>
+            {(categoriesQuery.data ?? []).map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
               </option>
             ))}
           </select>
@@ -383,6 +406,29 @@ export function CreateVoucherPage() {
           onChange={(e) => setField('totalQuantity', e.target.value)}
         />
 
+        <div style={fieldStyle}>
+          <label style={branchOptionStyle}>
+            <input
+              type='checkbox'
+              checked={form.isMultiUse}
+              onChange={(event) => setField('isMultiUse', event.target.checked)}
+            />
+            <span>Cho phép một mã sử dụng nhiều lượt</span>
+          </label>
+          {form.isMultiUse && (
+            <Input
+              label='Số lượt mỗi mã'
+              required
+              type='number'
+              min={1}
+              step='1'
+              value={form.usesPerCode}
+              error={errors.usesPerCode}
+              onChange={(event) => setField('usesPerCode', event.target.value)}
+            />
+          )}
+        </div>
+
         <div style={twoColStyle}>
           <Input
             label='Bắt đầu mở bán'
@@ -422,26 +468,13 @@ export function CreateVoucherPage() {
         </div>
 
         <div style={fieldStyle}>
-          <label htmlFor='voucher-terms' style={labelStyle}>
-            Điều khoản và điều kiện (không bắt buộc)
-          </label>
-          <textarea
-            id='voucher-terms'
-            value={form.terms}
-            onChange={(e) => setField('terms', e.target.value)}
-            rows={2}
-            style={textareaStyle}
-          />
-        </div>
-
-        <div style={fieldStyle}>
           <label style={labelStyle}>Ảnh voucher (không bắt buộc)</label>
           <div style={uploadRowStyle}>
             <label style={uploadButtonStyle}>
               {isUploading ? 'Đang tải lên…' : 'Tải ảnh lên'}
               <input
                 type='file'
-                accept='image/jpeg,image/png,image/webp,image/gif'
+                accept='image/jpeg,image/png,image/webp'
                 onChange={handleImageFile}
                 disabled={isUploading || createMutation.isPending}
                 style={{ display: 'none' }}
@@ -455,7 +488,7 @@ export function CreateVoucherPage() {
             </p>
           )}
           <p style={{ margin: '6px 0 0', fontSize: 12, color: colors.slate }}>
-            JPEG, PNG, WEBP hoặc GIF tối đa 2&nbsp;MB. Hoặc dán URL ảnh bên dưới.
+            JPEG, PNG hoặc WEBP tối đa 2&nbsp;MB. Hoặc dán URL ảnh bên dưới.
           </p>
           <Input
             label='URL ảnh (không bắt buộc)'

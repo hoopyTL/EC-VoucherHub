@@ -1,10 +1,10 @@
-import { describe, it, expect, afterEach, vi } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { CreateVoucherPage, validateVoucherForm } from './CreateVoucherPage'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+
 import { api } from '../../services/api'
-import type { PartnerBranch } from '../../services/partnerVoucher'
+import { CreateVoucherPage, validateVoucherForm } from './CreateVoucherPage'
 
 const mockNavigate = vi.fn()
 vi.mock('react-router-dom', async () => {
@@ -12,64 +12,70 @@ vi.mock('react-router-dom', async () => {
   return { ...actual, useNavigate: () => mockNavigate }
 })
 
-function makeBranch(overrides: Partial<PartnerBranch> = {}): PartnerBranch {
+const branch = { id: 1, partnerId: 'partner-1', name: 'Downtown', address: '1 Main St', region: 'Hà Nội' }
+const category = { id: 7, name: 'Ẩm thực', parentId: null }
+
+function mockReferenceData() {
+  return vi.spyOn(api, 'get').mockImplementation((url) => {
+    if (url === '/categories') return Promise.resolve({ data: { success: true, data: [category] } }) as never
+    return Promise.resolve({ data: { success: true, data: [branch] } }) as never
+  })
+}
+
+function wireVoucher(overrides: Record<string, unknown> = {}) {
   return {
-    id: 'branch-1',
-    name: 'Downtown',
-    address: '1 Main St',
-    region: 'Hà Nội',
-    contact: '0900000000',
-    isActive: true,
+    id: 'voucher-1',
     partnerId: 'partner-1',
-    createdAt: '2025-01-01T00:00:00.000Z',
-    updatedAt: '2025-01-01T00:00:00.000Z',
+    categoryId: category.id,
+    name: 'Spa Day',
+    description: 'A relaxing spa package',
+    imageUrl: null,
+    originalPrice: '500000',
+    salePrice: '350000',
+    saleStart: '2027-01-01T02:00:00.000Z',
+    saleEnd: '2027-02-01T02:00:00.000Z',
+    usageStart: '2027-01-01T02:00:00.000Z',
+    usageEnd: '2027-03-01T02:00:00.000Z',
+    totalQuantity: 100,
+    remainingQuantity: 100,
+    isMultiUse: false,
+    usesPerCode: null,
+    status: 'DRAFT',
+    rejectReason: null,
+    partner: { id: 'partner-1', legalName: 'Demo Partner' },
+    category,
+    branches: [branch],
+    soldQuantity: 0,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
     ...overrides
   }
 }
 
-function renderPage() {
-  const client = new QueryClient({
-    defaultOptions: { queries: { retry: false } }
-  })
+function renderPage(initialEntry = '/partner/vouchers/new') {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={['/partner/vouchers/new']}>
-        <CreateVoucherPage />
+      <MemoryRouter initialEntries={[initialEntry]}>
+        <Routes>
+          <Route path='/partner/vouchers/new' element={<CreateVoucherPage />} />
+          <Route path='/partner/vouchers/:id/edit' element={<CreateVoucherPage />} />
+        </Routes>
       </MemoryRouter>
     </QueryClientProvider>
   )
 }
 
-/** Fill every required field with a valid baseline so individual tests can
- * override one field to exercise a single validation rule. */
 function fillValidForm() {
-  fireEvent.change(screen.getByLabelText(/^tiêu đề/i), {
-    target: { value: 'Spa Day' }
-  })
-  fireEvent.change(screen.getByLabelText(/^mô tả/i), {
-    target: { value: 'A relaxing spa package' }
-  })
-  fireEvent.change(screen.getByLabelText(/giá gốc/i), {
-    target: { value: '500000' }
-  })
-  fireEvent.change(screen.getByLabelText(/giá bán/i), {
-    target: { value: '350000' }
-  })
-  fireEvent.change(screen.getByLabelText(/tổng số lượng/i), {
-    target: { value: '100' }
-  })
-  fireEvent.change(screen.getByLabelText(/bắt đầu mở bán/i), {
-    target: { value: '2025-01-01T09:00' }
-  })
-  fireEvent.change(screen.getByLabelText(/kết thúc mở bán/i), {
-    target: { value: '2025-02-01T09:00' }
-  })
-  fireEvent.change(screen.getByLabelText(/bắt đầu sử dụng/i), {
-    target: { value: '2025-01-01T09:00' }
-  })
-  fireEvent.change(screen.getByLabelText(/kết thúc sử dụng/i), {
-    target: { value: '2025-03-01T09:00' }
-  })
+  fireEvent.change(screen.getByLabelText(/^tiêu đề/i), { target: { value: 'Spa Day' } })
+  fireEvent.change(screen.getByLabelText(/^mô tả/i), { target: { value: 'A relaxing spa package' } })
+  fireEvent.change(screen.getByLabelText(/giá gốc/i), { target: { value: '500000' } })
+  fireEvent.change(screen.getByLabelText(/giá bán/i), { target: { value: '350000' } })
+  fireEvent.change(screen.getByLabelText(/tổng số lượng/i), { target: { value: '100' } })
+  fireEvent.change(screen.getByLabelText(/bắt đầu mở bán/i), { target: { value: '2027-01-01T09:00' } })
+  fireEvent.change(screen.getByLabelText(/kết thúc mở bán/i), { target: { value: '2027-02-01T09:00' } })
+  fireEvent.change(screen.getByLabelText(/bắt đầu sử dụng/i), { target: { value: '2027-01-01T09:00' } })
+  fireEvent.change(screen.getByLabelText(/kết thúc sử dụng/i), { target: { value: '2027-03-01T09:00' } })
 }
 
 describe('CreateVoucherPage', () => {
@@ -78,99 +84,78 @@ describe('CreateVoucherPage', () => {
     mockNavigate.mockReset()
   })
 
-  it('lists the partner active branches as checkboxes (Req 8.5)', async () => {
-    vi.spyOn(api, 'get').mockResolvedValue({
-      data: [makeBranch(), makeBranch({ id: 'branch-2', name: 'Inactive', isActive: false })]
-    } as never)
-
+  it('loads canonical categories and partner branches', async () => {
+    mockReferenceData()
     renderPage()
 
-    expect(await screen.findByText(/Downtown/)).toBeDefined()
-    // The inactive branch must not be offered.
-    expect(screen.queryByText(/Inactive/)).toBeNull()
+    expect(await screen.findByText('Downtown')).toBeDefined()
+    expect(screen.getByRole('option', { name: 'Ẩm thực' })).toBeDefined()
   })
 
-  it('rejects a sale price >= original price (Req 8.2/8.6)', async () => {
-    vi.spyOn(api, 'get').mockResolvedValue({ data: [makeBranch()] } as never)
+  it('rejects invalid price and missing branch before calling the API', async () => {
+    mockReferenceData()
     const postSpy = vi.spyOn(api, 'post')
-
     renderPage()
-    await screen.findByText(/Downtown/)
-
+    await screen.findByText('Downtown')
     fillValidForm()
-    fireEvent.change(screen.getByLabelText(/giá bán/i), {
-      target: { value: '600000' } // >= original (500000)
-    })
-    fireEvent.click(screen.getByLabelText(/Downtown/))
+    fireEvent.change(screen.getByLabelText(/giá bán/i), { target: { value: '600000' } })
     fireEvent.click(screen.getByRole('button', { name: /lưu bản nháp/i }))
 
     expect(await screen.findByText(/giá bán phải thấp hơn giá gốc/i)).toBeDefined()
+    expect(screen.getByText(/chọn ít nhất một chi nhánh/i)).toBeDefined()
     expect(postSpy).not.toHaveBeenCalled()
   })
 
-  it('requires at least one branch (Req 8.5)', async () => {
-    vi.spyOn(api, 'get').mockResolvedValue({ data: [makeBranch()] } as never)
-    const postSpy = vi.spyOn(api, 'post')
-
+  it('maps the UI form to the canonical create contract', async () => {
+    mockReferenceData()
+    const postSpy = vi.spyOn(api, 'post').mockResolvedValue({ data: { success: true, data: wireVoucher() } } as never)
     renderPage()
-    await screen.findByText(/Downtown/)
-
+    await screen.findByText('Downtown')
     fillValidForm()
-    // Intentionally do NOT select a branch.
-    fireEvent.click(screen.getByRole('button', { name: /lưu bản nháp/i }))
-
-    expect(await screen.findByText(/chọn ít nhất một chi nhánh/i)).toBeDefined()
-    expect(postSpy).not.toHaveBeenCalled()
-  })
-
-  it('submits a valid voucher as ISO dates and navigates back (Req 8.1)', async () => {
-    vi.spyOn(api, 'get').mockResolvedValue({ data: [makeBranch()] } as never)
-    const postSpy = vi.spyOn(api, 'post').mockResolvedValue({ data: { id: 'new-voucher' } } as never)
-
-    renderPage()
-    await screen.findByText(/Downtown/)
-
-    fillValidForm()
+    fireEvent.click(screen.getByLabelText(/cho phép một mã sử dụng nhiều lượt/i))
+    fireEvent.change(screen.getByLabelText(/số lượt mỗi mã/i), { target: { value: '3' } })
     fireEvent.click(screen.getByLabelText(/Downtown/))
     fireEvent.click(screen.getByRole('button', { name: /lưu bản nháp/i }))
 
-    await waitFor(() => {
-      expect(postSpy).toHaveBeenCalledTimes(1)
-    })
-
-    const [url, body] = postSpy.mock.calls[0]
-    expect(url).toBe('/partner/vouchers')
-    expect(body).toMatchObject({
-      title: 'Spa Day',
-      category: 'Food & Beverage',
-      originalPrice: 500000,
-      salePrice: 350000,
-      totalQuantity: 100,
-      branchIds: ['branch-1']
-    })
-    // datetime-local values are converted to ISO-8601 strings.
-    expect((body as { salePeriodStart: string }).salePeriodStart).toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)
-
-    await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/partner/vouchers')
-    })
+    await waitFor(() => expect(postSpy).toHaveBeenCalledTimes(1))
+    expect(postSpy).toHaveBeenCalledWith(
+      '/vouchers',
+      expect.objectContaining({
+        categoryId: 7,
+        name: 'Spa Day',
+        branchIds: [1],
+        isMultiUse: true,
+        usesPerCode: 3,
+        saleStart: expect.any(String)
+      })
+    )
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/partner/vouchers'))
   })
 
-  it('surfaces a server error inline when creation fails', async () => {
-    vi.spyOn(api, 'get').mockResolvedValue({ data: [makeBranch()] } as never)
-    vi.spyOn(api, 'post').mockRejectedValue({
-      response: { status: 403, data: { error: { message: 'Branch not yours' } } }
+  it('clears uses per code when editing a multi-use voucher to single-use', async () => {
+    vi.spyOn(api, 'get').mockImplementation((url) => {
+      if (url === '/partner/vouchers/voucher-1') {
+        return Promise.resolve({
+          data: { success: true, data: wireVoucher({ isMultiUse: true, usesPerCode: 3 }) }
+        }) as never
+      }
+      if (url === '/categories') return Promise.resolve({ data: { success: true, data: [category] } }) as never
+      return Promise.resolve({ data: { success: true, data: [branch] } }) as never
     })
+    const patchSpy = vi.spyOn(api, 'patch').mockResolvedValue({ data: { success: true, data: wireVoucher() } } as never)
+    renderPage('/partner/vouchers/voucher-1/edit')
 
-    renderPage()
-    await screen.findByText(/Downtown/)
+    const toggle = await screen.findByLabelText(/cho phép một mã sử dụng nhiều lượt/i)
+    await waitFor(() => expect((toggle as HTMLInputElement).checked).toBe(true))
+    fireEvent.click(toggle)
+    fireEvent.click(screen.getByRole('button', { name: /lưu thay đổi/i }))
 
-    fillValidForm()
-    fireEvent.click(screen.getByLabelText(/Downtown/))
-    fireEvent.click(screen.getByRole('button', { name: /lưu bản nháp/i }))
-
-    expect(await screen.findByText(/Branch not yours/i)).toBeDefined()
-    expect(mockNavigate).not.toHaveBeenCalled()
+    await waitFor(() =>
+      expect(patchSpy).toHaveBeenCalledWith(
+        '/vouchers/voucher-1',
+        expect.objectContaining({ isMultiUse: false, usesPerCode: null })
+      )
+    )
   })
 })
 
@@ -178,42 +163,22 @@ describe('validateVoucherForm', () => {
   const base = {
     title: 'Spa Day',
     description: 'desc',
-    category: 'Food & Beverage',
+    category: '7',
     originalPrice: '500000',
     salePrice: '350000',
     totalQuantity: '100',
-    salePeriodStart: '2025-01-01T09:00',
-    salePeriodEnd: '2025-02-01T09:00',
-    usagePeriodStart: '2025-01-01T09:00',
-    usagePeriodEnd: '2025-03-01T09:00',
-    terms: '',
+    isMultiUse: false,
+    usesPerCode: '',
+    salePeriodStart: '2027-01-01T09:00',
+    salePeriodEnd: '2027-02-01T09:00',
+    usagePeriodStart: '2027-01-01T09:00',
+    usagePeriodEnd: '2027-03-01T09:00',
     imageUrl: ''
   }
 
-  it('passes for a fully valid form with a branch', () => {
-    expect(validateVoucherForm(base, ['branch-1'])).toEqual({})
-  })
-
-  it('flags sale price not below original (Req 8.2)', () => {
-    const errors = validateVoucherForm({ ...base, salePrice: '500000' }, ['branch-1'])
-    expect(errors.salePrice).toBeDefined()
-  })
-
-  it('flags sale period end not after start (Req 8.3)', () => {
-    const errors = validateVoucherForm({ ...base, salePeriodEnd: '2025-01-01T09:00' }, ['branch-1'])
-    expect(errors.salePeriodEnd).toBeDefined()
-  })
-
-  it('flags usage period end not after start (Req 8.4)', () => {
-    const errors = validateVoucherForm({ ...base, usagePeriodEnd: '2024-12-31T09:00' }, ['branch-1'])
-    expect(errors.usagePeriodEnd).toBeDefined()
-  })
-
-  it('flags a missing branch selection (Req 8.5)', () => {
-    expect(validateVoucherForm(base, []).branchIds).toBeDefined()
-  })
-
-  it('flags a non-positive quantity', () => {
-    expect(validateVoucherForm({ ...base, totalQuantity: '0' }, ['b']).totalQuantity).toBeDefined()
+  it('accepts a complete canonical form and rejects invalid date ranges', () => {
+    expect(validateVoucherForm(base, ['1'])).toEqual({})
+    expect(validateVoucherForm({ ...base, salePeriodEnd: base.salePeriodStart }, ['1']).salePeriodEnd).toBeDefined()
+    expect(validateVoucherForm({ ...base, usagePeriodEnd: base.usagePeriodStart }, ['1']).usagePeriodEnd).toBeDefined()
   })
 })

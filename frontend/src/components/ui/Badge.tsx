@@ -48,16 +48,19 @@ const VARIANT_COLORS: Record<BadgeVariant, VariantColors> = {
 export function variantForStatus(status: string): BadgeVariant {
   switch (status.toUpperCase()) {
     case 'APPROVED':
+    case 'ON_SALE':
     case 'ACTIVE':
     case 'PAID':
     case 'USED':
       return 'success'
     case 'PENDING_APPROVAL':
+    case 'PENDING_REVIEW':
     case 'PENDING_PAYMENT':
     case 'DRAFT':
       return 'warning'
     case 'REJECTED':
     case 'CANCELLED':
+    case 'DISCONTINUED':
     case 'LOCKED':
     case 'EXPIRED':
       return 'danger'

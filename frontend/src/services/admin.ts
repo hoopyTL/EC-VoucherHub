@@ -17,6 +17,7 @@
  * _Requirements: 5.1, 5.2, 5.3, 5.4, 6.1, 6.2, 6.3, 9.2, 9.3, 9.4_
  */
 import type { AccountStatus, UserRole } from '@ui-contracts'
+import type { ListVouchersDto, VoucherDto } from '@voucher/shared'
 
 import { api } from './api'
 import type {
@@ -172,16 +173,16 @@ export async function rejectPartner(id: string, reason: string): Promise<Partner
 export async function listPendingVouchers(
   params: { page?: number; limit?: number } = {}
 ): Promise<ListPendingVouchersResult> {
-  const { data } = await api.get<ListPendingVouchersResult>('/admin/vouchers/pending', {
-    params: { page: params.page, limit: params.limit }
+  const { data } = await api.get<ApiEnvelope<ListVouchersDto>>('/admin/vouchers', {
+    params: { page: params.page, limit: params.limit, status: 'PENDING_REVIEW' }
   })
-  return data
+  return { ...data.data, vouchers: data.data.vouchers.map(toVoucherApprovalView) }
 }
 
 /** Approve a pending voucher submission (Req 9.3). */
 export async function approveVoucher(id: string): Promise<VoucherApprovalView> {
-  const { data } = await api.patch<VoucherApprovalView>(`/admin/vouchers/${id}/approve`)
-  return data
+  const { data } = await api.patch<ApiEnvelope<VoucherDto>>(`/admin/vouchers/${id}/approval`, { action: 'approve' })
+  return toVoucherApprovalView(data.data)
 }
 
 /**
@@ -189,8 +190,35 @@ export async function approveVoucher(id: string): Promise<VoucherApprovalView> {
  * backend rejects an empty reason with a 400.
  */
 export async function rejectVoucher(id: string, reason: string): Promise<VoucherApprovalView> {
-  const { data } = await api.patch<VoucherApprovalView>(`/admin/vouchers/${id}/reject`, { reason })
-  return data
+  const { data } = await api.patch<ApiEnvelope<VoucherDto>>(`/admin/vouchers/${id}/approval`, {
+    action: 'reject',
+    reason
+  })
+  return toVoucherApprovalView(data.data)
+}
+
+function toVoucherApprovalView(voucher: VoucherDto): VoucherApprovalView {
+  return {
+    id: voucher.id,
+    title: voucher.name,
+    description: voucher.description,
+    category: voucher.category?.name ?? 'Chưa phân loại',
+    originalPrice: voucher.originalPrice,
+    salePrice: voucher.salePrice,
+    totalQuantity: voucher.totalQuantity,
+    soldQuantity: voucher.soldQuantity,
+    salePeriodStart: voucher.saleStart,
+    salePeriodEnd: voucher.saleEnd,
+    usagePeriodStart: voucher.usageStart,
+    usagePeriodEnd: voucher.usageEnd,
+    terms: null,
+    status: voucher.status,
+    rejectionReason: voucher.rejectReason,
+    partnerId: voucher.partnerId,
+    createdAt: voucher.createdAt,
+    updatedAt: voucher.updatedAt,
+    partner: { businessName: voucher.partner.legalName }
+  }
 }
 
 /** Shape of the structured error body returned by the backend error handler. */

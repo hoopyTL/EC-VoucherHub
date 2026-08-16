@@ -75,10 +75,16 @@ Client luôn kiểm tra `success` trước khi đọc `data`. Không bao giờ t
 | GET | `/vouchers/:id` | Chi tiết voucher | công khai | FR-05 |
 | POST | `/vouchers` | Tạo voucher (`nhap`) | Đối tác | FR-12 |
 | PATCH | `/vouchers/:id` | Sửa voucher (`nhap`) | Đối tác | FR-12 |
+| POST | `/vouchers/images` | Upload ảnh multipart field `image` | Đối tác | FR-12 |
 | GET | `/partner/vouchers` | Voucher của đối tác + thống kê | Đối tác | FR-12 |
+| GET | `/partner/vouchers/:id` | Chi tiết voucher thuộc đối tác | Đối tác | FR-12 |
 | POST | `/vouchers/:id/submission` | Gửi duyệt → `cho_duyet` | Đối tác | FR-13 |
+| POST | `/vouchers/:id/draft` | Đưa voucher bị từ chối về nháp | Đối tác | FR-13 |
+| PATCH | `/vouchers/:id/status` | Tạm dừng/mở bán lại | Đối tác | FR-13 |
+| GET | `/admin/vouchers` | Danh sách, lọc theo trạng thái | Admin | FR-19 |
 | PATCH | `/admin/vouchers/:id/approval` | Duyệt/từ chối | Admin | FR-19 |
 | PATCH | `/admin/vouchers/:id/status` | Công bố/tạm ngưng/ngừng bán | Admin | FR-19 |
+| GET | `/categories` | Danh mục dùng khi tạo voucher | công khai | FR-12 |
 
 ### 2.3 Cart & Orders
 
@@ -216,9 +222,17 @@ Không kết quả → `items: []` + 200 (không phải 404).
 
 ### 3.8 `PATCH /admin/vouchers/:id/status` (FR-19)
 
-**Request** `{ "action": "publish" }` (`publish`/`suspend`/`unpublish`).
+**Request** `{ "action": "publish" }` (`publish`/`suspend`/`resume`/`discontinue`).
 **200 OK** `{ success:true, data:{ id, status:"dang_ban" } }`.
-**Lỗi**: công bố khi không phải `da_duyet` → 409 (`chỉ công bố voucher đã duyệt`).
+**Lỗi**: công bố khi không phải `da_duyet` → 422 (`chuyển trạng thái voucher không hợp lệ`).
+
+### 3.10 Contract quản lý voucher của Đối tác (FR-12, FR-13)
+
+Request tạo/sửa dùng field canonical: `name`, `categoryId`, `saleStart`, `saleEnd`, `usageStart`, `usageEnd`, `branchIds: number[]`. Response luôn nằm trong `{ success: true, data }`; tiền là chuỗi Decimal, ngày là ISO-8601, và có `partner`, `category`, `branches`, `soldQuantity` cùng các bộ đếm mã.
+
+Máy trạng thái: `DRAFT -> PENDING_REVIEW -> APPROVED|REJECTED`, `REJECTED -> DRAFT`, `APPROVED -> ON_SALE`, `ON_SALE <-> PAUSED`, và `ON_SALE|PAUSED -> DISCONTINUED`. Partner chỉ pause/resume voucher thuộc mình; Admin review/publish/suspend/discontinue. Transition sai trả `422`, thay đổi đồng thời trả `409`, sai ownership trả `403`.
+
+Upload ảnh dùng `multipart/form-data`, field `image`, tối đa 2 MB và chỉ nhận JPEG/PNG/WebP. Server kiểm tra MIME cùng header/trailer cấu trúc, sinh tên UUID, giới hạn 20 upload/15 phút và quota 100 MB/Partner, rồi trả `{ "url": "/uploads/vouchers/<file>" }`.
 
 ### 3.9 `POST /partners` và duyệt đối tác (FR-11, FR-18)
 
@@ -260,8 +274,8 @@ Branch dùng ID số. Partner chỉ được sửa/xoá branch thuộc chính m�
 | Chưa xác thực | 401 | sai thông tin đăng nhập, thiếu token |
 | Không đủ quyền / ngoài phạm vi | 403 | tài khoản bị khoá, mã đối tác khác |
 | Không tồn tại | 404 | mã voucher không tồn tại |
-| Xung đột trạng thái / trùng | 409 | email trùng, mã đã dùng, chuyển trạng thái sai |
-| Vi phạm quy tắc nghiệp vụ | 422 | giỏ rỗng, vượt tồn kho, giá bán ≥ giá gốc |
+| Xung đột dữ liệu / cập nhật đồng thời | 409 | email trùng, mã đã dùng, trạng thái vừa bị request khác đổi |
+| Vi phạm quy tắc nghiệp vụ | 422 | giỏ rỗng, vượt tồn kho, giá bán ≥ giá gốc, chuyển trạng thái sai |
 | Lỗi hệ thống | 500 | lỗi không lường, rollback |
 
 ## 5. Cross-cutting
