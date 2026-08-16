@@ -33,14 +33,14 @@ Mỗi FR phủ tối thiểu 3 trường hợp: **happy** (đường thành côn
 | FR-08 Thanh toán & phát hành | TX: trừ kho + phát mã | thanh toán fail → giữ `cho_thanh_toan` | đụng độ mã → retry | TASK-010 | `payment/issue.test.ts` |
 | FR-09 Nhận mã & lịch sử | xem mã đơn đã trả | — | đơn khách khác → từ chối | TASK-012 | `order/codes.test.ts` |
 | ~~FR-10 Đánh giá~~ | ~~đã mua → gửi sao~~ | ~~chưa mua → từ chối~~ | ~~điểm ngoài [1,5] → reject~~ | ~~TASK-014 [OUT]~~ | ~~review/review.test.ts~~ |
-| FR-11 Hồ sơ Đối tác | đăng ký → `cho_duyet` | thiếu pháp lý → từ chối | CRUD chi nhánh | TASK-006 | `partner/profile.test.ts` |
+| FR-11 Hồ sơ Đối tác | đăng ký → `PENDING` | thiếu pháp lý/trùng định danh → từ chối | CRUD + ownership chi nhánh | TASK-006 | `modules/partner/partner.test.ts` |
 | FR-12 Tạo/quản lý voucher | tạo → `nhap` | giá bán ≥ gốc → từ chối | thiếu thời gian → từ chối | TASK-007 | `voucher/product.test.ts` |
 | FR-13 Gửi duyệt voucher | `nhap` → `cho_duyet` | giá/thời gian sai → từ chối | re-submit: `tu_choi` → `nhap` → `cho_duyet` | TASK-007 | `voucher/submit.test.ts` |
 | FR-14 Kiểm tra mã | hiển thị trạng thái mã | mã không tồn tại → invalid | mã đối tác khác → ngoài phạm vi | TASK-013 | `redeem/validate.test.ts` |
 | FR-15 Xác nhận sử dụng | mã hợp lệ → `da_su_dung` + log | mã đã dùng → từ chối | multi-use giảm lượt | TASK-013 | `redeem/redeem.test.ts` |
 | FR-16 Báo cáo Đối tác | tổng hợp trong phạm vi | — | đối tác khác → không thấy | TASK-016 | `report/partner.test.ts` |
 | FR-17 Quản lý người dùng | tra cứu/khóa/đổi vai trò | non-admin → 403 | mở khóa idempotent | TASK-004 | `admin/users.test.ts` |
-| FR-18 Quản lý Đối tác | duyệt → `da_duyet` | — | khóa → dừng công bố voucher | TASK-006 | `admin/partners.test.ts` |
+| FR-18 Quản lý Đối tác | duyệt → `APPROVED` | non-admin → 403, review lặp → 409 | khóa chặn token cũ | TASK-006 | `modules/partner/partner.test.ts` |
 | FR-19 Duyệt voucher | duyệt/công bố | công bố khi chưa `da_duyet` → từ chối | tạm ngưng → ẩn khỏi list | TASK-007 | `admin/voucher-approve.test.ts` |
 | FR-20 Quản lý đơn | tra cứu/hủy/hoàn tiền | hủy đơn đã trả → từ chối | hoàn tiền → mã `bi_huy` + hoàn kho | TASK-015 | `admin/orders.test.ts` |
 | ~~FR-21 Quản lý nội dung~~ | ~~CRUD nội dung~~ | ~~non-admin → 403~~ | ~~xóa mục không tồn tại~~ | ~~TASK-017 [OUT]~~ | ~~admin/content.test.ts~~ |
@@ -86,7 +86,7 @@ Mỗi FLOW trong `docs/02-srs` → một test Playwright tag `@FLOW-XXX`, chạy
 | FLOW-002 | Tìm kiếm → chi tiết | `e2e/browse.spec.ts` | `@FLOW-002` |
 | FLOW-003 | Giỏ → đơn → thanh toán → nhận mã | `e2e/purchase.spec.ts` | `@FLOW-003` |
 | ~~FLOW-004~~ | ~~Đánh giá voucher~~ | ~~e2e/review.spec.ts~~ | ~~@FLOW-004 [OUT]~~ |
-| FLOW-005 | Đăng ký Đối tác → duyệt | `e2e/partner-onboard.spec.ts` | `@FLOW-005` |
+| FLOW-005 | Đăng ký Đối tác → duyệt → CRUD chi nhánh | `e2e/task006-partner-onboarding.spec.ts` | `@FLOW-005` |
 | FLOW-006 | Tạo → gửi duyệt → duyệt → công bố | `e2e/voucher-lifecycle.spec.ts` | `@FLOW-006` |
 | FLOW-007 | Kiểm tra → xác nhận sử dụng | `e2e/redeem.spec.ts` | `@FLOW-007` |
 | FLOW-008 | Báo cáo Đối tác | `e2e/partner-report.spec.ts` | `@FLOW-008` |
@@ -106,6 +106,24 @@ Chạy một flow: `npm run test:e2e -- --grep @FLOW-003`.
 - Khi lỗi, Playwright giữ screenshot/video; CI retry giữ trace và upload `playwright-report/` cùng `test-results/`.
 
 Không chạy E2E nếu `backend/.env.test` không trỏ chính xác tới PostgreSQL local `voucherhub_test`. Runner chủ động từ chối database khác trước thao tác reset.
+
+### TASK-006 automation hiện có
+
+- `backend/src/modules/partner/partner.test.ts`: 8 integration tests qua Express + Prisma test DB, không mock database. Phủ validation trước ghi DB, transaction đăng ký, duplicate rollback, pending login, approval/rejection, RBAC, branch ownership/CRUD và lock/unlock áp dụng ngay lên token cũ.
+- `frontend/src/pages/public/RegisterPartnerPage.test.tsx`: kiểm tra form và payload đăng ký canonical (`legalName`, `taxCode`, `representative`, branches).
+- `frontend/src/pages/admin/PartnerApprovalsPage.test.tsx`: kiểm tra envelope, danh sách pending và endpoint approval dùng `{ action, reason? }`.
+- `frontend/src/pages/partner/BranchesPage.test.tsx`: kiểm tra GET/POST/PATCH/DELETE, validation và refetch cache.
+- `e2e/task006-partner-onboarding.spec.ts`: FLOW-005 chạy trình duyệt thật từ đăng ký → login bị chặn khi pending → Admin duyệt → Partner đăng nhập → thêm/sửa/xoá branch.
+- Runner tổng quát là `e2e/run-e2e.ts`; trước mỗi suite, runner xác minh đúng database `voucherhub_test`, migrate, reset và seed fixture có Partner `APPROVED` hợp lệ.
+- Kết quả backend coverage ngày 2026-08-16 sau TASK-006: 11 test files, 110 tests qua; tổng coverage 91,86% statements, 79,91% branches, 95,04% functions và 93,75% lines. Riêng `modules/partner` đạt 91,79% statements, 72% branches, 97,14% functions và 96% lines.
+
+Lệnh kiểm tra riêng TASK-006:
+
+```bash
+npm test --workspace=backend -- --run src/modules/partner/partner.test.ts
+npm test --workspace=frontend -- --run src/pages/public/RegisterPartnerPage.test.tsx src/pages/admin/PartnerApprovalsPage.test.tsx src/pages/partner/BranchesPage.test.tsx
+npm run test:e2e -- --grep @FLOW-005
+```
 
 ## 5. Integration test (luồng lõi)
 
