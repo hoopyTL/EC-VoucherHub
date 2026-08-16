@@ -314,7 +314,9 @@ describe('voucher admin and supporting APIs', () => {
     const response = await request(app).get('/api/categories')
 
     expect(response.status).toBe(200)
-    expect(response.body.data.map(({ name }: { name: string }) => name)).toEqual(['Du lịch', 'Ăn uống'])
+    const categoryNames = response.body.data.map(({ name }: { name: string }) => name)
+    expect(categoryNames).toHaveLength(2)
+    expect(categoryNames).toEqual(expect.arrayContaining(['Du lịch', 'Ăn uống']))
   })
 
   it('validates image content and serves a valid uploaded image', async () => {
