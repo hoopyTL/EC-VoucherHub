@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { RoleName } from '@voucher/shared'
+import { hashPassword } from '../src/utils/password'
 
 const prisma = new PrismaClient()
 
@@ -44,8 +45,7 @@ async function main() {
 
   // 4. Seed Users (sample accounts)
   console.log('Creating users...')
-  // Sample password hash for '12345678'
-  const passwordHash = '$2b$10$EPVma1Sp2.3m/zJ1S.3oGe7rM4zK18/O5n7qg.ZqF68e1QvYpMyea'
+  const passwordHash = await hashPassword('12345678')
 
   // System admin account
   await prisma.user.create({
