@@ -91,6 +91,7 @@ model User {
   email        String?    @unique @db.VarChar(255)
   phone        String?    @unique @db.VarChar(20)
   passwordHash String     @map("password_hash") @db.VarChar(255)
+  tokenVersion Int        @default(0) @map("token_version")
   roleId       Int        @map("role_id")
   status       UserStatus @default(ACTIVE)
   fullName     String     @map("full_name") @db.VarChar(255)
