@@ -34,14 +34,14 @@ Mỗi FR phủ tối thiểu 3 trường hợp: **happy** (đường thành côn
 | FR-09 Nhận mã & lịch sử | xem mã đơn đã trả | — | đơn khách khác → từ chối | TASK-012 | `order/codes.test.ts` |
 | ~~FR-10 Đánh giá~~ | ~~đã mua → gửi sao~~ | ~~chưa mua → từ chối~~ | ~~điểm ngoài [1,5] → reject~~ | ~~TASK-014 [OUT]~~ | ~~review/review.test.ts~~ |
 | FR-11 Hồ sơ Đối tác | đăng ký → `PENDING` | thiếu pháp lý/trùng định danh → từ chối | CRUD + ownership chi nhánh | TASK-006 | `modules/partner/partner.test.ts` |
-| FR-12 Tạo/quản lý voucher | tạo → `nhap` | giá bán ≥ gốc → từ chối | thiếu thời gian → từ chối | TASK-007 | `voucher/product.test.ts` |
-| FR-13 Gửi duyệt voucher | `nhap` → `cho_duyet` | giá/thời gian sai → từ chối | re-submit: `tu_choi` → `nhap` → `cho_duyet` | TASK-007 | `voucher/submit.test.ts` |
+| FR-12 Tạo/quản lý voucher | tạo → `nhap` | giá bán ≥ gốc → từ chối | branch ngoài ownership → rollback | TASK-007 | `modules/voucher/voucher.test.ts` |
+| FR-13 Gửi duyệt voucher | `nhap` → `cho_duyet` | transition sai → 422 | re-submit: `tu_choi` → `nhap` → `cho_duyet` | TASK-007 | `modules/voucher/voucher.test.ts` |
 | FR-14 Kiểm tra mã | hiển thị trạng thái mã | mã không tồn tại → invalid | mã đối tác khác → ngoài phạm vi | TASK-013 | `redeem/validate.test.ts` |
 | FR-15 Xác nhận sử dụng | mã hợp lệ → `da_su_dung` + log | mã đã dùng → từ chối | multi-use giảm lượt | TASK-013 | `redeem/redeem.test.ts` |
 | FR-16 Báo cáo Đối tác | tổng hợp trong phạm vi | — | đối tác khác → không thấy | TASK-016 | `report/partner.test.ts` |
 | FR-17 Quản lý người dùng | tra cứu/khóa/đổi vai trò | non-admin → 403 | mở khóa idempotent | TASK-004 | `admin/users.test.ts` |
 | FR-18 Quản lý Đối tác | duyệt → `APPROVED` | non-admin → 403, review lặp → 409 | khóa chặn token cũ | TASK-006 | `modules/partner/partner.test.ts` |
-| FR-19 Duyệt voucher | duyệt/công bố | công bố khi chưa `da_duyet` → từ chối | tạm ngưng → ẩn khỏi list | TASK-007 | `admin/voucher-approve.test.ts` |
+| FR-19 Duyệt voucher | duyệt/công bố | công bố khi chưa `da_duyet` → từ chối | tạm ngưng/mở lại/ngừng bán | TASK-007 | `modules/voucher/voucher.test.ts` |
 | FR-20 Quản lý đơn | tra cứu/hủy/hoàn tiền | hủy đơn đã trả → từ chối | hoàn tiền → mã `bi_huy` + hoàn kho | TASK-015 | `admin/orders.test.ts` |
 | ~~FR-21 Quản lý nội dung~~ | ~~CRUD nội dung~~ | ~~non-admin → 403~~ | ~~xóa mục không tồn tại~~ | ~~TASK-017 [OUT]~~ | ~~admin/content.test.ts~~ |
 | FR-22 Dashboard | tổng hợp toàn hệ thống | non-admin → 403 | hệ thống rỗng → số 0 | TASK-016 | `admin/dashboard.test.ts` |
@@ -123,6 +123,21 @@ Lệnh kiểm tra riêng TASK-006:
 npm test --workspace=backend -- --run src/modules/partner/partner.test.ts
 npm test --workspace=frontend -- --run src/pages/public/RegisterPartnerPage.test.tsx src/pages/admin/PartnerApprovalsPage.test.tsx src/pages/partner/BranchesPage.test.tsx
 npm run test:e2e -- --grep @FLOW-005
+```
+
+### TASK-007 automation hiện có
+
+- `backend/src/modules/voucher/voucher.test.ts`: 12 integration tests qua Express + PostgreSQL thật; phủ partner approval/status, validation, transaction rollback, category/branch ownership, CRUD draft, state machine, Admin RBAC/review/publish, pagination/filter, race giữa khóa Partner và publish, magic bytes cùng rate limit upload.
+- Frontend tests khóa mapper field/envelope, category/branch ID boundary, endpoint canonical, action theo trạng thái và dashboard `ON_SALE`.
+- `e2e/task007-voucher-product.spec.ts`: FLOW-006 chạy Chromium thật từ Partner tạo/gửi duyệt, Admin duyệt/công bố, đến Partner tạm dừng.
+- Kết quả ngày 2026-08-16: backend 12 files/126 tests pass, coverage 89,42% statements / 76,08% branches / 95,72% functions / 92,43% lines; frontend 33 files/228 tests pass; lint, typecheck, build và toàn bộ E2E 7/7 đều pass.
+- Audit riêng backend không có lỗ hổng. Audit toàn monorepo còn 8 cảnh báo kế thừa từ toolchain frontend Vite/Vitest/React Router; cách sửa tự động yêu cầu nâng major và được tách khỏi TASK-007 để tránh breaking change ngoài phạm vi.
+- TASK-008 public search/detail không nằm trong coverage hoàn thành của TASK-007.
+
+```bash
+npm test --workspace=backend -- voucher.test.ts
+npm test --workspace=frontend -- CreateVoucherPage.test.tsx VouchersPage.test.tsx VoucherApprovalsPage.test.tsx
+npm run test:e2e -- --grep @FLOW-006
 ```
 
 ## 5. Integration test (luồng lõi)

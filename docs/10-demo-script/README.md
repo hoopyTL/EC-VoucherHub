@@ -91,9 +91,16 @@ npm run dev
 | 4 | Đối tác sửa lại | Voucher → `nhap` (về nháp, sửa thoải mái, lưu nhiều lần) |
 | 5 | Gửi duyệt lại | Voucher → `cho_duyet` |
 | 6 | Admin duyệt | Voucher → `da_duyet` |
-| 7 | Admin công bố | Voucher → `dang_ban`, xuất hiện trong tìm kiếm |
+| 7 | Admin công bố | Voucher → `dang_ban`; public search/detail sẽ được nối ở TASK-008 |
+| 8 | Đối tác mở danh sách và bấm **Tạm dừng** | Voucher `dang_ban` → `tam_ngung`; có thể **Mở bán lại** |
 
 > **Talking point**: Voucher bị từ chối trở về trạng thái nháp (không gửi duyệt lại trực tiếp), giúp đối tác sửa kỹ trước khi re-submit. Admin cũng có thể thu hồi duyệt (`da_duyet` → `tu_choi`) nếu phát hiện sai sót trước khi công bố.
+
+Chạy automation đúng scenario này trước demo:
+
+```bash
+npm run test:e2e -- --grep @FLOW-006
+```
 
 ### Scenario 6 — Kiểm tra → xác nhận sử dụng voucher `@FLOW-007`
 
