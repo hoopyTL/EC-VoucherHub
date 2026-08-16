@@ -1,5 +1,7 @@
 import { Router } from 'express'
-import { requireAuth, requireRole } from '../../middleware/auth'
+import { authenticate } from '~/middlewares/authenticate'
+import { authorize } from '~/middlewares/authorize'
+import { RoleName } from '@voucher/shared'
 import { validate } from '../../middleware/validate'
 import { addCartItemSchema, updateCartItemSchema } from '@voucher/shared'
 import * as cartController from './cart.controller'
@@ -7,7 +9,7 @@ import * as cartController from './cart.controller'
 const router = Router()
 
 // Tất cả route cart yêu cầu đăng nhập + vai trò Khách hàng
-router.use(requireAuth, requireRole('KHACH_HANG'))
+router.use(authenticate, authorize(RoleName.CUSTOMER))
 
 router.get('/', cartController.getCart)
 router.post('/items', validate(addCartItemSchema), cartController.addItem)

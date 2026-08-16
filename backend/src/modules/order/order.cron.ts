@@ -1,9 +1,13 @@
 import prisma from '../../configs/prisma'
 
 /**
- * Bắt đầu background worker dọn dẹp các đơn hàng quá hạn (chạy mỗi 1 phút).
- * Nếu tìm thấy đơn hàng `PENDING_PAYMENT` có `expiresAt < now()`,
- * hệ thống sẽ chuyển trạng thái sang `CANCELLED` và hoàn lại tồn kho (+ quantity).
+ * Background worker dọn dẹp đơn hàng quá hạn (chạy mỗi 1 phút).
+ *
+ * Chính sách: đơn PENDING_PAYMENT chưa có tiền → không phải đơn thật.
+ * Khi hết hạn:
+ *   1. Hoàn tồn kho (increment remainingQuantity)
+ *   2. Trả items về giỏ hàng khách (tạo lại CartItem)
+ *   3. Xóa OrderItems + Order khỏi DB (không lưu rác)
  */
 export const startOrderCleanupCron = () => {
   const ONE_MINUTE = 60 * 1000
@@ -12,52 +16,100 @@ export const startOrderCleanupCron = () => {
     try {
       const now = new Date()
 
-      // 1. Tìm các đơn bị quá hạn
+      // 1. Tìm các đơn PENDING_PAYMENT đã quá hạn
       const expiredOrders = await prisma.order.findMany({
         where: {
           status: 'PENDING_PAYMENT',
-          expiresAt: {
-            lt: now
-          }
+          expiresAt: { lt: now },
         },
         include: {
-          orderItems: true
-        }
+          orderItems: {
+            include: {
+              voucherProduct: {
+                select: { id: true, salePrice: true },
+              },
+            },
+          },
+        },
       })
 
-      if (expiredOrders.length === 0) {
-        return
-      }
+      if (expiredOrders.length === 0) return
 
-      console.log(`[OrderCron] Found ${expiredOrders.length} expired orders. Canceling...`)
+      console.log(
+        `[OrderCron] Found ${expiredOrders.length} expired order(s). Cleaning up...`,
+      )
 
-      // 2. Hủy từng đơn và hoàn tồn kho trong transaction độc lập
+      // 2. Xử lý từng đơn trong transaction riêng
       for (const order of expiredOrders) {
         try {
           await prisma.$transaction(async (tx) => {
-            // Đổi trạng thái đơn hàng
-            await tx.order.update({
-              where: { id: order.id },
-              data: {
-                status: 'CANCELLED'
-              }
-            })
-
-            // Hoàn lại tồn kho cho từng sản phẩm
+            // 2a. Hoàn tồn kho
             for (const item of order.orderItems) {
               await tx.voucherProduct.update({
                 where: { id: item.voucherProductId },
                 data: {
-                  remainingQuantity: {
-                    increment: item.quantity
-                  }
-                }
+                  remainingQuantity: { increment: item.quantity },
+                },
               })
             }
+
+            // 2b. Trả items về giỏ hàng
+            // Tìm hoặc tạo cart cho khách
+            let cart = await tx.cart.findUnique({
+              where: { customerId: order.customerId },
+            })
+            if (!cart) {
+              cart = await tx.cart.create({
+                data: { customerId: order.customerId },
+              })
+            }
+
+            // Thêm lại từng item vào giỏ (nếu đã có thì cộng dồn quantity)
+            for (const item of order.orderItems) {
+              const existingCartItem = await tx.cartItem.findUnique({
+                where: {
+                  cartId_voucherProductId: {
+                    cartId: cart.id,
+                    voucherProductId: item.voucherProductId,
+                  },
+                },
+              })
+
+              if (existingCartItem) {
+                await tx.cartItem.update({
+                  where: { id: existingCartItem.id },
+                  data: {
+                    quantity: existingCartItem.quantity + item.quantity,
+                  },
+                })
+              } else {
+                await tx.cartItem.create({
+                  data: {
+                    cartId: cart.id,
+                    voucherProductId: item.voucherProductId,
+                    quantity: item.quantity,
+                  },
+                })
+              }
+            }
+
+            // 2c. Xóa OrderItems rồi xóa Order (không lưu đơn rác)
+            await tx.orderItem.deleteMany({
+              where: { orderId: order.id },
+            })
+            await tx.order.delete({
+              where: { id: order.id },
+            })
           })
-          console.log(`[OrderCron] Cancelled order ${order.id} successfully.`)
+
+          console.log(
+            `[OrderCron] Expired order ${order.id} → items restored to cart, order deleted.`,
+          )
         } catch (txError) {
-          console.error(`[OrderCron] Failed to cancel order ${order.id}:`, txError)
+          console.error(
+            `[OrderCron] Failed to clean up order ${order.id}:`,
+            txError,
+          )
         }
       }
     } catch (error) {
@@ -65,5 +117,5 @@ export const startOrderCleanupCron = () => {
     }
   }, ONE_MINUTE)
 
-  console.log('[OrderCron] Order cleanup cron job started.')
+  console.log('[OrderCron] Order cleanup cron job started (interval: 1 min).')
 }

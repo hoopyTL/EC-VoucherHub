@@ -7,7 +7,7 @@ import * as cartService from './cart.service'
  * GET /api/cart — Xem giỏ hàng + tạm tính
  */
 export const getCart = asyncHandler(async (req: Request, res: Response) => {
-  const cart = await cartService.getCart(req.user!.id)
+  const cart = await cartService.getCart(req.user!.sub)
   successResponse(res, cart)
 })
 
@@ -15,7 +15,7 @@ export const getCart = asyncHandler(async (req: Request, res: Response) => {
  * POST /api/cart/items — Thêm mục vào giỏ
  */
 export const addItem = asyncHandler(async (req: Request, res: Response) => {
-  const cart = await cartService.addItem(req.user!.id, req.body)
+  const cart = await cartService.addItem(req.user!.sub, req.body)
   successResponse(res, cart)
 })
 
@@ -24,7 +24,7 @@ export const addItem = asyncHandler(async (req: Request, res: Response) => {
  */
 export const updateItem = asyncHandler(async (req: Request, res: Response) => {
   const itemId = Number(req.params.itemId)
-  const cart = await cartService.updateItem(req.user!.id, itemId, req.body)
+  const cart = await cartService.updateItem(req.user!.sub, itemId, req.body)
   successResponse(res, cart)
 })
 
@@ -33,6 +33,6 @@ export const updateItem = asyncHandler(async (req: Request, res: Response) => {
  */
 export const removeItem = asyncHandler(async (req: Request, res: Response) => {
   const itemId = Number(req.params.itemId)
-  await cartService.removeItem(req.user!.id, itemId)
-  noContentResponse(res)
+  const cart = await cartService.removeItem(req.user!.sub, itemId)
+  successResponse(res, cart)
 })

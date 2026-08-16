@@ -77,13 +77,13 @@ const toOrderResponse = (
     paidAt: order.paidAt?.toISOString() ?? null,
     createdAt: order.createdAt.toISOString(),
     updatedAt: order.updatedAt.toISOString(),
-    codes: order.status === 'PAID' && order.issuedVoucherCodes 
+    codes: order.status === 'PAID' && order.issuedVoucherCodes
       ? order.issuedVoucherCodes.map(c => ({
-          code: c.code,
-          voucherProductId: c.voucherProductId,
-          status: c.status,
-          expiresAt: c.expiresAt.toISOString()
-        }))
+        code: c.code,
+        voucherProductId: c.voucherProductId,
+        status: c.status,
+        expiresAt: c.expiresAt.toISOString()
+      }))
       : undefined
   }
 }
@@ -119,6 +119,16 @@ export const createOrder = async (
   customerId: string,
   dto: CreateOrderDto,
 ): Promise<OrderResponse> => {
+  // 0. Chống ôm hàng: mỗi khách chỉ được 1 đơn PENDING_PAYMENT tại bất kỳ thời điểm nào
+  const existingPending = await prisma.order.findFirst({
+    where: { customerId, status: 'PENDING_PAYMENT' },
+  })
+  if (existingPending) {
+    throw new ConflictError(
+      'Bạn đang có đơn hàng chờ thanh toán. Vui lòng thanh toán hoặc đợi đơn cũ hết hạn trước khi đặt đơn mới.'
+    )
+  }
+
   // 1. Lấy giỏ
   const cart = await prisma.cart.findUnique({
     where: { customerId },
@@ -182,13 +192,32 @@ export const createOrder = async (
   const cartItemIds = cart.cartItems.map((ci) => ci.id)
 
   const order = await prisma.$transaction(async (tx) => {
-    // 5a. Tạo Order
+    // 5a. Khóa và trừ tồn kho (Soft Reserve)
+    for (const item of cart.cartItems) {
+      const updateResult = await tx.voucherProduct.updateMany({
+        where: {
+          id: item.voucherProductId,
+          remainingQuantity: { gte: item.quantity },
+        },
+        data: {
+          remainingQuantity: { decrement: item.quantity },
+        },
+      })
+      if (updateResult.count === 0) {
+        throw new ValidationError('vượt quá tồn kho', [
+          { field: `items.${item.voucherProductId}`, message: `Voucher "${item.voucherProduct.name}" không đủ số lượng trong kho.` },
+        ])
+      }
+    }
+
+    // 5b. Tạo Order
     const newOrder = await tx.order.create({
       data: {
         customerId,
         totalAmount,
-        paymentMethod: dto.paymentMethod,
+        paymentMethod: dto.paymentMethod || 'VNPAY', // Cấp mặc định để không bị Crash DB
         status: 'PENDING_PAYMENT',
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000), // Khóa 5 phút — chống ôm hàng
         giftRecipient: dto.giftRecipient
           ? (dto.giftRecipient as unknown as Prisma.InputJsonValue)
           : Prisma.JsonNull,
@@ -233,9 +262,9 @@ export const getMyOrders = async (
     take: take + 1, // lấy thêm 1 để xác định nextCursor
     ...(cursor
       ? {
-          cursor: { id: cursor },
-          skip: 1, // skip cursor item
-        }
+        cursor: { id: cursor },
+        skip: 1, // skip cursor item
+      }
       : {}),
   })
 
@@ -321,6 +350,11 @@ export const processPayment = async (
     throw new ConflictError('đơn hàng không ở trạng thái chờ thanh toán')
   }
 
+  // 2.5 Kiểm tra hạn thanh toán
+  if (order.expiresAt && order.expiresAt.getTime() < Date.now()) {
+    throw new ConflictError('đơn hàng đã hết hạn thanh toán')
+  }
+
   // 3. Nếu thanh toán thất bại
   if (dto.outcome === 'FAILURE') {
     return {
@@ -343,43 +377,14 @@ export const processPayment = async (
       expiresAt: Date
     }> = []
 
-    // 4a. Khóa và trừ tồn kho từng voucher
     for (const item of order.orderItems) {
       const vp = item.voucherProduct
-
-      // Tải lại voucher và kiểm tra lại
-      const freshVoucher = await tx.voucherProduct.findUnique({
-        where: { id: vp.id },
-        select: { remainingQuantity: true, name: true, status: true },
-      })
-
-      if (!freshVoucher || freshVoucher.status !== 'ON_SALE') {
-        throw new ValidationError('voucher không còn đang bán', [
-          { field: `items.${vp.id}`, message: `Voucher "${freshVoucher?.name ?? 'Không tên'}" không còn bán.` },
-        ])
-      }
-
-      if (freshVoucher.remainingQuantity < item.quantity) {
-        throw new ValidationError('vượt quá tồn kho', [
-          { field: `items.${vp.id}`, message: `Voucher "${freshVoucher.name}" không đủ số lượng trong kho.` },
-        ])
-      }
-
-      // Trừ tồn kho
-      await tx.voucherProduct.update({
-        where: { id: vp.id },
-        data: {
-          remainingQuantity: {
-            decrement: item.quantity,
-          },
-        },
-      })
 
       // 4b. Chuẩn bị thông tin mã voucher sẽ phát hành
       for (let i = 0; i < item.quantity; i++) {
         // Sinh mã ngẫu nhiên duy nhất
         let code = generateVoucherCode()
-        
+
         // Đảm bảo không trùng lặp (nếu trùng thì sinh lại, tối đa 5 lần)
         let isUnique = false
         let attempts = 0
@@ -417,26 +422,16 @@ export const processPayment = async (
       },
     })
 
-    // 4d. Tạo các mã voucher trong DB
-    const createdCodes: Array<{
-      code: string
-      voucherProductId: string
-      status: string
-      expiresAt: Date
-    }> = []
-
-    for (const data of codesData) {
-      const newCode = await tx.issuedVoucherCode.create({
-        data,
-        select: {
-          code: true,
-          voucherProductId: true,
-          status: true,
-          expiresAt: true,
-        },
-      })
-      createdCodes.push(newCode)
-    }
+    // 4d. Tạo các mã voucher trong DB bằng Bulk Insert (createManyAndReturn)
+    const createdCodes = await tx.issuedVoucherCode.createManyAndReturn({
+      data: codesData,
+      select: {
+        code: true,
+        voucherProductId: true,
+        status: true,
+        expiresAt: true,
+      },
+    })
 
     return createdCodes
   })

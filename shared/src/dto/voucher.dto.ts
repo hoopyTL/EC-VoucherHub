@@ -14,13 +14,14 @@ export const searchVoucherQuerySchema = z.object({
     .optional()
     .transform((val) => (val ? parseFloat(val) : undefined))
     .refine((val) => val === undefined || !isNaN(val), { message: 'maxPrice phải là số' }),
-  // TODO: Cho Đợt 2 - Lọc theo danh mục và khu vực
-  categoryId: z
+  category: z.string().optional(),
+  region: z.string().optional(),
+  partnerId: z.string().optional(),
+  minDiscount: z
     .string()
     .optional()
-    .transform((val) => (val ? parseInt(val, 10) : undefined))
-    .refine((val) => val === undefined || !isNaN(val), { message: 'categoryId phải là số nguyên' }),
-  region: z.string().optional(),
+    .transform((val) => (val ? parseFloat(val) : undefined))
+    .refine((val) => val === undefined || (!isNaN(val) && val >= 0), { message: 'minDiscount phải là số >= 0' }),
 
   // Phân trang
   page: z

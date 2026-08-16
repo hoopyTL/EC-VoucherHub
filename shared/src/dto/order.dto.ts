@@ -15,10 +15,7 @@ export const giftRecipientSchema = z.object({
 export type GiftRecipient = z.infer<typeof giftRecipientSchema>
 
 export const createOrderSchema = z.object({
-  paymentMethod: z
-    .string({ error: 'paymentMethod là bắt buộc' })
-    .min(1, 'paymentMethod không được rỗng')
-    .max(32, 'paymentMethod quá dài'),
+  paymentMethod: z.string().optional(),
   giftRecipient: giftRecipientSchema.optional(),
 })
 export type CreateOrderDto = z.infer<typeof createOrderSchema>

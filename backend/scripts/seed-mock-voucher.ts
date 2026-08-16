@@ -40,6 +40,21 @@ async function main() {
     },
   })
 
+  // 3.5 Ensure Categories
+  const categories = ['Food & Beverage', 'Spa & Beauty', 'Entertainment', 'Travel', 'Shopping', 'Education']
+  const categoryMap = new Map<string, number>()
+  for (const catName of categories) {
+    let cat = await prisma.category.findFirst({
+      where: { name: catName }
+    })
+    if (!cat) {
+      cat = await prisma.category.create({
+        data: { name: catName }
+      })
+    }
+    categoryMap.set(catName, cat.id)
+  }
+
   // 4. Create Mock Vouchers
   const mockVouchers = [
     {
@@ -50,6 +65,7 @@ async function main() {
       status: VoucherStatus.ON_SALE,
       totalQuantity: 100,
       remainingQuantity: 100,
+      categoryName: 'Food & Beverage'
     },
     {
       name: 'Voucher Xem Phim CGV Cuối Tuần',
@@ -59,6 +75,7 @@ async function main() {
       status: VoucherStatus.ON_SALE,
       totalQuantity: 500,
       remainingQuantity: 500,
+      categoryName: 'Entertainment'
     },
     {
       name: 'Voucher Gym California 1 Tháng',
@@ -68,6 +85,7 @@ async function main() {
       status: VoucherStatus.ON_SALE,
       totalQuantity: 50,
       remainingQuantity: 0, // Hết hàng
+      categoryName: 'Spa & Beauty'
     },
     {
       name: 'Voucher Spa Chăm Sóc Da Chuyên Sâu',
@@ -77,6 +95,7 @@ async function main() {
       status: VoucherStatus.DRAFT, // Chưa bán, sẽ không ra trong kết quả search
       totalQuantity: 200,
       remainingQuantity: 200,
+      categoryName: 'Spa & Beauty'
     },
     {
       name: 'Buffet Lẩu Nướng Gogi House',
@@ -86,7 +105,8 @@ async function main() {
       status: VoucherStatus.ON_SALE,
       totalQuantity: 1000,
       remainingQuantity: 950,
-    },
+      categoryName: 'Food & Beverage'
+    }
   ]
 
   let createdCount = 0
@@ -99,6 +119,7 @@ async function main() {
       await prisma.voucherProduct.create({
         data: {
           partnerId: partner.id,
+          categoryId: categoryMap.get(v.categoryName),
           name: v.name,
           description: v.description,
           originalPrice: v.originalPrice,
@@ -114,6 +135,14 @@ async function main() {
         },
       })
       createdCount++
+    } else {
+      // Update category if missing
+      if (!exists.categoryId) {
+        await prisma.voucherProduct.update({
+          where: { id: exists.id },
+          data: { categoryId: categoryMap.get(v.categoryName) }
+        })
+      }
     }
   }
 

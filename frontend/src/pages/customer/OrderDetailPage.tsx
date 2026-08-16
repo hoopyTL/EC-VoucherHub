@@ -17,18 +17,18 @@ import { Link, useParams } from 'react-router-dom'
 import type { CSSProperties } from 'react'
 import { api } from '../../services/api'
 import type { Order, VoucherCode } from '../../types/customer'
-import { Badge, variantForStatus, LoadingSpinner } from '../../components/ui'
+import { Badge, variantForStatus, LoadingSpinner, Button } from '../../components/ui'
 import { formatCurrency, formatDateTime, formatStatus } from '../../utils/format'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
 
 async function fetchOrder(id: string): Promise<Order> {
-  const { data } = await api.get<Order>(`/orders/${id}`)
-  return data
+  const { data } = await api.get<any>(`/orders/${id}`)
+  return (data as any).data || data
 }
 
 async function fetchMyCodes(): Promise<VoucherCode[]> {
-  const { data } = await api.get<VoucherCode[]>('/my-codes')
-  return data
+  const { data } = await api.get<any>('/my-codes')
+  return (data as any).data || data || []
 }
 
 /** True when the failed query was a 404 (missing / not owned). */
@@ -116,12 +116,12 @@ export function OrderDetailPage() {
         <Badge variant={variantForStatus(order.status)}>{formatStatus(order.status)}</Badge>
       </div>
 
-      {(order.recipientName || order.recipientEmail || order.recipientPhone) && (
+      {(order.giftRecipient?.name || order.giftRecipient?.email || order.giftRecipient?.phone) && (
         <div style={cardStyle}>
           <h2 style={cardTitleStyle}>Người nhận quà</h2>
-          {order.recipientName && <p style={lineStyle}>Tên: {order.recipientName}</p>}
-          {order.recipientEmail && <p style={lineStyle}>Email: {order.recipientEmail}</p>}
-          {order.recipientPhone && <p style={lineStyle}>Điện thoại: {order.recipientPhone}</p>}
+          {order.giftRecipient?.name && <p style={lineStyle}>Tên: {order.giftRecipient?.name}</p>}
+          {order.giftRecipient?.email && <p style={lineStyle}>Email: {order.giftRecipient?.email}</p>}
+          {order.giftRecipient?.phone && <p style={lineStyle}>Điện thoại: {order.giftRecipient?.phone}</p>}
         </div>
       )}
 
@@ -137,12 +137,12 @@ export function OrderDetailPage() {
             </tr>
           </thead>
           <tbody>
-            {order.orderItems.map((item) => (
+            {(order.items || []).map((item) => (
               <tr key={item.id}>
-                <td style={tdStyle}>{item.voucher.title}</td>
+                <td style={tdStyle}>{item.voucherProductName}</td>
                 <td style={{ ...tdStyle, textAlign: 'center' }}>{item.quantity}</td>
                 <td style={{ ...tdStyle, textAlign: 'right' }}>{formatCurrency(item.unitPrice)}</td>
-                <td style={{ ...tdStyle, textAlign: 'right' }}>{formatCurrency(item.subtotal)}</td>
+                <td style={{ ...tdStyle, textAlign: 'right' }}>{formatCurrency(Number(item.unitPrice) * item.quantity)}</td>
               </tr>
             ))}
           </tbody>
@@ -160,6 +160,21 @@ export function OrderDetailPage() {
       {order.status === 'PENDING_PAYMENT' && (
         <div style={cardStyle}>
           <p style={{ margin: 0, color: colors.ink }}>Đơn hàng đang chờ hoàn tất thanh toán.</p>
+          <Button
+            variant='primary'
+            style={{ marginTop: 16, backgroundColor: '#005baa' }}
+            onClick={async () => {
+              try {
+                const { getVNPayUrl } = await import('../../services/orders');
+                const url = await getVNPayUrl(order.id);
+                window.location.href = url;
+              } catch (e) {
+                alert('Khởi tạo VNPay thất bại, vui lòng thử lại!');
+              }
+            }}
+          >
+            Thanh toán qua VNPay
+          </Button>
         </div>
       )}
 

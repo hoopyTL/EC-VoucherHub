@@ -33,17 +33,19 @@ const toVoucherResponse = (vp: any): VoucherResponse => {
     createdAt: vp.createdAt.toISOString(),
     updatedAt: vp.updatedAt.toISOString(),
     partner: { businessName: vp.partner?.legalName || 'Unknown Partner' },
-    category: 'Ẩm thực', // Hardcode tạm chờ bảng categories
+    category: vp.category?.name || 'Chưa phân loại',
     terms: null,
-    voucherBranches: [] // Hardcode tạm chờ bảng branches
+    voucherBranches: [], // Hardcode tạm chờ bảng branches
   }
 }
 
 /**
  * Tìm kiếm và lọc voucher (chỉ lấy voucher ON_SALE)
  */
-export const searchVouchers = async (query: SearchVoucherQueryDto): Promise<VoucherListResponse> => {
-  const { keyword, minPrice, maxPrice, page = 1, limit = 20 } = query
+export const searchVouchers = async (
+  query: SearchVoucherQueryDto
+): Promise<VoucherListResponse> => {
+  const { keyword, minPrice, maxPrice, category, region, partnerId, minDiscount, page = 1, limit = 20 } = query
   const skip = (page - 1) * limit
 
   // Xây dựng điều kiện lọc (chỉ lấy voucher đang bán)
@@ -66,21 +68,54 @@ export const searchVouchers = async (query: SearchVoucherQueryDto): Promise<Vouc
     if (maxPrice !== undefined) whereConditions.salePrice.lte = maxPrice
   }
 
-  // TODO: Lọc theo danh mục và khu vực (khi TV3 thêm dữ liệu ở Đợt 2)
-  // if (categoryId) whereConditions.categoryId = categoryId
-  // if (region) whereConditions.voucherProductBranches = { some: { branch: { region } } }
+  // Lọc theo danh mục (bằng tên)
+  if (category && category !== 'Tất cả danh mục') {
+    whereConditions.category = {
+      name: category
+    }
+  }
 
-  // Query DB lấy tổng số và danh sách
-  const [total, vouchers] = await prisma.$transaction([
-    prisma.voucherProduct.count({ where: whereConditions }),
-    prisma.voucherProduct.findMany({
+  if (partnerId) {
+    whereConditions.partnerId = partnerId
+  }
+
+  if (region) {
+    whereConditions.voucherProductBranches = { some: { branch: { region } } }
+  }
+
+  let total = 0
+  let vouchers: any[] = []
+
+  if (minDiscount !== undefined) {
+    // Nếu có lọc giảm giá, lấy tất cả để lọc in-memory (do Prisma không hỗ trợ so sánh 2 cột trực tiếp tiện lợi)
+    const allVouchers = await prisma.voucherProduct.findMany({
       where: whereConditions,
-      include: { partner: true },
-      orderBy: { createdAt: 'desc' },
-      skip,
-      take: limit
+      include: { partner: true, category: true },
+      orderBy: { createdAt: 'desc' }
     })
-  ])
+
+    const filtered = allVouchers.filter(vp => {
+      const discount = Math.round(((Number(vp.originalPrice) - Number(vp.salePrice)) / Number(vp.originalPrice)) * 100)
+      return discount >= minDiscount
+    })
+
+    total = filtered.length
+    vouchers = filtered.slice(skip, skip + limit)
+  } else {
+    // Nếu không, phân trang tại DB
+    const [count, paginatedVouchers] = await prisma.$transaction([
+      prisma.voucherProduct.count({ where: whereConditions }),
+      prisma.voucherProduct.findMany({
+        where: whereConditions,
+        include: { partner: true, category: true },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      })
+    ])
+    total = count
+    vouchers = paginatedVouchers
+  }
 
   return {
     vouchers: vouchers.map(toVoucherResponse),
@@ -101,7 +136,7 @@ export const getVoucherDetail = async (id: string): Promise<VoucherResponse> => 
       id,
       status: 'ON_SALE' // Chỉ cho phép xem chi tiết voucher đang bán
     },
-    include: { partner: true }
+    include: { partner: true, category: true }
   })
 
   if (!voucher) {

@@ -219,7 +219,7 @@ export const updateItem = async (
 export const removeItem = async (
   customerId: string,
   itemId: number,
-): Promise<void> => {
+): Promise<CartResponse> => {
   // 1. Tìm + validate ownership
   const item = await prisma.cartItem.findUnique({
     where: { id: itemId },
@@ -236,4 +236,6 @@ export const removeItem = async (
 
   // 2. Delete
   await prisma.cartItem.delete({ where: { id: itemId } })
+
+  return getCart(customerId)
 }
