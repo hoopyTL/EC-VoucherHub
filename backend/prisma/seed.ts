@@ -1,12 +1,13 @@
 import { PrismaClient } from '@prisma/client'
+import { RoleName } from '@voucher/shared'
 
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log('Đang bắt đầu seed dữ liệu mẫu...')
+  console.log('Starting database seed...')
 
-  // 1. Dọn dẹp sạch DB trước khi seed (Dọn ngược từ bảng con lên bảng cha để tránh lỗi Khóa ngoại)
-  console.log('Đang dọn dẹp dữ liệu cũ...')
+  // 1. Wipe the DB before seeding (delete children before parents to avoid FK errors)
+  console.log('Cleaning up existing data...')
   await prisma.usageLog.deleteMany()
   await prisma.issuedVoucherCode.deleteMany()
   await prisma.orderItem.deleteMany()
@@ -21,32 +22,32 @@ async function main() {
   await prisma.category.deleteMany()
   await prisma.role.deleteMany()
 
-  // 2. Seed bảng Roles (Vai trò cố định)
-  console.log('Tạo vai trò (Roles)...')
-  const adminRole = await prisma.role.create({ data: { name: 'QUAN_TRI_VIEN' } })
-  const partnerRole = await prisma.role.create({ data: { name: 'DOI_TAC' } })
-  const customerRole = await prisma.role.create({ data: { name: 'KHACH_HANG' } })
+  // 2. Seed the Roles table (fixed roles — values must match the RoleName enum)
+  console.log('Creating roles...')
+  const adminRole = await prisma.role.create({ data: { name: RoleName.ADMIN } })
+  const partnerRole = await prisma.role.create({ data: { name: RoleName.PARTNER } })
+  const customerRole = await prisma.role.create({ data: { name: RoleName.CUSTOMER } })
 
-  // 3. Seed bảng Categories (Danh mục sản phẩm)
-  console.log('Tạo danh mục (Categories)...')
+  // 3. Seed the Categories table (product categories)
+  console.log('Creating categories...')
   const foodCat = await prisma.category.create({ data: { name: 'Ăn uống' } })
-  const travelCat = await prisma.category.create({ data: { name: 'Du lịch & Khách sạn' } })
-  const beautyCat = await prisma.category.create({ data: { name: 'Làm đẹp & Spa' } })
+  await prisma.category.create({ data: { name: 'Du lịch & Khách sạn' } })
+  await prisma.category.create({ data: { name: 'Làm đẹp & Spa' } })
 
-  // Seed danh mục con (Self-reference)
+  // Seed sub-categories (self-reference)
   const cafeCat = await prisma.category.create({
     data: { name: 'Cà phê & Trà sữa', parentId: foodCat.id }
   })
-  const buffetCat = await prisma.category.create({
+  await prisma.category.create({
     data: { name: 'Buffet & Lẩu', parentId: foodCat.id }
   })
 
-  // 4. Seed dữ liệu Users (Tài khoản mẫu)
-  console.log('Tạo tài khoản người dùng (Users)...')
-  // Password hash mẫu cho '12345678'
+  // 4. Seed Users (sample accounts)
+  console.log('Creating users...')
+  // Sample password hash for '12345678'
   const passwordHash = '$2b$10$EPVma1Sp2.3m/zJ1S.3oGe7rM4zK18/O5n7qg.ZqF68e1QvYpMyea'
 
-  // Tài khoản Admin hệ thống
+  // System admin account
   await prisma.user.create({
     data: {
       email: 'admin@voucherhub.com',
@@ -58,7 +59,7 @@ async function main() {
     }
   })
 
-  // Tài khoản Khách hàng mẫu
+  // Sample customer account
   const customerUser = await prisma.user.create({
     data: {
       email: 'customer@gmail.com',
@@ -70,7 +71,7 @@ async function main() {
     }
   })
 
-  // Tài khoản Chủ doanh nghiệp đối tác (Partner Owner)
+  // Partner owner account
   const partnerUser = await prisma.user.create({
     data: {
       email: 'owner@highlandscoffee.com.vn',
@@ -82,8 +83,8 @@ async function main() {
     }
   })
 
-  // 5. Seed thông tin Đối tác (Partners) và Chi nhánh (Branches)
-  console.log('Tạo hồ sơ đối tác & chi nhánh...')
+  // 5. Seed Partners and their Branches
+  console.log('Creating partner profiles & branches...')
   const highlandPartner = await prisma.partner.create({
     data: {
       ownerUserId: partnerUser.id,
@@ -113,8 +114,8 @@ async function main() {
     }
   })
 
-  // 6. Seed Sản phẩm Voucher (VoucherProducts)
-  console.log('Tạo sản phẩm voucher mẫu...')
+  // 6. Seed VoucherProducts
+  console.log('Creating sample voucher products...')
   await prisma.voucherProduct.create({
     data: {
       partnerId: highlandPartner.id,
@@ -125,9 +126,9 @@ async function main() {
       originalPrice: 50000.0,
       salePrice: 35000.0,
       saleStart: new Date(),
-      saleEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 ngày
+      saleEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
       usageStart: new Date(),
-      usageEnd: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // 60 ngày
+      usageEnd: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // 60 days
       totalQuantity: 1000,
       remainingQuantity: 950,
       isMultiUse: false,
@@ -135,19 +136,19 @@ async function main() {
     }
   })
 
-  // 7. Seed giỏ hàng trống ban đầu cho Khách hàng
+  // 7. Seed an initial empty cart for the customer
   await prisma.cart.create({
     data: {
       customerId: customerUser.id
     }
   })
 
-  console.log('Đã nạp seed dữ liệu mẫu thành công!')
+  console.log('Database seed completed successfully!')
 }
 
 main()
   .catch((e) => {
-    console.error('Lỗi khi seed dữ liệu:', e)
+    console.error('Seed failed:', e)
     process.exit(1)
   })
   .finally(async () => {
