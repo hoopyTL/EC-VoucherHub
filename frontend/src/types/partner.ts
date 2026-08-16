@@ -2,7 +2,7 @@
  * Client-side response DTOs for the partner workspace endpoints.
  *
  * These mirror the JSON shapes returned by the backend partner services:
- *   - `Branch`        → GET/POST/PUT/DELETE /partner/branches
+ *   - `Branch`        → GET/POST/PATCH /partner/branches
  *   - `PartnerVoucher` → GET /partner/vouchers (envelope: {@link PartnerVouchersResponse})
  *
  * The server models money as Prisma `Decimal` (serialised to a JSON string) and
@@ -11,29 +11,13 @@
  * The UI preview imports these temporary contracts from `@ui-contracts`.
  */
 import type { VoucherStatus } from '@ui-contracts'
+import type { BranchDto, CreateBranchDto } from '@voucher/shared'
 
 /** A partner branch, as returned by the `/partner/branches` endpoints. */
-export interface Branch {
-  id: string
-  name: string
-  address: string
-  region: string
-  contact: string
-  isActive: boolean
-  partnerId: string
-  /** ISO date string. */
-  createdAt: string
-  /** ISO date string. */
-  updatedAt: string
-}
+export type Branch = BranchDto
 
 /** Editable branch fields, used for both create and update forms. */
-export interface BranchFormValues {
-  name: string
-  address: string
-  region: string
-  contact: string
-}
+export type BranchFormValues = CreateBranchDto
 
 /** A voucher owned by the partner (GET /partner/vouchers), money as strings. */
 export interface PartnerVoucher {

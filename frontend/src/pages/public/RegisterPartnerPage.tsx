@@ -2,15 +2,15 @@
  * RegisterPartnerPage — partner (business) self-registration form (task 11.2).
  *
  * Collects business information, representative details, login credentials, and
- * one or more branch locations, then posts to `POST /auth/register/partner`
- * with a {@link RegisterPartnerRequest} body. On success the partner account is
+ * one or more branch locations, then posts to `POST /partners`
+ * with a {@link RegisterPartnerDto} body. On success the partner account is
  * created with a "pending approval" status (Requirement 3.2); we route the user
  * to the login page with a notice that approval is pending.
  *
  * Client-side rules enforced here:
  *  - Email and all business/representative fields are required (Requirement 3.1).
  *  - Password must be at least 8 characters (Requirement 1.3 / 3.x).
- *  - At least one branch with name, address, region, and contact is required
+ *  - At least one branch with name, address, and region is required
  *    (Requirement 3.1).
  *
  * Duplicate-account errors (HTTP 409) returned by the backend are surfaced in a
@@ -20,7 +20,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import type { RegisterPartnerRequest } from '@ui-contracts'
+import type { RegisterPartnerDto } from '@voucher/shared'
 import { api } from '../../services/api'
 import { Button, Input } from '../../components/ui'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
@@ -34,29 +34,25 @@ interface BranchForm {
   name: string
   address: string
   region: string
-  contact: string
 }
 
 interface BranchFieldErrors {
   name?: string
   address?: string
   region?: string
-  contact?: string
 }
 
 interface FieldErrors {
   email?: string
   password?: string
-  businessName?: string
-  businessRegNumber?: string
-  taxId?: string
-  representativeName?: string
-  representativeContact?: string
+  legalName?: string
+  taxCode?: string
+  representative?: string
   branches?: BranchFieldErrors[]
 }
 
 function emptyBranch(): BranchForm {
-  return { name: '', address: '', region: '', contact: '' }
+  return { name: '', address: '', region: '' }
 }
 
 /**
@@ -79,11 +75,9 @@ export function RegisterPartnerPage() {
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
-  const [businessName, setBusinessName] = useState('')
-  const [businessRegNumber, setBusinessRegNumber] = useState('')
-  const [taxId, setTaxId] = useState('')
-  const [representativeName, setRepresentativeName] = useState('')
-  const [representativeContact, setRepresentativeContact] = useState('')
+  const [legalName, setLegalName] = useState('')
+  const [taxCode, setTaxCode] = useState('')
+  const [representative, setRepresentative] = useState('')
 
   // At least one branch is required (Requirement 3.1).
   const [branches, setBranches] = useState<BranchForm[]>([emptyBranch()])
@@ -112,24 +106,15 @@ export function RegisterPartnerPage() {
     if (password.length < MIN_PASSWORD_LENGTH) {
       errors.password = `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`
     }
-    if (!businessName.trim()) errors.businessName = 'Business name is required.'
-    if (!businessRegNumber.trim()) {
-      errors.businessRegNumber = 'Business registration number is required.'
-    }
-    if (!taxId.trim()) errors.taxId = 'Tax ID is required.'
-    if (!representativeName.trim()) {
-      errors.representativeName = 'Representative name is required.'
-    }
-    if (!representativeContact.trim()) {
-      errors.representativeContact = 'Representative contact is required.'
-    }
+    if (!legalName.trim()) errors.legalName = 'Legal name is required.'
+    if (!taxCode.trim()) errors.taxCode = 'Tax code is required.'
+    if (!representative.trim()) errors.representative = 'Representative name is required.'
 
     const branchErrors = branches.map((branch) => {
       const be: BranchFieldErrors = {}
       if (!branch.name.trim()) be.name = 'Branch name is required.'
       if (!branch.address.trim()) be.address = 'Address is required.'
       if (!branch.region.trim()) be.region = 'Region is required.'
-      if (!branch.contact.trim()) be.contact = 'Contact is required.'
       return be
     })
     if (branchErrors.some((be) => Object.keys(be).length > 0)) {
@@ -149,26 +134,23 @@ export function RegisterPartnerPage() {
       return
     }
 
-    const payload: RegisterPartnerRequest = {
+    const payload: RegisterPartnerDto = {
       email: email.trim(),
       password,
-      businessName: businessName.trim(),
-      businessRegNumber: businessRegNumber.trim(),
-      taxId: taxId.trim(),
-      representativeName: representativeName.trim(),
-      representativeContact: representativeContact.trim(),
+      legalName: legalName.trim(),
+      taxCode: taxCode.trim(),
+      representative: representative.trim(),
       branches: branches.map((branch) => ({
         name: branch.name.trim(),
         address: branch.address.trim(),
-        region: branch.region.trim(),
-        contact: branch.contact.trim()
+        region: branch.region.trim()
       })),
       ...(phone.trim() ? { phone: phone.trim() } : {})
     }
 
     setIsSubmitting(true)
     try {
-      await api.post('/auth/register/partner', payload)
+      await api.post('/partners', payload)
       // Account created with pending-approval status (Requirement 3.2).
       navigate('/login', {
         replace: true,
@@ -234,24 +216,17 @@ export function RegisterPartnerPage() {
           <legend style={legendStyle}>Business information</legend>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <Input
-              label='Business name'
-              value={businessName}
-              onChange={(e) => setBusinessName(e.target.value)}
-              error={fieldErrors.businessName}
+              label='Legal business name'
+              value={legalName}
+              onChange={(e) => setLegalName(e.target.value)}
+              error={fieldErrors.legalName}
               required
             />
             <Input
-              label='Business registration number'
-              value={businessRegNumber}
-              onChange={(e) => setBusinessRegNumber(e.target.value)}
-              error={fieldErrors.businessRegNumber}
-              required
-            />
-            <Input
-              label='Tax ID'
-              value={taxId}
-              onChange={(e) => setTaxId(e.target.value)}
-              error={fieldErrors.taxId}
+              label='Tax code'
+              value={taxCode}
+              onChange={(e) => setTaxCode(e.target.value)}
+              error={fieldErrors.taxCode}
               required
             />
           </div>
@@ -262,16 +237,9 @@ export function RegisterPartnerPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <Input
               label='Representative name'
-              value={representativeName}
-              onChange={(e) => setRepresentativeName(e.target.value)}
-              error={fieldErrors.representativeName}
-              required
-            />
-            <Input
-              label='Representative contact'
-              value={representativeContact}
-              onChange={(e) => setRepresentativeContact(e.target.value)}
-              error={fieldErrors.representativeContact}
+              value={representative}
+              onChange={(e) => setRepresentative(e.target.value)}
+              error={fieldErrors.representative}
               required
             />
           </div>
@@ -335,13 +303,6 @@ export function RegisterPartnerPage() {
                       value={branch.region}
                       onChange={(e) => updateBranch(index, { region: e.target.value })}
                       error={be.region}
-                      required
-                    />
-                    <Input
-                      label='Contact'
-                      value={branch.contact}
-                      onChange={(e) => updateBranch(index, { contact: e.target.value })}
-                      error={be.contact}
                       required
                     />
                   </div>

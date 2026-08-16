@@ -10,15 +10,19 @@ import type { ListPendingPartnersResult, PartnerApprovalView } from '../../types
 function makePartner(overrides: Partial<PartnerApprovalView> = {}): PartnerApprovalView {
   return {
     id: 'p-1',
-    email: 'biz@example.com',
-    phone: '0987654321',
-    businessName: 'Saigon Food',
-    businessRegNumber: 'REG-123',
-    taxId: 'TAX-456',
-    representativeName: 'Dang Quoc Huy',
-    representativeContact: '0966666660',
-    status: 'PENDING_APPROVAL',
-    rejectionReason: null,
+    ownerUserId: 'u-1',
+    legalName: 'Saigon Food',
+    taxCode: 'TAX-456',
+    representative: 'Dang Quoc Huy',
+    approvalStatus: 'PENDING',
+    rejectReason: null,
+    operatingStatus: 'ACTIVE',
+    branches: [{ id: 1, partnerId: 'p-1', name: 'District 1', address: '1 Main St', region: 'Hồ Chí Minh' }],
+    owner: {
+      email: 'biz@example.com',
+      phone: '0987654321',
+      fullName: 'Dang Quoc Huy'
+    },
     createdAt: '2025-01-01T00:00:00.000Z',
     updatedAt: '2025-01-01T00:00:00.000Z',
     ...overrides
@@ -59,17 +63,16 @@ describe('PartnerApprovalsPage', () => {
   })
 
   it('lists pending partners with their details (Req 6.1)', async () => {
-    vi.spyOn(api, 'get').mockResolvedValue({ data: makeResult() } as never)
+    vi.spyOn(api, 'get').mockResolvedValue({ data: { success: true, data: makeResult() } } as never)
     renderPage()
 
     expect(await screen.findByText('Saigon Food')).toBeDefined()
-    expect(screen.getByText('REG-123')).toBeDefined()
     expect(screen.getByText('TAX-456')).toBeDefined()
     expect(screen.getByText('Dang Quoc Huy')).toBeDefined()
   })
 
   it('requests the pending-partners endpoint', async () => {
-    const getSpy = vi.spyOn(api, 'get').mockResolvedValue({ data: makeResult() } as never)
+    const getSpy = vi.spyOn(api, 'get').mockResolvedValue({ data: { success: true, data: makeResult() } } as never)
     renderPage()
     await screen.findByText('Saigon Food')
 
@@ -80,7 +83,7 @@ describe('PartnerApprovalsPage', () => {
 
   it('shows an empty state when there are no pending partners', async () => {
     vi.spyOn(api, 'get').mockResolvedValue({
-      data: makeResult({ partners: [] })
+      data: { success: true, data: makeResult({ partners: [] }) }
     } as never)
     renderPage()
 
@@ -90,9 +93,11 @@ describe('PartnerApprovalsPage', () => {
   it('approves a partner and refreshes the list (Req 6.2)', async () => {
     const getSpy = vi
       .spyOn(api, 'get')
-      .mockResolvedValueOnce({ data: makeResult() } as never)
-      .mockResolvedValueOnce({ data: makeResult({ partners: [] }) } as never)
-    const patchSpy = vi.spyOn(api, 'patch').mockResolvedValue({ data: makePartner({ status: 'APPROVED' }) } as never)
+      .mockResolvedValueOnce({ data: { success: true, data: makeResult() } } as never)
+      .mockResolvedValueOnce({ data: { success: true, data: makeResult({ partners: [] }) } } as never)
+    const patchSpy = vi.spyOn(api, 'patch').mockResolvedValue({
+      data: { success: true, data: makePartner({ approvalStatus: 'APPROVED' }) }
+    } as never)
 
     renderPage()
     await screen.findByText('Saigon Food')
@@ -100,7 +105,7 @@ describe('PartnerApprovalsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /approve saigon food/i }))
 
     await waitFor(() => {
-      expect(patchSpy).toHaveBeenCalledWith('/admin/partners/p-1/approve')
+      expect(patchSpy).toHaveBeenCalledWith('/admin/partners/p-1/approval', { action: 'approve' })
     })
     await waitFor(() => expect(getSpy).toHaveBeenCalledTimes(2))
     expect(await screen.findByText(/saigon food has been approved/i)).toBeDefined()
@@ -108,7 +113,7 @@ describe('PartnerApprovalsPage', () => {
 
   it('requires a reason before rejecting (Req 6.3)', async () => {
     const patchSpy = vi.spyOn(api, 'patch')
-    vi.spyOn(api, 'get').mockResolvedValue({ data: makeResult() } as never)
+    vi.spyOn(api, 'get').mockResolvedValue({ data: { success: true, data: makeResult() } } as never)
 
     renderPage()
     await screen.findByText('Saigon Food')
@@ -123,9 +128,9 @@ describe('PartnerApprovalsPage', () => {
   })
 
   it('rejects a partner with a reason (Req 6.3)', async () => {
-    vi.spyOn(api, 'get').mockResolvedValue({ data: makeResult() } as never)
+    vi.spyOn(api, 'get').mockResolvedValue({ data: { success: true, data: makeResult() } } as never)
     const patchSpy = vi.spyOn(api, 'patch').mockResolvedValue({
-      data: makePartner({ status: 'REJECTED', rejectionReason: 'Invalid tax id' })
+      data: { success: true, data: makePartner({ approvalStatus: 'REJECTED', rejectReason: 'Invalid tax id' }) }
     } as never)
 
     renderPage()
@@ -139,7 +144,8 @@ describe('PartnerApprovalsPage', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: /reject partner/i }))
 
     await waitFor(() => {
-      expect(patchSpy).toHaveBeenCalledWith('/admin/partners/p-1/reject', {
+      expect(patchSpy).toHaveBeenCalledWith('/admin/partners/p-1/approval', {
+        action: 'reject',
         reason: 'Invalid tax id'
       })
     })

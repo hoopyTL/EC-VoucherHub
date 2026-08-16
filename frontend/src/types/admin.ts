@@ -13,6 +13,7 @@
  * so the client and server stay in lockstep.
  */
 import type { AccountStatus, OrderStatus, UserRole, VoucherStatus } from '@ui-contracts'
+import type { AdminPartnerDto, ListPartnersDto } from '@voucher/shared'
 
 // ---------------------------------------------------------------------------
 // Dashboard statistics (GET /admin/dashboard/stats)
@@ -146,32 +147,10 @@ export interface AccountStatusChange {
  * intentionally absent here; the approval flow works off the registration
  * fields below.
  */
-export interface PartnerApprovalView {
-  id: string
-  email: string
-  phone: string | null
-  businessName: string
-  businessRegNumber: string
-  taxId: string
-  representativeName: string
-  representativeContact: string
-  status: AccountStatus
-  rejectionReason: string | null
-  /** ISO date string. */
-  createdAt: string
-  /** ISO date string. */
-  updatedAt: string
-}
+export type PartnerApprovalView = AdminPartnerDto
 
 /** Result shape returned by GET /admin/partners/pending. */
-export interface ListPendingPartnersResult {
-  partners: PartnerApprovalView[]
-  pagination: {
-    page: number
-    limit: number
-    total: number
-  }
-}
+export type ListPendingPartnersResult = ListPartnersDto
 
 // ---------------------------------------------------------------------------
 // Voucher approval (GET /admin/vouchers/pending, PATCH approve/reject)

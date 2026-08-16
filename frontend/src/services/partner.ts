@@ -5,8 +5,8 @@
  * branch-management and dashboard-overview flows:
  *   - GET    /partner/branches      → {@link listBranches}      (Req 7.4)
  *   - POST   /partner/branches      → {@link createBranch}      (Req 7.1)
- *   - PUT    /partner/branches/:id  → {@link updateBranch}      (Req 7.2)
- *   - DELETE /partner/branches/:id  → {@link deactivateBranch}  (Req 7.3)
+ *   - PATCH  /partner/branches/:id  → {@link updateBranch}      (Req 7.2)
+ *   - DELETE /partner/branches/:id  → {@link deleteBranch}      (Req 7.3)
  *   - GET    /partner/vouchers      → {@link listPartnerVouchers} (dashboard stats)
  *
  * There is no dedicated partner stats endpoint, so the dashboard derives its
@@ -17,28 +17,32 @@
 import { api } from './api'
 import type { Branch, BranchFormValues, PartnerVouchersResponse } from '../types/partner'
 
+interface ApiEnvelope<T> {
+  success: true
+  data: T
+}
+
 /** List the authenticated partner's branches (active and inactive). */
 export async function listBranches(): Promise<Branch[]> {
-  const { data } = await api.get<Branch[]>('/partner/branches')
-  return data
+  const { data } = await api.get<ApiEnvelope<Branch[]> | Branch[]>('/partner/branches')
+  return Array.isArray(data) ? data : data.data
 }
 
 /** Create a new branch for the authenticated partner (Req 7.1). */
 export async function createBranch(body: BranchFormValues): Promise<Branch> {
-  const { data } = await api.post<Branch>('/partner/branches', body)
-  return data
+  const { data } = await api.post<ApiEnvelope<Branch>>('/partner/branches', body)
+  return data.data
 }
 
 /** Update an existing branch's details (Req 7.2). */
-export async function updateBranch(id: string, body: BranchFormValues): Promise<Branch> {
-  const { data } = await api.put<Branch>(`/partner/branches/${id}`, body)
-  return data
+export async function updateBranch(id: number, body: BranchFormValues): Promise<Branch> {
+  const { data } = await api.patch<ApiEnvelope<Branch>>(`/partner/branches/${id}`, body)
+  return data.data
 }
 
-/** Deactivate (soft delete) a branch (Req 7.3). */
-export async function deactivateBranch(id: string): Promise<Branch> {
-  const { data } = await api.delete<Branch>(`/partner/branches/${id}`)
-  return data
+/** Permanently delete an unreferenced branch (Req 7.3). */
+export async function deleteBranch(id: number): Promise<void> {
+  await api.delete(`/partner/branches/${id}`)
 }
 
 /**

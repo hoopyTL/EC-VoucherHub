@@ -3,8 +3,8 @@
  *
  * Lists the partner's branches (GET /partner/branches) and supports:
  *   - Add    → POST   /partner/branches      (Req 7.1)
- *   - Edit   → PUT    /partner/branches/:id   (Req 7.2)
- *   - Remove → DELETE /partner/branches/:id   (deactivate / soft delete, Req 7.3)
+ *   - Edit   → PATCH  /partner/branches/:id   (Req 7.2)
+ *   - Remove → DELETE /partner/branches/:id   (Req 7.3)
  *
  * Create/edit happen in a {@link Modal} form; removal asks for confirmation in a
  * small modal. All mutations run through TanStack Query and invalidate the
@@ -18,7 +18,7 @@
  */
 import { useState, type CSSProperties, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createBranch, deactivateBranch, getPartnerApiError, listBranches, updateBranch } from '../../services/partner'
+import { createBranch, deleteBranch, getPartnerApiError, listBranches, updateBranch } from '../../services/partner'
 import type { Branch, BranchFormValues } from '../../types/partner'
 import { VOUCHER_REGIONS } from '../../constants/voucher'
 import { Badge, Button, Input, LoadingSpinner, Modal } from '../../components/ui'
@@ -31,8 +31,7 @@ const BRANCHES_QUERY_KEY = ['partner', 'branches'] as const
 const EMPTY_FORM: BranchFormValues = {
   name: '',
   address: '',
-  region: '',
-  contact: ''
+  region: ''
 }
 
 /** Per-field validation errors for the branch form. */
@@ -44,7 +43,6 @@ export function validateBranchForm(values: BranchFormValues): FormErrors {
   if (!values.name.trim()) errors.name = 'Name is required'
   if (!values.address.trim()) errors.address = 'Address is required'
   if (!values.region.trim()) errors.region = 'Region is required'
-  if (!values.contact.trim()) errors.contact = 'Contact is required'
   return errors
 }
 
@@ -59,7 +57,7 @@ export function BranchesPage() {
   const [formErrors, setFormErrors] = useState<FormErrors>({})
   const [formError, setFormError] = useState<string | null>(null)
 
-  // Branch pending deactivation confirmation (null when no prompt is shown).
+  // Branch pending deletion confirmation (null when no prompt is shown).
   const [removing, setRemoving] = useState<Branch | null>(null)
   const [removeError, setRemoveError] = useState<string | null>(null)
 
@@ -91,14 +89,14 @@ export function BranchesPage() {
   })
 
   const removeMutation = useMutation({
-    mutationFn: (branch: Branch) => deactivateBranch(branch.id),
+    mutationFn: (branch: Branch) => deleteBranch(branch.id),
     onSuccess: async () => {
       await invalidate()
-      setNotice('Branch deactivated.')
+      setNotice('Branch deleted.')
       setRemoving(null)
     },
     onError: (err) => {
-      setRemoveError(getPartnerApiError(err, 'Could not deactivate the branch. Please try again.'))
+      setRemoveError(getPartnerApiError(err, 'Could not delete the branch. Please try again.'))
     }
   })
 
@@ -116,8 +114,7 @@ export function BranchesPage() {
     setForm({
       name: branch.name,
       address: branch.address,
-      region: branch.region,
-      contact: branch.contact
+      region: branch.region
     })
     setFormErrors({})
     setFormError(null)
@@ -147,8 +144,7 @@ export function BranchesPage() {
     saveMutation.mutate({
       name: form.name.trim(),
       address: form.address.trim(),
-      region: form.region.trim(),
-      contact: form.contact.trim()
+      region: form.region.trim()
     })
   }
 
@@ -194,14 +190,10 @@ export function BranchesPage() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontWeight: 600 }}>{branch.name}</span>
-                  <Badge variant={branch.isActive ? 'success' : 'danger'}>
-                    {branch.isActive ? 'Active' : 'Inactive'}
-                  </Badge>
+                  <Badge variant='success'>Active</Badge>
                 </div>
                 <p style={metaStyle}>{branch.address}</p>
-                <p style={metaStyle}>
-                  {branch.region} · {branch.contact}
-                </p>
+                <p style={metaStyle}>{branch.region}</p>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <Button
@@ -212,20 +204,18 @@ export function BranchesPage() {
                 >
                   Edit
                 </Button>
-                {branch.isActive && (
-                  <Button
-                    size='sm'
-                    variant='danger'
-                    onClick={() => {
-                      setRemoveError(null)
-                      setNotice(null)
-                      setRemoving(branch)
-                    }}
-                    aria-label={`Deactivate ${branch.name}`}
-                  >
-                    Deactivate
-                  </Button>
-                )}
+                <Button
+                  size='sm'
+                  variant='danger'
+                  onClick={() => {
+                    setRemoveError(null)
+                    setNotice(null)
+                    setRemoving(branch)
+                  }}
+                  aria-label={`Delete ${branch.name}`}
+                >
+                  Delete
+                </Button>
               </div>
             </li>
           ))}
@@ -296,22 +286,15 @@ export function BranchesPage() {
                 </p>
               )}
             </div>
-            <Input
-              label='Contact'
-              required
-              value={form.contact}
-              error={formErrors.contact}
-              onChange={(e) => handleField('contact', e.target.value)}
-            />
           </div>
         </form>
       </Modal>
 
-      {/* Deactivate confirmation modal */}
+      {/* Delete confirmation modal */}
       <Modal
         isOpen={removing !== null}
         onClose={() => setRemoving(null)}
-        title='Deactivate branch'
+        title='Delete branch'
         size='sm'
         footer={
           <>
@@ -323,7 +306,7 @@ export function BranchesPage() {
               isLoading={removeMutation.isPending}
               onClick={() => removing && removeMutation.mutate(removing)}
             >
-              Deactivate
+              Delete
             </Button>
           </>
         }
@@ -334,8 +317,8 @@ export function BranchesPage() {
           </div>
         )}
         <p style={{ margin: 0 }}>
-          Deactivate <strong>{removing?.name}</strong>? It will no longer be available for new vouchers, but existing
-          records are preserved.
+          Delete <strong>{removing?.name}</strong>? This action is permanent. Branches referenced by vouchers or usage
+          history cannot be deleted.
         </p>
       </Modal>
     </section>
