@@ -57,6 +57,10 @@ export class AppError extends Error {
     return new AppError(message, ErrorHttpStatus[ErrorCode.DUPLICATE_ENTRY], ErrorCode.DUPLICATE_ENTRY, details)
   }
 
+  static rateLimit(message = 'Too many requests'): AppError {
+    return new AppError(message, ErrorHttpStatus[ErrorCode.RATE_LIMIT_EXCEEDED], ErrorCode.RATE_LIMIT_EXCEEDED)
+  }
+
   static internal(message = 'Internal server error'): AppError {
     return new AppError(message, ErrorHttpStatus[ErrorCode.INTERNAL_ERROR], ErrorCode.INTERNAL_ERROR)
   }
