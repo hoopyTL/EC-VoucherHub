@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "vite",
     "dev:design": "VITE_DESIGN_PREVIEW=true vite",
-    "dev:local": "node scripts/serve-with-proxy.mjs",
+    "dev:local": "vite preview",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
