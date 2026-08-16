@@ -1,8 +1,7 @@
 # CI cho EC-VoucherHub — monorepo npm workspaces (shared + backend + frontend).
 # Stack: TypeScript/Node, Express, Prisma, React + Vite, Vitest + fast-check.
 # Các lệnh dưới đây bám theo scripts trong package.json (gốc + từng workspace).
-# Một số script (lint/test) hiện chưa được khai báo nên dùng `--if-present`
-# để CI không vỡ ở giai đoạn scaffold; chúng sẽ tự chạy khi script được thêm.
+# CI chạy đầy đủ static checks, unit/integration tests và browser E2E.
 
 name: CI
 
@@ -51,7 +50,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       # Prisma chưa có schema ở giai đoạn scaffold → chỉ generate khi đã có schema,
       # tránh CI đỏ trước khi Task 2.1 (Prisma schema) hoàn thành.
@@ -67,7 +66,7 @@ jobs:
         run: npm run db:deploy --workspace=backend
 
       - name: Lint
-        run: npm run lint --workspaces --if-present
+        run: npm run lint
 
       - name: Typecheck
         run: npm run typecheck --workspaces --if-present
@@ -81,13 +80,16 @@ jobs:
       - name: Test with coverage
         run: npm run test:coverage --workspace=backend
 
+      - name: Frontend tests
+        run: npm run test --workspace=frontend
+
       - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
+        run: ./node_modules/.bin/playwright install --with-deps chromium
 
       - name: Typecheck E2E
         run: npm run typecheck:e2e
 
-      - name: TASK-004 E2E
+      - name: Browser E2E
         run: npm run test:e2e
 
       - name: Upload coverage
@@ -102,7 +104,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: task004-playwright
+          name: playwright-artifacts
           path: |
             playwright-report/
             test-results/
