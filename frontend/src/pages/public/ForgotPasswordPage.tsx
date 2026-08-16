@@ -1,7 +1,7 @@
 /**
  * ForgotPasswordPage — request a password reset link (task 11.x — Req 2.4).
  *
- * Renders an email/phone field and submits to `POST /auth/forgot-password`. To
+ * Renders an email/phone field and submits to `POST /auth/password-reset`. To
  * avoid account enumeration the page always shows the SAME generic confirmation
  * message regardless of whether the account exists — it never branches on the
  * outcome (Requirement 2.4).

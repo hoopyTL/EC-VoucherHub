@@ -2,7 +2,7 @@
  * RegisterCustomerPage — customer self-registration form (task 11.2).
  *
  * Collects a display name, a password, and at least one identifier (email or
- * phone). Posts to `POST /auth/register/customer` with a
+ * phone). Posts to `POST /auth/register` with a
  * {@link RegisterCustomerRequest} body.
  *
  * Client-side rules enforced here:
@@ -17,7 +17,6 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import axios from 'axios'
-import type { RegisterCustomerRequest } from '@ui-contracts'
 import { api } from '../../services/api'
 import { Button, Input } from '../../components/ui'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
@@ -87,17 +86,16 @@ export function RegisterCustomerPage() {
       return
     }
 
-    const payload: RegisterCustomerRequest = {
-      name: name.trim(),
+    const payload = {
+      fullName: name.trim(),
       password,
       ...(email.trim() ? { email: email.trim() } : {}),
-      ...(phone.trim() ? { phone: phone.trim() } : {}),
-      ...(referralCode.trim() ? { referralCode: referralCode.trim() } : {})
+      ...(phone.trim() ? { phone: phone.trim() } : {})
     }
 
     setIsSubmitting(true)
     try {
-      await api.post('/auth/register/customer', payload)
+      await api.post('/auth/register', payload)
       // Registration succeeded — send the customer to the login page to sign in.
       navigate('/login', {
         replace: true,
