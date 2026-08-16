@@ -1,11 +1,16 @@
-// Extend Express Request with validated data from Zod middleware.
+import type { JwtPayload } from '~/utils/jwt'
 
-declare namespace Express {
-  interface Request {
-    validated?: {
-      body: unknown
-      params: unknown
-      query: unknown
+declare global {
+  namespace Express {
+    interface Request {
+      validated?: {
+        body: unknown
+        params: unknown
+        query: unknown
+      }
+      user?: JwtPayload
     }
   }
 }
+
+export {}
