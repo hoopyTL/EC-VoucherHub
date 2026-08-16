@@ -46,7 +46,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Normalize release name
         id: release_name
@@ -97,13 +97,17 @@ jobs:
         if: steps.test_scripts.outputs.has_tests == 'true'
         run: npm run test:coverage --workspace=backend
 
+      - name: Frontend tests
+        if: steps.test_scripts.outputs.has_tests == 'true'
+        run: npm run test --workspace=frontend
+
       - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
+        run: ./node_modules/.bin/playwright install --with-deps chromium
 
       - name: Typecheck E2E
         run: npm run typecheck:e2e
 
-      - name: TASK-004 E2E
+      - name: Browser E2E
         run: npm run test:e2e
 
       - name: Block false-green release gate
@@ -130,7 +134,7 @@ jobs:
 
       - name: Publish GitHub release
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           files: ec-voucherhub-${{ steps.release_name.outputs.value }}.tar.gz
           generate_release_notes: true
@@ -141,4 +145,4 @@ jobs:
 
             Notes:
             - `docker-compose.yml` is dev-only PostgreSQL, not a production deployment manifest.
-            - TASK-004 Playwright E2E covers FLOW-001 and FLOW-009 against PostgreSQL.
+            - Playwright E2E covers the implemented authentication, partner, and voucher flows against PostgreSQL.

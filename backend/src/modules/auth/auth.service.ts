@@ -1,7 +1,7 @@
 import { randomInt } from 'node:crypto'
 import prisma from '~/configs/prisma'
 import { AppError } from '~/utils/app-error'
-import { hashPassword, verifyPassword } from '~/utils/password'
+import { createDummyPasswordHash, hashPassword, verifyPassword } from '~/utils/password'
 import { signAccessToken } from '~/utils/jwt'
 import { ApprovalStatus, OperatingStatus, RoleName } from '@voucher/shared'
 import { getCompatibleRoleNames, normalizeRoleName } from '~/utils/role'
@@ -20,7 +20,7 @@ const profileSelect = {
 } as const
 
 const createVerificationCode = (): string => randomInt(100000, 1000000).toString()
-const DUMMY_PASSWORD_HASH = '$2b$10$7EqJtq98hPqEX7fNZaFWoO5u1QO6qVnJt2Y/7fTZm4U6f8h1lM2eK'
+const DUMMY_PASSWORD_HASH = createDummyPasswordHash()
 const normalizeProfileRole = <T extends { role: { name: string } }>(user: T) => ({
   ...user,
   role: { name: normalizeRoleName(user.role.name) }
