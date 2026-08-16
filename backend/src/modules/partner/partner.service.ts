@@ -172,10 +172,12 @@ export const partnerService = {
   },
 
   async changeOperatingStatus(partnerId: string, dto: OperatingStatusDto) {
-    const partner = await prisma.partner.findUnique({ where: { id: partnerId } })
-    if (!partner) throw AppError.notFound('Hồ sơ đối tác')
     const operatingStatus = dto.action === 'lock' ? OperatingStatus.SUSPENDED : OperatingStatus.ACTIVE
     return prisma.$transaction(async (tx) => {
+      const locked = await tx.$queryRaw<Array<{ id: string }>>(
+        Prisma.sql`SELECT id FROM partners WHERE id = ${partnerId}::uuid FOR UPDATE`
+      )
+      if (locked.length === 0) throw AppError.notFound('Hồ sơ đối tác')
       const updated = await tx.partner.update({
         where: { id: partnerId },
         data: { operatingStatus },
