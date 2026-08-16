@@ -1,0 +1,135 @@
+name: Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: voucherhub_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d voucherhub_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/voucherhub_test
+      NODE_ENV: test
+      JWT_SECRET: ci-test-secret-at-least-32-characters
+      JWT_REFRESH_SECRET: ci-test-refresh-secret-at-least-32-chars
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Normalize release name
+        id: release_name
+        shell: bash
+        run: |
+          safe_ref="$(echo "${{ github.ref_name }}" | tr '/' '-')"
+          echo "value=$safe_ref" >> "$GITHUB_OUTPUT"
+
+      - name: Verify workspace test scripts
+        id: test_scripts
+        run: |
+          node <<'EOF'
+          const fs = require('fs')
+          const packages = ['package.json', 'backend/package.json', 'frontend/package.json', 'shared/package.json']
+          const withTests = packages.filter((file) => {
+            const json = JSON.parse(fs.readFileSync(file, 'utf8'))
+            return Boolean(json.scripts && json.scripts.test)
+          })
+
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `has_tests=${withTests.length > 0}\n`)
+          console.log(`Workspace test scripts: ${withTests.length ? withTests.join(', ') : 'none'}`)
+          EOF
+
+      - name: Prisma generate
+        run: |
+          if [ -f backend/prisma/schema.prisma ]; then
+            npm run db:generate
+          else
+            echo "schema.prisma chưa tồn tại — bỏ qua prisma generate."
+          fi
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Apply test database migrations
+        run: npm run db:deploy --workspace=backend
+
+      - name: Typecheck tests
+        run: npm run typecheck:test --workspace=backend
+
+      - name: Test
+        if: steps.test_scripts.outputs.has_tests == 'true'
+        run: npm run test:coverage --workspace=backend
+
+      - name: Block false-green release gate
+        if: steps.test_scripts.outputs.has_tests != 'true'
+        run: |
+          echo "Release bị chặn: chưa có workspace test script nên không đủ bằng chứng để release."
+          exit 1
+
+      - name: Package release bundle
+        run: |
+          mkdir -p release-bundle
+          cp package.json release-bundle/
+          cp -R backend/dist release-bundle/backend-dist
+          cp -R frontend/dist release-bundle/frontend-dist
+          cp -R shared/dist release-bundle/shared-dist
+          cp -R backend/prisma release-bundle/backend-prisma
+          tar -czf ec-voucherhub-${{ steps.release_name.outputs.value }}.tar.gz release-bundle
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ec-voucherhub-${{ steps.release_name.outputs.value }}
+          path: ec-voucherhub-${{ steps.release_name.outputs.value }}.tar.gz
+
+      - name: Publish GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ec-voucherhub-${{ steps.release_name.outputs.value }}.tar.gz
+          generate_release_notes: true
+          body: |
+            Migration rollout:
+            - Review migration state with `npm run db:status`
+            - Apply migrations with `npm run db:deploy --workspace=backend`
+
+            Notes:
+            - `docker-compose.yml` is dev-only PostgreSQL, not a production deployment manifest.
+            - E2E is not configured in this repository yet.
