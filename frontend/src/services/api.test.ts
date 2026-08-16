@@ -11,6 +11,10 @@ describe('api in-memory access token', () => {
     expect(getAccessToken()).toBeNull()
   })
 
+  it('uses the backend contract base path', () => {
+    expect(api.defaults.baseURL).toBe('/api')
+  })
+
   it('stores and reads back the access token in memory (not localStorage)', () => {
     setAccessToken('abc.def.ghi')
     expect(getAccessToken()).toBe('abc.def.ghi')

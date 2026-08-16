@@ -23,7 +23,7 @@
  * _Requirements: 2.1, 2.3, 20.2; future-development.md §2.5_
  */
 import { createContext, useCallback, useEffect, useMemo, useReducer, useRef, type ReactNode } from 'react'
-import type { AuthResponse, LoginRequest, UserRole } from '@ui-contracts'
+import type { LoginRequest, UserRole } from '@ui-contracts'
 import {
   api,
   clearAccessToken,
@@ -190,6 +190,22 @@ export interface AuthProviderProps {
   children: ReactNode
 }
 
+interface ApiEnvelope<T> {
+  success: true
+  data: T
+}
+
+interface BackendLoginResponse {
+  token: string
+  user: { id: string; role: UserRole }
+}
+
+interface BackendProfileResponse {
+  id: string
+  fullName: string
+  role: { name: UserRole }
+}
+
 export function AuthProvider({ children }: AuthProviderProps) {
   const [state, dispatch] = useReducer(authReducer, undefined, initAuthState)
   // Guards the one-shot restore probe against React 18 StrictMode double-invoke.
@@ -237,14 +253,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
       dispatch({ type: 'LOGIN', payload: { user, token: 'design-preview-token' } })
       return user
     }
-    const { data } = await api.post<AuthResponse>('/auth/login', credentials)
-    setAccessToken(data.token)
-    persistUser(data.user)
+    const loginResponse = await api.post<ApiEnvelope<BackendLoginResponse>>('/auth/login', {
+      identifier: credentials.emailOrPhone,
+      password: credentials.password
+    })
+    const { token } = loginResponse.data.data
+    setAccessToken(token)
+
+    const profileResponse = await api.get<ApiEnvelope<BackendProfileResponse>>('/me')
+    const profile = profileResponse.data.data
+    const user: AuthUser = { id: profile.id, name: profile.fullName, role: profile.role.name }
+    persistUser(user)
     dispatch({
       type: 'LOGIN',
-      payload: { user: data.user, token: data.token }
+      payload: { user, token }
     })
-    return data.user
+    return user
   }, [])
 
   const logout = useCallback(() => {

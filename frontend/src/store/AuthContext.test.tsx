@@ -117,7 +117,18 @@ describe('AuthProvider login', () => {
   })
 
   it('authenticates, stores the token in memory, persists the profile, and updates state', async () => {
-    const postSpy = vi.spyOn(api, 'post').mockResolvedValue({ data: sampleAuthResponse } as never)
+    const postSpy = vi.spyOn(api, 'post').mockResolvedValue({
+      data: {
+        success: true,
+        data: { token: sampleAuthResponse.token, user: { id: 'u1', role: UserRole.CUSTOMER } }
+      }
+    } as never)
+    vi.spyOn(api, 'get').mockResolvedValue({
+      data: {
+        success: true,
+        data: { id: 'u1', fullName: 'Alice', role: { name: UserRole.CUSTOMER } }
+      }
+    } as never)
 
     const { result } = renderHook(() => useAuth(), { wrapper })
 
@@ -129,7 +140,7 @@ describe('AuthProvider login', () => {
     })
 
     expect(postSpy).toHaveBeenCalledWith('/auth/login', {
-      emailOrPhone: 'alice@example.com',
+      identifier: 'alice@example.com',
       password: 'password123'
     })
     expect(result.current.isAuthenticated).toBe(true)
@@ -154,7 +165,16 @@ describe('AuthProvider logout', () => {
 
   it('clears the session, calls the server, and drops persisted credentials', async () => {
     const postSpy = vi.spyOn(api, 'post').mockResolvedValue({
-      data: sampleAuthResponse
+      data: {
+        success: true,
+        data: { token: sampleAuthResponse.token, user: { id: 'u1', role: UserRole.CUSTOMER } }
+      }
+    } as never)
+    vi.spyOn(api, 'get').mockResolvedValue({
+      data: {
+        success: true,
+        data: { id: 'u1', fullName: 'Alice', role: { name: UserRole.CUSTOMER } }
+      }
     } as never)
 
     const { result } = renderHook(() => useAuth(), { wrapper })

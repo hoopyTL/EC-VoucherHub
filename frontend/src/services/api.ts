@@ -34,11 +34,11 @@ export const USER_STORAGE_KEY = 'voucher_system_auth_user'
 const CSRF_COOKIE = 'csrf_token'
 
 /**
- * Base URL for all API calls. Endpoints are served under `/api/v1` and the Vite
+ * Base URL for all API calls. Endpoints are served under `/api` and the Vite
  * dev server proxies `/api` to the backend. Can be overridden via the
  * `VITE_API_BASE_URL` environment variable for non-proxied deployments.
  */
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api/v1'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api'
 const IS_DESIGN_PREVIEW = import.meta.env.VITE_DESIGN_PREVIEW === 'true'
 
 // ---------------------------------------------------------------------------
