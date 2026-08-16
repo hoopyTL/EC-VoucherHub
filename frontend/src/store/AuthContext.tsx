@@ -27,6 +27,7 @@ import {
   setAccessToken,
   setPersistedUser
 } from '../services/api'
+import { updateProfile as updateProfileRequest, type AuthProfile, type UpdateProfileInput } from '../services/auth'
 
 const IS_DESIGN_PREVIEW = import.meta.env.VITE_DESIGN_PREVIEW === 'true'
 const DESIGN_GUEST_PATHS = ['/login', '/register', '/forgot-password', '/partner/register'] as const
@@ -57,6 +58,8 @@ export interface AuthContextValue extends Omit<AuthState, 'isRestoring'> {
   isLoading: boolean
   /** Authenticates with the backend, stores the token in memory, updates state. */
   login: (credentials: LoginRequest) => Promise<AuthUser>
+  /** Updates the backend profile and synchronizes global display state. */
+  updateProfile: (input: UpdateProfileInput) => Promise<AuthProfile>
   /** Clears the session (token + user) locally and revokes it server-side. */
   logout: () => void
 }
@@ -65,7 +68,10 @@ export interface AuthContextValue extends Omit<AuthState, 'isRestoring'> {
 // Reducer
 // ---------------------------------------------------------------------------
 
-type AuthAction = { type: 'LOGIN'; payload: { user: AuthUser; token: string } } | { type: 'LOGOUT' }
+type AuthAction =
+  | { type: 'LOGIN'; payload: { user: AuthUser; token: string } }
+  | { type: 'UPDATE_USER'; payload: AuthUser }
+  | { type: 'LOGOUT' }
 
 function authReducer(state: AuthState, action: AuthAction): AuthState {
   switch (action.type) {
@@ -76,6 +82,8 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         isAuthenticated: true,
         isRestoring: false
       }
+    case 'UPDATE_USER':
+      return { ...state, user: action.payload }
     case 'LOGOUT':
       return { user: null, token: null, isAuthenticated: false, isRestoring: false }
     default:
@@ -210,6 +218,33 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [])
 
+  const updateProfile = useCallback(
+    async (input: UpdateProfileInput): Promise<AuthProfile> => {
+      if (IS_DESIGN_PREVIEW) {
+        const current = state.user ?? { id: 'customer-preview', name: input.fullName, role: 'CUSTOMER' as const }
+        const user = { ...current, name: input.fullName }
+        dispatch({ type: 'UPDATE_USER', payload: user })
+        return {
+          id: user.id,
+          email: input.email ?? null,
+          phone: input.phone ?? null,
+          fullName: user.name,
+          address: input.address ?? null,
+          status: 'ACTIVE',
+          role: { name: user.role },
+          createdAt: '',
+          updatedAt: ''
+        }
+      }
+      const profile = await updateProfileRequest(input)
+      const user: AuthUser = { id: profile.id, name: profile.fullName, role: profile.role.name }
+      persistUser(user)
+      dispatch({ type: 'UPDATE_USER', payload: user })
+      return profile
+    },
+    [state.user]
+  )
+
   const logout = useCallback(() => {
     if (IS_DESIGN_PREVIEW) {
       dispatch({ type: 'LOGOUT' })
@@ -229,9 +264,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       isAuthenticated: state.isAuthenticated,
       isLoading: state.isRestoring,
       login,
+      updateProfile,
       logout
     }),
-    [state, login, logout]
+    [state, login, updateProfile, logout]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

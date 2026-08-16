@@ -48,6 +48,37 @@ export async function forgotPassword(emailOrPhone: string): Promise<ForgotPasswo
   }
 }
 
+export interface AuthProfile {
+  id: string
+  email: string | null
+  phone: string | null
+  fullName: string
+  address: string | null
+  status: string
+  role: { name: 'ADMIN' | 'PARTNER' | 'CUSTOMER' }
+  createdAt: string
+  updatedAt: string
+}
+
+export interface UpdateProfileInput {
+  fullName: string
+  email?: string
+  phone?: string
+  address?: string
+}
+
+/** Read the authenticated user's current backend profile. */
+export async function getProfile(): Promise<AuthProfile> {
+  const { data: response } = await api.get<ApiEnvelope<AuthProfile>>('/me')
+  return response.data
+}
+
+/** Update supported self-service profile fields. */
+export async function updateProfile(input: UpdateProfileInput): Promise<AuthProfile> {
+  const { data: response } = await api.patch<ApiEnvelope<AuthProfile>>('/me', input)
+  return response.data
+}
+
 /**
  * Change the authenticated user's password (Req 2.6). Requires the correct
  * current password; the backend returns a 401 ("Current password is incorrect")

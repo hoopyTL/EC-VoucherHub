@@ -9,10 +9,9 @@ import { AuthContext, type AuthContextValue, type AuthUser } from '../../store/A
  * Header navigation tests — focus on the auth-gating of role-specific links.
  *
  * Regression guard: the customer destinations (Cart / Orders) must
- * only appear once the session is confirmed authenticated. During the initial
- * refresh probe `user` may be populated from the persisted profile while
- * `isAuthenticated` is still false; the header must NOT leak those links to a
- * visitor who is not (yet) logged in.
+ * only appear once the session is confirmed authenticated. Even if a caller
+ * provides stale user display data while `isAuthenticated` is false, the header
+ * must not leak authenticated navigation links.
  */
 function makeAuth(overrides: Partial<AuthContextValue>): AuthContextValue {
   return {
@@ -21,6 +20,17 @@ function makeAuth(overrides: Partial<AuthContextValue>): AuthContextValue {
     isAuthenticated: false,
     isLoading: false,
     login: async () => ({ id: '', name: '', role: 'CUSTOMER' }),
+    updateProfile: async () => ({
+      id: '',
+      email: null,
+      phone: null,
+      fullName: '',
+      address: null,
+      status: 'ACTIVE',
+      role: { name: 'CUSTOMER' },
+      createdAt: '',
+      updatedAt: ''
+    }),
     logout: () => {},
     ...overrides
   }
