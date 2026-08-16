@@ -16,8 +16,11 @@
  *
  * _Requirements: 5.1, 5.2, 5.3, 5.4, 6.1, 6.2, 6.3, 9.2, 9.3, 9.4_
  */
+import type { AccountStatus, UserRole } from '@ui-contracts'
+
 import { api } from './api'
 import type {
+  AdminAccount,
   AccountStatusChange,
   AnalyticsOverview,
   DashboardStats,
@@ -28,6 +31,38 @@ import type {
   PartnerApprovalView,
   VoucherApprovalView
 } from '../types/admin'
+
+interface ApiEnvelope<T> {
+  success: true
+  data: T
+}
+
+interface BackendUserView {
+  id: string
+  email: string | null
+  phone: string | null
+  fullName: string
+  role: { name: UserRole }
+  status: AccountStatus
+}
+
+interface BackendListUsersResult {
+  items: BackendUserView[]
+  nextCursor: string | null
+}
+
+function toAdminAccount(user: BackendUserView): AdminAccount {
+  const role = user.role.name
+  return {
+    accountType: role === 'PARTNER' ? 'PARTNER' : 'USER',
+    id: user.id,
+    email: user.email,
+    phone: user.phone,
+    name: user.fullName,
+    role,
+    status: user.status
+  }
+}
 
 /** Fetch platform-wide dashboard statistics for the admin overview. */
 export async function getDashboardStats(): Promise<DashboardStats> {
@@ -52,26 +87,31 @@ export async function getAnalytics(days?: number): Promise<AnalyticsOverview> {
  * (Req 5.1, 5.2). The backend searches name, email, and phone case-insensitively.
  */
 export async function listUsers(params: ListUsersParams = {}): Promise<ListUsersResult> {
-  const { data } = await api.get<ListUsersResult>('/admin/users', {
+  const { data: response } = await api.get<ApiEnvelope<BackendListUsersResult>>('/admin/users', {
     params: {
-      search: params.search || undefined,
-      page: params.page,
+      q: params.search || undefined,
+      cursor: params.cursor,
       limit: params.limit
     }
   })
-  return data
+  return {
+    items: response.data.items.map(toAdminAccount),
+    nextCursor: response.data.nextCursor
+  }
 }
 
 /** Lock an account so the holder can no longer log in (Req 5.3). */
 export async function lockUser(id: string): Promise<AccountStatusChange> {
-  const { data } = await api.patch<AccountStatusChange>(`/admin/users/${id}/lock`)
-  return data
+  const { data: response } = await api.patch<ApiEnvelope<BackendUserView>>(`/admin/users/${id}/lock`)
+  const user = toAdminAccount(response.data)
+  return { id: user.id, accountType: user.accountType, status: user.status }
 }
 
 /** Unlock an account so the holder can log in again (Req 5.4). */
 export async function unlockUser(id: string): Promise<AccountStatusChange> {
-  const { data } = await api.patch<AccountStatusChange>(`/admin/users/${id}/unlock`)
-  return data
+  const { data: response } = await api.patch<ApiEnvelope<BackendUserView>>(`/admin/users/${id}/unlock`)
+  const user = toAdminAccount(response.data)
+  return { id: user.id, accountType: user.accountType, status: user.status }
 }
 
 // ---------------------------------------------------------------------------

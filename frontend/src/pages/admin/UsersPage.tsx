@@ -7,22 +7,21 @@
  *   - Lock / unlock action buttons that call PATCH /admin/users/:id/{lock,unlock}
  *     (Req 5.3, 5.4) and refresh the list on success.
  *
- * Users and Partners live in separate backend tables and are returned as two
- * lists under a shared page/limit; this page merges them into one table, tagging
- * each row with its account type. Lock/unlock runs through TanStack Query and
- * invalidates the list so the table reflects authoritative server state.
+ * The API returns user accounts with their role and cursor pagination. The
+ * client adapter tags partner-role users for display. Lock/unlock runs through
+ * TanStack Query and invalidates the list so the table reflects server state.
  *
  * The app shell does not mount a global toast provider, so success/error
  * feedback is rendered as inline `role="alert"`/`role="status"` regions.
  *
  * _Requirements: 5.1, 5.2, 5.3, 5.4_
  */
-import { useMemo, useState, type CSSProperties, type FormEvent } from 'react'
+import { useState, type CSSProperties, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AccountStatus } from '@ui-contracts'
 import { getAdminApiError, listUsers, lockUser, unlockUser } from '../../services/admin'
 import type { AdminAccount, ListUsersResult } from '../../types/admin'
-import { Badge, Button, Input, LoadingSpinner, Modal, Pagination, variantForStatus } from '../../components/ui'
+import { Badge, Button, Input, LoadingSpinner, Modal, variantForStatus } from '../../components/ui'
 import { formatStatus } from '../../utils/format'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
 
@@ -33,12 +32,10 @@ const PAGE_LIMIT = 20
 const USERS_QUERY_KEY = 'admin-users'
 
 /**
- * Merge the separately-returned user and partner lists into a single ordered
- * collection for the table. Users are listed first, then partners; each row
- * keeps its `accountType` discriminator so the UI can label it.
+ * Return the normalized account collection supplied by the API adapter.
  */
 export function combineAccounts(result: ListUsersResult): AdminAccount[] {
-  return [...result.users, ...result.partners]
+  return result.items
 }
 
 /**
@@ -47,12 +44,6 @@ export function combineAccounts(result: ListUsersResult): AdminAccount[] {
  */
 export function isLocked(account: AdminAccount): boolean {
   return account.status === AccountStatus.LOCKED
-}
-
-/** Compute the number of pages, given the larger of the two subtotal counts. */
-export function totalPagesFor(result: ListUsersResult, limit: number): number {
-  const maxSubtotal = Math.max(result.pagination.userTotal, result.pagination.partnerTotal)
-  return Math.max(1, Math.ceil(maxSubtotal / limit))
 }
 
 /** A human label for the account type column. */
@@ -68,7 +59,7 @@ export function UsersPage() {
   // value bound to the input before submission.
   const [searchTerm, setSearchTerm] = useState('')
   const [searchInput, setSearchInput] = useState('')
-  const [page, setPage] = useState(1)
+  const [cursorHistory, setCursorHistory] = useState<(string | undefined)[]>([undefined])
 
   // Account pending a lock/unlock confirmation (null when no prompt is shown).
   const [pending, setPending] = useState<AdminAccount | null>(null)
@@ -76,8 +67,8 @@ export function UsersPage() {
   const [notice, setNotice] = useState<string | null>(null)
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: [USERS_QUERY_KEY, { search: searchTerm, page }],
-    queryFn: () => listUsers({ search: searchTerm, page, limit: PAGE_LIMIT })
+    queryKey: [USERS_QUERY_KEY, { search: searchTerm, cursor: cursorHistory.at(-1) }],
+    queryFn: () => listUsers({ search: searchTerm, cursor: cursorHistory.at(-1), limit: PAGE_LIMIT })
   })
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: [USERS_QUERY_KEY] })
@@ -94,13 +85,13 @@ export function UsersPage() {
     }
   })
 
-  const accounts = useMemo(() => (data ? combineAccounts(data) : []), [data])
-  const totalPages = data ? totalPagesFor(data, PAGE_LIMIT) : 1
+  const accounts = data ? combineAccounts(data) : []
+  const page = cursorHistory.length
 
   function handleSearch(event: FormEvent) {
     event.preventDefault()
     setNotice(null)
-    setPage(1)
+    setCursorHistory([undefined])
     setSearchTerm(searchInput.trim())
   }
 
@@ -134,7 +125,7 @@ export function UsersPage() {
             onClick={() => {
               setSearchInput('')
               setSearchTerm('')
-              setPage(1)
+              setCursorHistory([undefined])
               setNotice(null)
             }}
           >
@@ -215,16 +206,30 @@ export function UsersPage() {
             </table>
           </div>
 
-          {totalPages > 1 && (
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
-              <Pagination
-                currentPage={page}
-                totalPages={totalPages}
-                onPageChange={(next) => {
+          {(page > 1 || data.nextCursor) && (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginTop: 16 }}>
+              <Button
+                variant='secondary'
+                disabled={page === 1}
+                onClick={() => {
                   setNotice(null)
-                  setPage(next)
+                  setCursorHistory((history) => history.slice(0, -1))
                 }}
-              />
+              >
+                Trang trước
+              </Button>
+              <span>Trang {page}</span>
+              <Button
+                variant='secondary'
+                disabled={!data.nextCursor}
+                onClick={() => {
+                  if (!data.nextCursor) return
+                  setNotice(null)
+                  setCursorHistory((history) => [...history, data.nextCursor ?? undefined])
+                }}
+              >
+                Trang sau
+              </Button>
             </div>
           )}
         </>
