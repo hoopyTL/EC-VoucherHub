@@ -82,7 +82,13 @@ npm run dev
 | --- | --- | --- |
 | 1 | Đối tác tạo voucher (giá bán < giá gốc, đủ thời gian) | Voucher `nhap` |
 | 2 | Gửi duyệt | Voucher → `cho_duyet` |
-| 3 | Admin duyệt → công bố | Voucher → `da_duyet` → `dang_ban`, xuất hiện trong tìm kiếm |
+| 3 | Admin từ chối + lý do | Voucher → `tu_choi`, đối tác thấy lý do |
+| 4 | Đối tác sửa lại | Voucher → `nhap` (về nháp, sửa thoải mái, lưu nhiều lần) |
+| 5 | Gửi duyệt lại | Voucher → `cho_duyet` |
+| 6 | Admin duyệt | Voucher → `da_duyet` |
+| 7 | Admin công bố | Voucher → `dang_ban`, xuất hiện trong tìm kiếm |
+
+> **Talking point**: Voucher bị từ chối trở về trạng thái nháp (không gửi duyệt lại trực tiếp), giúp đối tác sửa kỹ trước khi re-submit. Admin cũng có thể thu hồi duyệt (`da_duyet` → `tu_choi`) nếu phát hiện sai sót trước khi công bố.
 
 ### Scenario 6 — Kiểm tra → xác nhận sử dụng voucher `@FLOW-007`
 
@@ -98,12 +104,13 @@ npm run dev
 | --- | --- | --- |
 | 1 | Admin hoàn tiền một đơn `da_thanh_toan` | Đơn → `da_hoan_tien`; mã liên quan → `bi_huy`; tồn kho hoàn trả |
 
-### Scenario 8 — Dashboard & nhật ký quản trị `@FLOW-011` `@FLOW-012`
+### Scenario 8 — Dashboard quản trị `@FLOW-011`
 
 | Bước | Do | Expect |
 | --- | --- | --- |
 | 1 | Mở dashboard Admin | Tổng người dùng/đối tác/voucher/đơn/doanh thu/voucher đã dùng |
-| 2 | Mở Nhật_ký_hệ_thống | Thấy bản ghi các thao tác quản trị từ Scenario 4 & 7 (người, hành động, thời điểm) |
+
+> **Talking point**: Dashboard tổng hợp toàn bộ các số liệu thống kê thực tế theo thời gian thực (doanh thu, người dùng, voucher đã bán và sử dụng). (Chức năng Nhật ký hệ thống `@FLOW-012` được hoãn lại sau MVP).
 
 ## 3. Demo lỗi / edge (chứng minh ràng buộc nghiệp vụ)
 
