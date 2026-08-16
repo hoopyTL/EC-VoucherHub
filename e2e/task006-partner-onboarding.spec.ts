@@ -59,7 +59,7 @@ test('@FLOW-005 partner registers, gets approved, then manages branches', async 
   await page.goto('/login')
   await login(page, applicant.email)
   await expect(page).toHaveURL(/\/partner$/)
-  await page.getByRole('link', { name: 'Chi nhánh' }).click()
+  await page.getByRole('link', { name: 'Chi nhánh', exact: true }).click()
   await expect(page).toHaveURL(/\/partner\/branches$/)
   await expect(page.getByText(applicant.branchName)).toBeVisible()
 

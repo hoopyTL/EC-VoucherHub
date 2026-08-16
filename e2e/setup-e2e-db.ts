@@ -14,6 +14,7 @@ async function resetDatabase(): Promise<void> {
   await prisma.cart.deleteMany()
   await prisma.voucherProductBranch.deleteMany()
   await prisma.voucherProduct.deleteMany()
+  await prisma.category.deleteMany()
   await prisma.branch.deleteMany()
   await prisma.partner.deleteMany()
   await prisma.user.deleteMany()
@@ -21,6 +22,8 @@ async function resetDatabase(): Promise<void> {
 
 export async function setupE2eDatabase(): Promise<void> {
   await resetDatabase()
+
+  await prisma.category.create({ data: { name: 'E2E Ẩm thực' } })
 
   const roles = new Map<string, number>()
   for (const name of ['ADMIN', 'PARTNER', 'CUSTOMER']) {
