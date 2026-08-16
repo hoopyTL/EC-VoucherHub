@@ -165,6 +165,28 @@ async function loadVoucherDto(id: string, tx: Prisma.TransactionClient = prisma)
   return toVoucherDto(voucher, counts.get(id))
 }
 
+async function listVouchers(
+  input: VoucherListInput,
+  where: Prisma.VoucherProductWhereInput | undefined,
+  orderBy: Prisma.VoucherProductOrderByWithRelationInput
+) {
+  const [records, total] = await prisma.$transaction([
+    prisma.voucherProduct.findMany({
+      where,
+      include: voucherInclude,
+      orderBy,
+      skip: (input.page - 1) * input.limit,
+      take: input.limit
+    }),
+    prisma.voucherProduct.count({ where })
+  ])
+  const counts = await loadCodeCounts(records.map(({ id }) => id))
+  return {
+    vouchers: records.map((record) => toVoucherDto(record, counts.get(record.id))),
+    pagination: { page: input.page, limit: input.limit, total }
+  }
+}
+
 async function updateStatusAtomically(
   tx: Prisma.TransactionClient,
   voucher: VoucherRecord,
@@ -222,21 +244,7 @@ export const voucherService = {
   async listMine(userId: string, input: VoucherListInput) {
     const partner = await getPartnerByOwner(userId)
     const where = { partnerId: partner.id, ...(input.status && { status: input.status }) }
-    const [records, total] = await prisma.$transaction([
-      prisma.voucherProduct.findMany({
-        where,
-        include: voucherInclude,
-        orderBy: { createdAt: 'desc' },
-        skip: (input.page - 1) * input.limit,
-        take: input.limit
-      }),
-      prisma.voucherProduct.count({ where })
-    ])
-    const counts = await loadCodeCounts(records.map(({ id }) => id))
-    return {
-      vouchers: records.map((record) => toVoucherDto(record, counts.get(record.id))),
-      pagination: { page: input.page, limit: input.limit, total }
-    }
+    return listVouchers(input, where, { createdAt: 'desc' })
   },
 
   async getMine(userId: string, voucherId: string) {
@@ -316,21 +324,7 @@ export const voucherService = {
 
   async listAdmin(input: VoucherListInput) {
     const where = input.status ? { status: input.status } : undefined
-    const [records, total] = await prisma.$transaction([
-      prisma.voucherProduct.findMany({
-        where,
-        include: voucherInclude,
-        orderBy: { updatedAt: 'desc' },
-        skip: (input.page - 1) * input.limit,
-        take: input.limit
-      }),
-      prisma.voucherProduct.count({ where })
-    ])
-    const counts = await loadCodeCounts(records.map(({ id }) => id))
-    return {
-      vouchers: records.map((record) => toVoucherDto(record, counts.get(record.id))),
-      pagination: { page: input.page, limit: input.limit, total }
-    }
+    return listVouchers(input, where, { updatedAt: 'desc' })
   },
 
   async review(voucherId: string, input: VoucherApprovalInput) {
