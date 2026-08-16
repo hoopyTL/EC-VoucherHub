@@ -7,6 +7,7 @@ import { env } from '~/configs/env'
 import { notFoundHandler } from '~/middlewares/not-found'
 import { errorHandler } from '~/middlewares/error-handler'
 import { ApiResponse } from '~/utils/api-response'
+import apiRouter from '~/modules'
 
 const app = express()
 
@@ -34,7 +35,7 @@ app.get('/', (_req, res) => {
   ApiResponse.success(res, { message: 'Welcome VoucherHub' })
 })
 
-// Future: app.use('/api/v1', router)
+app.use('/api', apiRouter)
 
 // Error handling
 app.use(notFoundHandler)
