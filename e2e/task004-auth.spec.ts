@@ -6,13 +6,13 @@ test('@FLOW-001 password reset request stays generic through the UI', async ({ p
   await page.goto('/forgot-password')
   await page.getByLabel('Email or phone').fill('unknown.browser.e2e@voucherhub.test')
   const resetResponse = page.waitForResponse((response) => response.url().endsWith('/api/auth/password-reset'))
-  await page.getByRole('button', { name: 'Send reset link' }).click()
+  await page.getByRole('button', { name: 'Request reset' }).click()
 
   expect((await resetResponse).status()).toBe(200)
   await expect(page.getByRole('status')).toContainText('If the account exists')
 })
 
-test('@FLOW-001 customer registers, logs in and changes password through the UI', async ({ page }) => {
+test('@FLOW-001 customer registers, updates profile and changes password through the UI', async ({ page }) => {
   const pageErrors: string[] = []
   page.on('pageerror', (error) => pageErrors.push(error.message))
 
@@ -33,6 +33,16 @@ test('@FLOW-001 customer registers, logs in and changes password through the UI'
 
   await page.getByRole('link', { name: 'Browser E2E Customer' }).click()
   await expect(page.getByRole('heading', { name: 'Browser E2E Customer' })).toBeVisible()
+
+  await page.getByLabel('Full name').fill('Browser E2E Customer Updated')
+  const profileResponse = page.waitForResponse(
+    (response) => response.url().endsWith('/api/me') && response.request().method() === 'PATCH'
+  )
+  await page.getByRole('button', { name: 'Save profile' }).click()
+  expect((await profileResponse).status()).toBe(200)
+  await expect(page.getByRole('heading', { name: 'Browser E2E Customer Updated' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Browser E2E Customer Updated' })).toBeVisible()
+
   await page.locator('input[name="currentPassword"]').fill(E2E_PASSWORD)
   await page.locator('input[name="newPassword"]').fill(E2E_NEW_PASSWORD)
   await page.locator('input[name="confirmNewPassword"]').fill(E2E_NEW_PASSWORD)
