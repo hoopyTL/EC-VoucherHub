@@ -73,8 +73,13 @@ npm run dev
 
 | Bước | Do | Expect |
 | --- | --- | --- |
-| 1 | Đăng ký Đối tác mới (thông tin pháp lý + đại diện) | Hồ sơ `cho_duyet`; chưa được công bố voucher |
-| 2 | Đăng nhập Admin → duyệt hồ sơ | Đối tác → `da_duyet`, ghi Nhật_ký_hệ_thống |
+| 1 | Mở `/register/partner`, nhập tài khoản, tên pháp lý, mã số thuế, người đại diện và ít nhất một chi nhánh | Tạo nguyên tử tài khoản `PARTNER`, hồ sơ `PENDING` và chi nhánh; chuyển về login |
+| 2 | Thử đăng nhập bằng tài khoản vừa tạo | Bị chặn `403` với thông báo hồ sơ đang chờ duyệt |
+| 3 | Đăng nhập Admin, mở **Duyệt đối tác**, kiểm tra pháp lý/chi nhánh rồi bấm **Approve** | Hồ sơ chuyển `APPROVED` và biến mất khỏi danh sách pending |
+| 4 | Đăng xuất Admin, đăng nhập lại bằng tài khoản Partner | Vào workspace `/partner` thành công |
+| 5 | Mở **Chi nhánh**, thêm một branch, sửa tên rồi xoá | POST/PATCH/DELETE thành công; danh sách được refetch sau mỗi thao tác |
+
+> **Talking point**: trạng thái Partner được đọc lại từ database ở cả login và mỗi request. Vì vậy Admin khóa/từ chối hồ sơ sẽ chặn ngay token cũ; frontend không thể vượt qua bằng JWT đã cấp trước đó.
 
 ### Scenario 5 — Tạo voucher → gửi duyệt → công bố `@FLOW-006`
 
@@ -121,6 +126,9 @@ npm run dev
 | Thanh toán thất bại | Chọn outcome thất bại ở Payment Sim | Đơn giữ `cho_thanh_toan`, **không** phát hành mã |
 | Mã ngoài phạm vi | Đối tác A xác thực mã của Đối tác B | Từ chối "ngoài phạm vi" |
 | Truy cập ngoài quyền | Khách hàng gọi API quản trị | 403 "không đủ quyền" (RBAC) |
+| Đối tác chưa duyệt | Partner `PENDING` thử đăng nhập | 403 "hồ sơ đối tác đang chờ duyệt" |
+| Sửa chi nhánh chéo | Partner A dùng ID branch của Partner B | 403 "ngoài phạm vi đối tác" |
+| Xoá branch đang dùng | Xoá branch đã gắn voucher/usage log | 409, dữ liệu được giữ nguyên |
 | Đánh giá khi chưa mua | Gửi đánh giá voucher chưa mua | Từ chối "chưa đủ điều kiện đánh giá" |
 
 ## 4. Dọn dẹp (Teardown)

@@ -8,15 +8,11 @@ import type { Branch, PartnerVoucher } from '../../types/partner'
 
 function makeBranch(overrides: Partial<Branch> = {}): Branch {
   return {
-    id: 'b-1',
+    id: 1,
     name: 'Downtown',
     address: '1 Main St',
     region: 'Hà Nội',
-    contact: '0123',
-    isActive: true,
     partnerId: 'p-1',
-    createdAt: '2025-01-01T00:00:00.000Z',
-    updatedAt: '2025-01-01T00:00:00.000Z',
     ...overrides
   }
 }
@@ -38,12 +34,12 @@ function makeVoucher(overrides: Partial<PartnerVoucher> = {}): PartnerVoucher {
 
 /**
  * Mock the two GET endpoints the dashboard fans out to. `/partner/branches`
- * returns a bare array; `/partner/vouchers` returns the paginated envelope.
+ * returns the standard API envelope; `/partner/vouchers` uses its legacy payload.
  */
 function mockApi(branches: Branch[], vouchers: PartnerVoucher[]) {
   vi.spyOn(api, 'get').mockImplementation((url: string) => {
     if (url === '/partner/branches') {
-      return Promise.resolve({ data: branches } as never)
+      return Promise.resolve({ data: { success: true, data: branches } } as never)
     }
     if (url === '/partner/vouchers') {
       return Promise.resolve({
@@ -68,7 +64,7 @@ function renderPage() {
 describe('deriveDashboardStats', () => {
   it('counts branches, vouchers by status, units sold and gross sales', () => {
     const stats = deriveDashboardStats(
-      [makeBranch({ isActive: true }), makeBranch({ id: 'b-2', isActive: false })],
+      [makeBranch(), makeBranch({ id: 2 })],
       [
         makeVoucher({ id: 'v-1', status: 'APPROVED', salePrice: '100', soldQuantity: 2 }),
         makeVoucher({ id: 'v-2', status: 'DRAFT', salePrice: '50', soldQuantity: 0 }),
@@ -77,7 +73,7 @@ describe('deriveDashboardStats', () => {
     )
 
     expect(stats.totalBranches).toBe(2)
-    expect(stats.activeBranches).toBe(1)
+    expect(stats.activeBranches).toBe(2)
     expect(stats.totalVouchers).toBe(3)
     expect(stats.approvedVouchers).toBe(2)
     expect(stats.unitsSold).toBe(7)
@@ -107,7 +103,7 @@ describe('DashboardPage', () => {
 
   it('renders derived overview stats from branches and vouchers', async () => {
     mockApi(
-      [makeBranch({ isActive: true }), makeBranch({ id: 'b-2', isActive: false })],
+      [makeBranch(), makeBranch({ id: 2 })],
       [
         makeVoucher({ id: 'v-1', status: 'APPROVED', soldQuantity: 4 }),
         makeVoucher({ id: 'v-2', status: 'DRAFT', soldQuantity: 0 })
@@ -116,8 +112,8 @@ describe('DashboardPage', () => {
 
     renderPage()
 
-    // Active branches card shows "1 / 2".
-    expect(await screen.findByText('1 / 2')).toBeDefined()
+    // Every persisted branch is active in the current schema.
+    expect(await screen.findByText('2 / 2')).toBeDefined()
     // Units sold card.
     expect(screen.getByText('4')).toBeDefined()
     // Status breakdown lists both statuses.

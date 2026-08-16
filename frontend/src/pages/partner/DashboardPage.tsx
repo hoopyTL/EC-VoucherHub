@@ -3,7 +3,7 @@
  *
  * There is no dedicated partner stats endpoint, so this page derives a clean
  * MVP overview from the two lists the partner already owns:
- *   - GET /partner/branches  → branch counts (total / active)
+ *   - GET /partner/branches  → branch count
  *   - GET /partner/vouchers  → voucher counts by status + units sold
  *
  * Both queries run via TanStack Query. The page surfaces loading (spinner) and
@@ -57,7 +57,7 @@ export function deriveDashboardStats(branches: Branch[], vouchers: PartnerVouche
 
   return {
     totalBranches: branches.length,
-    activeBranches: branches.filter((b) => b.isActive).length,
+    activeBranches: branches.length,
     totalVouchers: vouchers.length,
     approvedVouchers,
     unitsSold,

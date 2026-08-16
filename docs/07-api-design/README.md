@@ -34,7 +34,7 @@ Client luôn kiểm tra `success` trước khi đọc `data`. Không bao giờ t
 - Header: `Authorization: Bearer <JWT>`. Không bao giờ truyền token qua query string.
 - JWT payload: `{ sub: userId, role, partnerId? }`. Middleware kiểm tra vai trò; phạm vi sở hữu được kiểm tra tại service (FR-03).
 - Role sử dụng thống nhất trong API và database: `ADMIN`, `PARTNER`, `CUSTOMER`.
-- Endpoint công khai (không cần token): `POST /auth/register`, `POST /auth/login`, `POST /auth/password-reset`, `GET /vouchers`, `GET /vouchers/:id`.
+- Endpoint công khai (không cần token): `POST /auth/register`, `POST /auth/login`, `POST /auth/password-reset`, `POST /partners`, `GET /vouchers`, `GET /vouchers/:id`.
 
 ### 1.4 Phân trang, lọc
 
@@ -110,13 +110,17 @@ Client luôn kiểm tra `success` trước khi đọc `data`. Không bao giờ t
 | POST | `/vouchers/:id/reviews` | Gửi đánh giá/phản hồi | Khách hàng | FR-10 |
 | GET | `/partner/reports` | Báo cáo đối tác | Đối tác | FR-16 |
 | GET | `/partner` | Hồ sơ đối tác | Đối tác | FR-11 |
-| POST | `/partners` | Đăng ký đối tác | mọi vai trò | FR-11 |
+| POST | `/partners` | Đăng ký tài khoản + hồ sơ + chi nhánh ban đầu | công khai | FR-11 |
 | PATCH | `/partner` | Cập nhật hồ sơ đối tác | Đối tác | FR-11 |
+| GET | `/partner/branches` | Danh sách chi nhánh thuộc đối tác | Đối tác | FR-11 |
 | POST | `/partner/branches` | Thêm chi nhánh | Đối tác | FR-11 |
 | PATCH | `/partner/branches/:id` | Sửa chi nhánh | Đối tác | FR-11 |
-| DELETE | `/partner/branches/:id` | Xoá chi nhánh | Đối tác | FR-11 |
+| DELETE | `/partner/branches/:id` | Xoá chi nhánh chưa được tham chiếu | Đối tác | FR-11 |
+| GET | `/admin/partners` | Danh sách hồ sơ đối tác | Admin | FR-18 |
+| GET | `/admin/partners/pending` | Danh sách hồ sơ chờ duyệt | Admin | FR-18 |
 | PATCH | `/admin/partners/:id/approval` | Duyệt/từ chối đối tác | Admin | FR-18 |
 | PATCH | `/admin/partners/:id/lock` | Khoá/mở khoá đối tác | Admin | FR-18 |
+| PATCH | `/admin/partners/:partnerId/branches/:id` | Sửa chi nhánh trong phạm vi đối tác | Admin | FR-18 |
 | GET/POST/PATCH/DELETE | `/admin/content/:type` | CRUD nội dung | Admin | FR-21 |
 | GET | `/admin/dashboard` | Dashboard tổng quan | Admin | FR-22 |
 | GET | `/admin/audit-logs` | Tra cứu nhật ký | Admin | FR-23 |
@@ -215,6 +219,35 @@ Không kết quả → `items: []` + 200 (không phải 404).
 **Request** `{ "action": "publish" }` (`publish`/`suspend`/`unpublish`).
 **200 OK** `{ success:true, data:{ id, status:"dang_ban" } }`.
 **Lỗi**: công bố khi không phải `da_duyet` → 409 (`chỉ công bố voucher đã duyệt`).
+
+### 3.9 `POST /partners` và duyệt đối tác (FR-11, FR-18)
+
+**Đăng ký công khai**
+
+```jsonc
+{
+  "email": "partner@example.com",
+  "phone": "0901234567",
+  "password": "ValidPassword123!",
+  "legalName": "Công ty Voucher Demo",
+  "taxCode": "TAX-001",
+  "representative": "Nguyễn Đại Diện",
+  "branches": [{ "name": "Chi nhánh Quận 1", "address": "1 Nguyễn Huệ", "region": "Hồ Chí Minh" }]
+}
+```
+
+API tạo `User(PARTNER)`, `Partner(PENDING)` và toàn bộ `Branch` trong một transaction. Email hoặc phone phải có ít nhất một; định danh hoặc mã số thuế trùng trả `409` và không để lại bản ghi dở dang. Partner `PENDING`/`REJECTED` không được đăng nhập.
+
+**Duyệt/từ chối**
+
+```jsonc
+{ "action": "approve" }
+{ "action": "reject", "reason": "Mã số thuế không hợp lệ" }
+```
+
+Chỉ hồ sơ `PENDING` được review; thao tác lặp trả `409`. Khoá đối tác bằng `PATCH /admin/partners/:id/lock` với `{ "action": "lock" }`; token đã cấp bị chặn ngay và voucher `ON_SALE` của đối tác được chuyển `PAUSED` trong cùng transaction. `{ "action": "unlock" }` mở lại quyền truy cập nhưng không tự công bố lại voucher.
+
+Branch dùng ID số. Partner chỉ được sửa/xoá branch thuộc chính mình; truy cập chéo trả `403`. `DELETE` trả `204`; branch đang gắn voucher, usage log hoặc chịu phạm vi voucher toàn hệ thống trả `409`.
 
 ## 4. Bản đồ mã trạng thái
 

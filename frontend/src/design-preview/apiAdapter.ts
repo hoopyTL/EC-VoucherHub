@@ -197,15 +197,19 @@ const USERS = {
 
 const PENDING_PARTNER = {
   id: 'partner-pending-1',
-  email: 'contact@anviet.vn',
-  phone: '0908889999',
-  businessName: 'Ẩm Thực An Việt',
-  businessRegNumber: '0312345678',
-  taxId: '0312345678',
-  representativeName: 'Phạm Thu An',
-  representativeContact: '0908889999',
-  status: 'PENDING_APPROVAL',
-  rejectionReason: null,
+  ownerUserId: 'user-partner-pending-1',
+  legalName: 'Ẩm Thực An Việt',
+  taxCode: '0312345678',
+  representative: 'Phạm Thu An',
+  approvalStatus: 'PENDING',
+  rejectReason: null,
+  operatingStatus: 'ACTIVE',
+  branches: BRANCHES,
+  owner: {
+    email: 'contact@anviet.vn',
+    phone: '0908889999',
+    fullName: 'Phạm Thu An'
+  },
   createdAt: NOW,
   updatedAt: NOW
 }

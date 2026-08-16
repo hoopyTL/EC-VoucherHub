@@ -3,12 +3,12 @@
  * (PAGE-21; FR-ADM-02).
  *
  * Lists every Partner awaiting approval (GET /admin/partners/pending) in an
- * editorial monochrome card with a table of business details — business name,
- * registration number, tax id, and representative. Each row offers:
+ * editorial monochrome card with a table of business details — legal name,
+ * tax code, representative, and branches. Each row offers:
  *   - "View" → a detail modal with the full registration record (Req 6.1).
- *   - "Approve" → PATCH /admin/partners/:id/approve (Req 6.2).
+ *   - "Approve" → PATCH /admin/partners/:id/approval (Req 6.2).
  *   - "Reject" → a reason modal whose required textarea is sent to
- *     PATCH /admin/partners/:id/reject (Req 6.3).
+ *     PATCH /admin/partners/:id/approval (Req 6.3).
  *
  * Data is fetched with TanStack Query; approve/reject run as mutations that
  * invalidate the list on success so an actioned partner drops off. Feedback is
@@ -57,7 +57,7 @@ export function PartnerApprovalsPage() {
     onSuccess: async (_result, partner) => {
       await invalidate()
       setDetail(null)
-      toast.success(`${partner.businessName} has been approved.`)
+      toast.success(`${partner.legalName} has been approved.`)
     },
     onError: (err) => {
       toast.error(getAdminApiError(err, 'Could not approve the partner. Please try again.'))
@@ -70,7 +70,7 @@ export function PartnerApprovalsPage() {
       await invalidate()
       closeReject()
       setDetail(null)
-      toast.success(`${vars.partner.businessName} has been rejected.`)
+      toast.success(`${vars.partner.legalName} has been rejected.`)
     },
     onError: (err) => {
       setReasonError(getAdminApiError(err, 'Could not reject the partner. Please try again.'))
@@ -144,8 +144,7 @@ export function PartnerApprovalsPage() {
                 <thead>
                   <tr>
                     <th style={thStyle}>Business</th>
-                    <th style={thStyle}>Reg. number</th>
-                    <th style={thStyle}>Tax ID</th>
+                    <th style={thStyle}>Tax code</th>
                     <th style={thStyle}>Representative</th>
                     <th style={thStyle}>Status</th>
                     <th style={thActionStyle}>Actions</th>
@@ -155,17 +154,18 @@ export function PartnerApprovalsPage() {
                   {partners.map((partner) => (
                     <tr key={partner.id} data-testid={`partner-${partner.id}`}>
                       <td style={tdStyle}>
-                        <div style={{ fontWeight: 600, color: colors.ink }}>{partner.businessName}</div>
-                        <div style={metaStyle}>{partner.email}</div>
+                        <div style={{ fontWeight: 600, color: colors.ink }}>{partner.legalName}</div>
+                        <div style={metaStyle}>{partner.owner.email ?? partner.owner.phone ?? 'No contact'}</div>
                       </td>
-                      <td style={tdStyle}>{partner.businessRegNumber}</td>
-                      <td style={tdStyle}>{partner.taxId}</td>
+                      <td style={tdStyle}>{partner.taxCode}</td>
                       <td style={tdStyle}>
-                        <div>{partner.representativeName}</div>
-                        <div style={metaStyle}>{partner.representativeContact}</div>
+                        <div>{partner.representative}</div>
+                        <div style={metaStyle}>{partner.branches.length} branch(es)</div>
                       </td>
                       <td style={tdStyle}>
-                        <Badge variant={variantForStatus(partner.status)}>{formatStatus(partner.status)}</Badge>
+                        <Badge variant={variantForStatus(partner.approvalStatus)}>
+                          {formatStatus(partner.approvalStatus)}
+                        </Badge>
                       </td>
                       <td style={tdActionStyle}>
                         <div style={actionRowStyle}>
@@ -173,7 +173,7 @@ export function PartnerApprovalsPage() {
                             size='sm'
                             variant='secondary'
                             onClick={() => setDetail(partner)}
-                            aria-label={`View ${partner.businessName}`}
+                            aria-label={`View ${partner.legalName}`}
                           >
                             View
                           </Button>
@@ -182,7 +182,7 @@ export function PartnerApprovalsPage() {
                             variant='primary'
                             isLoading={approveMutation.isPending && approveMutation.variables?.id === partner.id}
                             onClick={() => approveMutation.mutate(partner)}
-                            aria-label={`Approve ${partner.businessName}`}
+                            aria-label={`Approve ${partner.legalName}`}
                           >
                             Approve
                           </Button>
@@ -190,7 +190,7 @@ export function PartnerApprovalsPage() {
                             size='sm'
                             variant='danger'
                             onClick={() => openReject(partner)}
-                            aria-label={`Reject ${partner.businessName}`}
+                            aria-label={`Reject ${partner.legalName}`}
                           >
                             Reject
                           </Button>
@@ -215,7 +215,7 @@ export function PartnerApprovalsPage() {
       <Modal
         isOpen={detail !== null}
         onClose={() => setDetail(null)}
-        title={detail?.businessName}
+        title={detail?.legalName}
         size='md'
         footer={
           detail && (
@@ -236,13 +236,12 @@ export function PartnerApprovalsPage() {
       >
         {detail && (
           <dl style={detailListStyle}>
-            <DetailRow label='Business name' value={detail.businessName} />
-            <DetailRow label='Registration number' value={detail.businessRegNumber} />
-            <DetailRow label='Tax ID' value={detail.taxId} />
-            <DetailRow label='Email' value={detail.email} />
-            <DetailRow label='Phone' value={detail.phone ?? '—'} />
-            <DetailRow label='Representative' value={detail.representativeName} />
-            <DetailRow label='Representative contact' value={detail.representativeContact} />
+            <DetailRow label='Legal business name' value={detail.legalName} />
+            <DetailRow label='Tax code' value={detail.taxCode} />
+            <DetailRow label='Email' value={detail.owner.email ?? '—'} />
+            <DetailRow label='Phone' value={detail.owner.phone ?? '—'} />
+            <DetailRow label='Representative' value={detail.representative} />
+            <DetailRow label='Branches' value={detail.branches.map((branch) => branch.name).join(', ')} />
             <DetailRow label='Submitted' value={formatDateTime(detail.createdAt) || '—'} />
           </dl>
         )}
@@ -268,8 +267,8 @@ export function PartnerApprovalsPage() {
         <form id='reject-partner-form' onSubmit={handleRejectSubmit}>
           {rejecting && (
             <p style={{ margin: '0 0 12px', color: colors.slate }}>
-              Provide a reason for rejecting <strong style={{ color: colors.ink }}>{rejecting.businessName}</strong>.
-              This is shared with the partner.
+              Provide a reason for rejecting <strong style={{ color: colors.ink }}>{rejecting.legalName}</strong>. This
+              is shared with the partner.
             </p>
           )}
           <label htmlFor='partner-reject-reason' style={labelStyle}>

@@ -3,7 +3,7 @@ import prisma from '~/configs/prisma'
 import { AppError } from '~/utils/app-error'
 import { hashPassword, verifyPassword } from '~/utils/password'
 import { signAccessToken } from '~/utils/jwt'
-import { RoleName } from '@voucher/shared'
+import { ApprovalStatus, OperatingStatus, RoleName } from '@voucher/shared'
 import { getCompatibleRoleNames, normalizeRoleName } from '~/utils/role'
 import type { ChangePasswordDto, LoginDto, PasswordResetDto, RegisterDto, UpdateProfileDto } from './auth.validation'
 
@@ -25,6 +25,23 @@ const normalizeProfileRole = <T extends { role: { name: string } }>(user: T) => 
   ...user,
   role: { name: normalizeRoleName(user.role.name) }
 })
+
+const assertPartnerCanAccess = (
+  partner: {
+    approvalStatus: string
+    operatingStatus: string
+  } | null
+) => {
+  if (!partner || partner.approvalStatus === ApprovalStatus.PENDING) {
+    throw AppError.forbidden('Hồ sơ đối tác đang chờ duyệt')
+  }
+  if (partner.approvalStatus === ApprovalStatus.REJECTED) {
+    throw AppError.forbidden('Hồ sơ đối tác đã bị từ chối')
+  }
+  if (partner.operatingStatus === OperatingStatus.SUSPENDED) {
+    throw AppError.forbidden('Hồ sơ đối tác đang bị tạm khóa')
+  }
+}
 
 export const authService = {
   async register(dto: RegisterDto) {
@@ -71,7 +88,10 @@ export const authService = {
   async login(dto: LoginDto) {
     const user = await prisma.user.findFirst({
       where: { OR: [{ email: dto.identifier }, { phone: dto.identifier }] },
-      include: { role: true, partner: { select: { id: true } } }
+      include: {
+        role: true,
+        partner: { select: { id: true, approvalStatus: true, operatingStatus: true } }
+      }
     })
 
     const isPasswordValid = await verifyPassword(dto.password, user?.passwordHash ?? DUMMY_PASSWORD_HASH)
@@ -83,6 +103,9 @@ export const authService = {
     }
 
     const role = normalizeRoleName(user.role.name)
+    if (role === RoleName.PARTNER) {
+      assertPartnerCanAccess(user.partner)
+    }
     const token = signAccessToken({
       sub: user.id,
       role,

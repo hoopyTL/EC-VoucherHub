@@ -9,8 +9,7 @@
  *   - PATCH /admin/users/:id/unlock      → {@link unlockUser}         (Req 5.4)
  *   - PATCH /admin/users/:id/role        → {@link changeUserRole}     (TASK-004 RBAC)
  *   - GET   /admin/partners/pending      → {@link listPendingPartners} (Req 6.1; FR-ADM-02)
- *   - PATCH /admin/partners/:id/approve  → {@link approvePartner}     (Req 6.2; FR-ADM-02)
- *   - PATCH /admin/partners/:id/reject   → {@link rejectPartner}      (Req 6.3; FR-ADM-02)
+ *   - PATCH /admin/partners/:id/approval → approve/reject Partner     (Req 6.2–6.3; FR-ADM-02)
  *   - GET   /admin/vouchers/pending      → {@link listPendingVouchers} (Req 9.2; FR-ADM-03)
  *   - PATCH /admin/vouchers/:id/approve  → {@link approveVoucher}     (Req 9.3; FR-ADM-03)
  *   - PATCH /admin/vouchers/:id/reject   → {@link rejectVoucher}      (Req 9.4; FR-ADM-03)
@@ -132,16 +131,21 @@ export async function changeUserRole(id: string, role: UserRole): Promise<AdminA
 export async function listPendingPartners(
   params: { page?: number; limit?: number } = {}
 ): Promise<ListPendingPartnersResult> {
-  const { data } = await api.get<ListPendingPartnersResult>('/admin/partners/pending', {
-    params: { page: params.page, limit: params.limit }
-  })
-  return data
+  const { data } = await api.get<ApiEnvelope<ListPendingPartnersResult> | ListPendingPartnersResult>(
+    '/admin/partners/pending',
+    {
+      params: { page: params.page, limit: params.limit }
+    }
+  )
+  return 'data' in data ? data.data : data
 }
 
 /** Approve a pending Partner registration (Req 6.2). */
 export async function approvePartner(id: string): Promise<PartnerApprovalView> {
-  const { data } = await api.patch<PartnerApprovalView>(`/admin/partners/${id}/approve`)
-  return data
+  const { data } = await api.patch<ApiEnvelope<PartnerApprovalView>>(`/admin/partners/${id}/approval`, {
+    action: 'approve'
+  })
+  return data.data
 }
 
 /**
@@ -149,8 +153,11 @@ export async function approvePartner(id: string): Promise<PartnerApprovalView> {
  * backend rejects an empty reason with a 400.
  */
 export async function rejectPartner(id: string, reason: string): Promise<PartnerApprovalView> {
-  const { data } = await api.patch<PartnerApprovalView>(`/admin/partners/${id}/reject`, { reason })
-  return data
+  const { data } = await api.patch<ApiEnvelope<PartnerApprovalView>>(`/admin/partners/${id}/approval`, {
+    action: 'reject',
+    reason
+  })
+  return data.data
 }
 
 // ---------------------------------------------------------------------------

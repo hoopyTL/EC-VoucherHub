@@ -39,20 +39,14 @@ function fillValidForm() {
   fireEvent.change(screen.getByLabelText(/^password/i), {
     target: { value: 'password123' }
   })
-  fireEvent.change(screen.getByLabelText(/business name/i), {
+  fireEvent.change(screen.getByLabelText(/legal business name/i), {
     target: { value: 'Acme Co' }
   })
-  fireEvent.change(screen.getByLabelText(/business registration number/i), {
-    target: { value: 'BRN-123' }
-  })
-  fireEvent.change(screen.getByLabelText(/tax id/i), {
+  fireEvent.change(screen.getByLabelText(/tax code/i), {
     target: { value: 'TAX-999' }
   })
   fireEvent.change(screen.getByLabelText(/representative name/i), {
     target: { value: 'Jane Rep' }
-  })
-  fireEvent.change(screen.getByLabelText(/representative contact/i), {
-    target: { value: 'jane@acme.com' }
   })
   fireEvent.change(screen.getByLabelText(/branch name/i), {
     target: { value: 'Downtown' }
@@ -62,9 +56,6 @@ function fillValidForm() {
   })
   fireEvent.change(screen.getByLabelText(/^region/i), {
     target: { value: 'Hà Nội' }
-  })
-  fireEvent.change(screen.getByLabelText(/^contact/i), {
-    target: { value: '0900000000' }
   })
 }
 
@@ -79,8 +70,8 @@ describe('RegisterPartnerPage', () => {
 
   it('renders business, representative, and branch fields', () => {
     renderPage()
-    expect(screen.getByLabelText(/business name/i)).toBeDefined()
-    expect(screen.getByLabelText(/tax id/i)).toBeDefined()
+    expect(screen.getByLabelText(/legal business name/i)).toBeDefined()
+    expect(screen.getByLabelText(/tax code/i)).toBeDefined()
     expect(screen.getByLabelText(/representative name/i)).toBeDefined()
     expect(screen.getByLabelText(/branch name/i)).toBeDefined()
   })
@@ -134,20 +125,17 @@ describe('RegisterPartnerPage', () => {
       expect(postSpy).toHaveBeenCalledTimes(1)
     })
     const [, body] = postSpy.mock.calls[0]
-    expect(postSpy.mock.calls[0][0]).toBe('/auth/register/partner')
+    expect(postSpy.mock.calls[0][0]).toBe('/partners')
     expect(body).toMatchObject({
       email: 'biz@example.com',
-      businessName: 'Acme Co',
-      businessRegNumber: 'BRN-123',
-      taxId: 'TAX-999',
-      representativeName: 'Jane Rep',
-      representativeContact: 'jane@acme.com',
+      legalName: 'Acme Co',
+      taxCode: 'TAX-999',
+      representative: 'Jane Rep',
       branches: [
         {
           name: 'Downtown',
           address: '123 Main St',
-          region: 'Hà Nội',
-          contact: '0900000000'
+          region: 'Hà Nội'
         }
       ]
     })
