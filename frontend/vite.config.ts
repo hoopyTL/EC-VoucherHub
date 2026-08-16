@@ -3,6 +3,8 @@ import { defineConfig } from 'vite'
 import { fileURLToPath } from 'node:url'
 import react from '@vitejs/plugin-react'
 
+const apiProxyTarget = process.env.VITE_API_PROXY_TARGET ?? 'http://localhost:4000'
+
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
@@ -18,14 +20,14 @@ export default defineConfig({
     proxy: {
       // Proxy API requests to the backend server during development.
       '/api': {
-        target: 'http://localhost:4000',
+        target: apiProxyTarget,
         changeOrigin: true,
         secure: false
       },
       // Proxy uploaded media (local storage provider, §4.3) so voucher images
       // render in dev exactly as they do behind nginx in production.
       '/uploads': {
-        target: 'http://localhost:4000',
+        target: apiProxyTarget,
         changeOrigin: true,
         secure: false
       }
