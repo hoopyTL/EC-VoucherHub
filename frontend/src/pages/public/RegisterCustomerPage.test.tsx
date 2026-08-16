@@ -100,8 +100,8 @@ describe('RegisterCustomerPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
     await waitFor(() => {
-      expect(postSpy).toHaveBeenCalledWith('/auth/register/customer', {
-        name: 'Jane Doe',
+      expect(postSpy).toHaveBeenCalledWith('/auth/register', {
+        fullName: 'Jane Doe',
         password: 'password123',
         email: 'jane@example.com'
       })

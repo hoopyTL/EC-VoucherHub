@@ -27,7 +27,6 @@ import { RegisterCustomerPage } from './pages/public/RegisterCustomerPage'
 import { RegisterPartnerPage } from './pages/public/RegisterPartnerPage'
 import { LoginPage } from './pages/public/LoginPage'
 import { ForgotPasswordPage } from './pages/public/ForgotPasswordPage'
-import { ResetPasswordPage } from './pages/public/ResetPasswordPage'
 import { AccountPage } from './pages/public/AccountPage'
 import { HomePage } from './pages/public/HomePage'
 import { RegisterChooserPage } from './pages/public/RegisterChooserPage'
@@ -119,7 +118,6 @@ export function AppRoutes() {
         <Route element={<GuestRoute />}>
           <Route path='login' element={<LoginPage />} />
           <Route path='forgot-password' element={<ForgotPasswordPage />} />
-          <Route path='reset-password' element={<ResetPasswordPage />} />
           <Route path='register' element={<RegisterChooserPage />} />
           <Route path='register/customer' element={<RegisterCustomerPage />} />
           <Route path='partner/register' element={<RegisterPartnerPage />} />

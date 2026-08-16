@@ -11,10 +11,24 @@ import * as authApi from '../../services/auth'
 
 vi.mock('../../services/auth', async () => {
   const actual = await vi.importActual<typeof import('../../services/auth')>('../../services/auth')
-  return { ...actual, changePassword: vi.fn() }
+  return { ...actual, changePassword: vi.fn(), getProfile: vi.fn(), updateProfile: vi.fn() }
 })
 
 const changePasswordMock = vi.mocked(authApi.changePassword)
+const getProfileMock = vi.mocked(authApi.getProfile)
+const updateProfileMock = vi.mocked(authApi.updateProfile)
+
+const profile = {
+  id: 'u1',
+  email: 'alice@example.com',
+  phone: '0901234567',
+  fullName: 'Alice Customer',
+  address: '1 Demo Street',
+  status: 'ACTIVE',
+  role: { name: UserRole.CUSTOMER },
+  createdAt: '2026-08-16T00:00:00.000Z',
+  updatedAt: '2026-08-16T00:00:00.000Z'
+}
 
 /** Seed a session so {@link AuthProvider} restores an authed user. */
 function seedSession(user = { id: 'u1', name: 'Alice Customer', role: UserRole.CUSTOMER }) {
@@ -68,6 +82,9 @@ describe('AccountPage', () => {
     localStorage.clear()
     clearAccessToken()
     changePasswordMock.mockReset()
+    getProfileMock.mockReset()
+    updateProfileMock.mockReset()
+    getProfileMock.mockReturnValue(new Promise(() => {}))
   })
 
   afterEach(() => {
@@ -90,6 +107,43 @@ describe('AccountPage', () => {
     expect(screen.getByLabelText(/^new password/i)).toBeDefined()
     expect(screen.getByLabelText(/confirm new password/i)).toBeDefined()
     expect(screen.getByRole('button', { name: /log out/i })).toBeDefined()
+  })
+
+  it('loads, updates, and synchronizes the profile name', async () => {
+    getProfileMock.mockResolvedValue(profile)
+    updateProfileMock.mockResolvedValue({ ...profile, fullName: 'Alice Updated' })
+    seedSession()
+    renderPage()
+
+    const fullName = await screen.findByLabelText(/full name/i)
+    expect((fullName as HTMLInputElement).value).toBe('Alice Customer')
+    fireEvent.change(fullName, { target: { value: 'Alice Updated' } })
+    fireEvent.click(screen.getByRole('button', { name: /save profile/i }))
+
+    await waitFor(() => {
+      expect(updateProfileMock).toHaveBeenCalledWith({
+        fullName: 'Alice Updated',
+        email: 'alice@example.com',
+        phone: '0901234567',
+        address: '1 Demo Street'
+      })
+    })
+    expect(await screen.findByRole('heading', { name: 'Alice Updated' })).toBeDefined()
+    expect(await screen.findByText(/profile updated successfully/i)).toBeDefined()
+    expect(localStorage.getItem(USER_STORAGE_KEY)).toContain('Alice Updated')
+  })
+
+  it('does not submit a profile without a full name', async () => {
+    getProfileMock.mockResolvedValue(profile)
+    seedSession()
+    renderPage()
+
+    const fullName = await screen.findByLabelText(/full name/i)
+    fireEvent.change(fullName, { target: { value: '   ' } })
+    fireEvent.click(screen.getByRole('button', { name: /save profile/i }))
+
+    expect(await screen.findByText(/full name is required/i)).toBeDefined()
+    expect(updateProfileMock).not.toHaveBeenCalled()
   })
 
   it('rejects a new password shorter than 8 characters without calling the API', async () => {

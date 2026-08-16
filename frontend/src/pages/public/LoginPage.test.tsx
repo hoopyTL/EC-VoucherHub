@@ -63,10 +63,10 @@ describe('LoginPage', () => {
 
   it('authenticates, stores the token, and redirects by role', async () => {
     const postSpy = vi.spyOn(api, 'post').mockResolvedValue({
-      data: {
-        token: 'jwt-token-123',
-        user: { id: 'u1', name: 'Alice', role: UserRole.ADMIN }
-      }
+      data: { success: true, data: { token: 'jwt-token-123', user: { id: 'u1', role: UserRole.ADMIN } } }
+    } as never)
+    vi.spyOn(api, 'get').mockResolvedValue({
+      data: { success: true, data: { id: 'u1', fullName: 'Alice', role: { name: UserRole.ADMIN } } }
     } as never)
 
     renderLogin()
@@ -79,7 +79,7 @@ describe('LoginPage', () => {
     })
 
     expect(postSpy).toHaveBeenCalledWith('/auth/login', {
-      emailOrPhone: 'admin@example.com',
+      identifier: 'admin@example.com',
       password: 'password123'
     })
     // Access token is held in memory (httpOnly-cookie session model), not localStorage.
@@ -88,10 +88,10 @@ describe('LoginPage', () => {
 
   it('redirects back to the attempted page when provided via location state', async () => {
     vi.spyOn(api, 'post').mockResolvedValue({
-      data: {
-        token: 'jwt-token-123',
-        user: { id: 'u2', name: 'Carol', role: UserRole.CUSTOMER }
-      }
+      data: { success: true, data: { token: 'jwt-token-123', user: { id: 'u2', role: UserRole.CUSTOMER } } }
+    } as never)
+    vi.spyOn(api, 'get').mockResolvedValue({
+      data: { success: true, data: { id: 'u2', fullName: 'Carol', role: { name: UserRole.CUSTOMER } } }
     } as never)
 
     renderLogin({ pathname: '/login', state: { from: { pathname: '/cart' } } })

@@ -2,9 +2,8 @@
  * AccountPage — the signed-in user's profile + password management (Req 2.6).
  *
  * Available to ANY authenticated role (it is mounted behind a role-agnostic
- * `ProtectedRoute`). Shows the current user's name and role from
- * {@link useAuth}, a "Change password" form that calls
- * `PUT /auth/change-password`, and a log-out action.
+ * `ProtectedRoute`). Loads and updates the backend profile through `/me`, shows
+ * the current role, provides password management, and exposes log out.
  *
  * The change-password form validates locally (new password ≥ 8 characters and
  * matching confirmation) before calling the API, then reports success or the
@@ -14,15 +13,16 @@
  *
  * _Requirements: 2.6_
  */
-import { useState, type CSSProperties, type FormEvent } from 'react'
+import { useEffect, useState, type CSSProperties, type FormEvent } from 'react'
 import { UserRole } from '@ui-contracts'
 import { useAuth } from '../../hooks/useAuth'
-import { Badge, Button, Input, useToast } from '../../components/ui'
-import { changePassword, getAuthApiError } from '../../services/auth'
+import { Badge, Button, Input, LoadingSpinner, useToast } from '../../components/ui'
+import { changePassword, getAuthApiError, getProfile } from '../../services/auth'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
 
 /** Minimum password length enforced by the backend (Req 2.6 / 1.3). */
 export const MIN_PASSWORD_LENGTH = 8
+const IS_DESIGN_PREVIEW = import.meta.env.VITE_DESIGN_PREVIEW === 'true'
 
 interface FieldErrors {
   currentPassword?: string
@@ -38,14 +38,77 @@ const ROLE_LABELS: Record<UserRole, string> = {
 }
 
 export function AccountPage() {
-  const { user, logout } = useAuth()
+  const { user, updateProfile, logout } = useAuth()
   const toast = useToast()
+
+  const [fullName, setFullName] = useState(user?.name ?? '')
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [address, setAddress] = useState('')
+  const [profileError, setProfileError] = useState<string | null>(null)
+  const [isProfileLoading, setIsProfileLoading] = useState(true)
+  const [isProfileSubmitting, setIsProfileSubmitting] = useState(false)
 
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmNewPassword, setConfirmNewPassword] = useState('')
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (IS_DESIGN_PREVIEW) {
+      setIsProfileLoading(false)
+      return
+    }
+    let active = true
+    void getProfile()
+      .then((profile) => {
+        if (!active) return
+        setFullName(profile.fullName)
+        setEmail(profile.email ?? '')
+        setPhone(profile.phone ?? '')
+        setAddress(profile.address ?? '')
+      })
+      .catch((err) => {
+        if (!active) return
+        setProfileError(getAuthApiError(err, 'Unable to load your profile.'))
+      })
+      .finally(() => {
+        if (active) setIsProfileLoading(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [])
+
+  async function handleProfileSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const normalizedName = fullName.trim()
+    if (!normalizedName) {
+      setProfileError('Full name is required.')
+      return
+    }
+
+    setProfileError(null)
+    setIsProfileSubmitting(true)
+    try {
+      const profile = await updateProfile({
+        fullName: normalizedName,
+        ...(email.trim() && { email: email.trim() }),
+        ...(phone.trim() && { phone: phone.trim() }),
+        address: address.trim()
+      })
+      setFullName(profile.fullName)
+      setEmail(profile.email ?? '')
+      setPhone(profile.phone ?? '')
+      setAddress(profile.address ?? '')
+      toast.success('Profile updated successfully.')
+    } catch (err) {
+      setProfileError(getAuthApiError(err, 'Unable to update your profile. Please try again.'))
+    } finally {
+      setIsProfileSubmitting(false)
+    }
+  }
 
   /** Validate the form locally. Returns the collected field errors. */
   function validate(): FieldErrors {
@@ -62,7 +125,7 @@ export function AccountPage() {
     return errors
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handlePasswordSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
     const errors = validate()
@@ -98,12 +161,73 @@ export function AccountPage() {
       </div>
 
       <div style={{ ...cardStyle, marginTop: 24 }}>
+        <h2 style={subtitleStyle}>Profile details</h2>
+        <p style={{ marginTop: 0, marginBottom: 24, color: colors.slate, fontSize: 14 }}>
+          Keep your contact information up to date.
+        </p>
+
+        {isProfileLoading ? (
+          <LoadingSpinner label='Loading profile' />
+        ) : (
+          <form onSubmit={handleProfileSubmit} noValidate>
+            {profileError && (
+              <div role='alert' style={alertStyle}>
+                {profileError}
+              </div>
+            )}
+            <div style={{ marginBottom: 16 }}>
+              <Input
+                label='Full name'
+                name='fullName'
+                value={fullName}
+                onChange={(event) => setFullName(event.target.value)}
+                disabled={isProfileSubmitting}
+                required
+              />
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <Input
+                label='Email'
+                name='email'
+                type='email'
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                disabled={isProfileSubmitting}
+              />
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <Input
+                label='Phone'
+                name='phone'
+                type='tel'
+                value={phone}
+                onChange={(event) => setPhone(event.target.value)}
+                disabled={isProfileSubmitting}
+              />
+            </div>
+            <div style={{ marginBottom: 24 }}>
+              <Input
+                label='Address'
+                name='address'
+                value={address}
+                onChange={(event) => setAddress(event.target.value)}
+                disabled={isProfileSubmitting}
+              />
+            </div>
+            <Button type='submit' fullWidth isLoading={isProfileSubmitting}>
+              Save profile
+            </Button>
+          </form>
+        )}
+      </div>
+
+      <div style={{ ...cardStyle, marginTop: 24 }}>
         <h2 style={subtitleStyle}>Change password</h2>
         <p style={{ marginTop: 0, marginBottom: 24, color: colors.slate, fontSize: 14 }}>
           Enter your current password and choose a new one.
         </p>
 
-        <form onSubmit={handleSubmit} noValidate>
+        <form onSubmit={handlePasswordSubmit} noValidate>
           <div style={{ marginBottom: 16 }}>
             <Input
               label='Current password'
@@ -198,6 +322,15 @@ const subtitleStyle: CSSProperties = {
   fontWeight: 700,
   letterSpacing: '-0.01em',
   color: colors.ink
+}
+
+const alertStyle: CSSProperties = {
+  marginBottom: 20,
+  padding: '12px 16px',
+  borderRadius: radius.md,
+  background: colors.dangerSurface,
+  color: colors.onDangerSurface,
+  fontSize: 14
 }
 
 export default AccountPage

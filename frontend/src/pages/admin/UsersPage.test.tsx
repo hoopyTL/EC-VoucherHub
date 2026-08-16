@@ -2,11 +2,11 @@ import { describe, it, expect, afterEach, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { UsersPage, combineAccounts, isLocked, totalPagesFor } from './UsersPage'
+import { UsersPage, combineAccounts, isLocked } from './UsersPage'
 import { api } from '../../services/api'
-import type { AdminPartnerView, AdminUserView, ListUsersResult } from '../../types/admin'
+import type { AdminAccount, ListUsersResult } from '../../types/admin'
 
-function makeUser(overrides: Partial<AdminUserView> = {}): AdminUserView {
+function makeUser(overrides: Partial<AdminAccount> = {}): AdminAccount {
   return {
     accountType: 'USER',
     id: 'u-1',
@@ -15,40 +15,44 @@ function makeUser(overrides: Partial<AdminUserView> = {}): AdminUserView {
     name: 'Alice',
     role: 'CUSTOMER',
     status: 'ACTIVE',
-    createdAt: '2025-01-01T00:00:00.000Z',
-    updatedAt: '2025-01-01T00:00:00.000Z',
     ...overrides
   }
 }
 
-function makePartner(overrides: Partial<AdminPartnerView> = {}): AdminPartnerView {
+function makePartner(overrides: Partial<AdminAccount> = {}): AdminAccount {
   return {
     accountType: 'PARTNER',
     id: 'p-1',
     email: 'biz@example.com',
     phone: '0987654321',
     name: 'Zen Spa',
-    representativeName: 'Bob',
-    status: 'APPROVED',
-    createdAt: '2025-01-01T00:00:00.000Z',
-    updatedAt: '2025-01-01T00:00:00.000Z',
+    role: 'PARTNER',
+    status: 'ACTIVE',
     ...overrides
   }
 }
 
 function makeResult(overrides: Partial<ListUsersResult> = {}): ListUsersResult {
-  const users = overrides.users ?? [makeUser()]
-  const partners = overrides.partners ?? [makePartner()]
   return {
-    users,
-    partners,
-    pagination: {
-      page: 1,
-      limit: 20,
-      userTotal: users.length,
-      partnerTotal: partners.length,
-      total: users.length + partners.length,
-      ...overrides.pagination
+    items: [makeUser(), makePartner()],
+    nextCursor: null,
+    ...overrides
+  }
+}
+
+function backendEnvelope(result = makeResult()) {
+  return {
+    success: true,
+    data: {
+      items: result.items.map((account) => ({
+        id: account.id,
+        email: account.email,
+        phone: account.phone,
+        fullName: account.name,
+        role: { name: account.role },
+        status: account.status
+      })),
+      nextCursor: result.nextCursor
     }
   }
 }
@@ -64,11 +68,10 @@ function renderPage() {
   )
 }
 
-describe('combineAccounts / isLocked / totalPagesFor', () => {
+describe('combineAccounts / isLocked', () => {
   it('merges users then partners into one list', () => {
     const result = makeResult({
-      users: [makeUser({ id: 'u-1' })],
-      partners: [makePartner({ id: 'p-1' })]
+      items: [makeUser({ id: 'u-1' }), makePartner({ id: 'p-1' })]
     })
     const combined = combineAccounts(result)
     expect(combined.map((a) => a.id)).toEqual(['u-1', 'p-1'])
@@ -81,14 +84,6 @@ describe('combineAccounts / isLocked / totalPagesFor', () => {
     expect(isLocked(makeUser({ status: 'LOCKED' }))).toBe(true)
     expect(isLocked(makePartner({ status: 'LOCKED' }))).toBe(true)
   })
-
-  it('computes total pages from the larger subtotal', () => {
-    const result = makeResult({
-      pagination: { page: 1, limit: 20, userTotal: 45, partnerTotal: 10, total: 55 }
-    })
-    // ceil(45 / 20) = 3
-    expect(totalPagesFor(result, 20)).toBe(3)
-  })
 })
 
 describe('UsersPage', () => {
@@ -97,7 +92,7 @@ describe('UsersPage', () => {
   })
 
   it('lists customer and partner accounts with status badges (Req 5.1)', async () => {
-    vi.spyOn(api, 'get').mockResolvedValue({ data: makeResult() } as never)
+    vi.spyOn(api, 'get').mockResolvedValue({ data: backendEnvelope() } as never)
     renderPage()
 
     expect(await screen.findByText('Alice')).toBeDefined()
@@ -107,7 +102,7 @@ describe('UsersPage', () => {
   })
 
   it('submits a search query to the backend (Req 5.2)', async () => {
-    const getSpy = vi.spyOn(api, 'get').mockResolvedValue({ data: makeResult() } as never)
+    const getSpy = vi.spyOn(api, 'get').mockResolvedValue({ data: backendEnvelope() } as never)
     renderPage()
     await screen.findByText('Alice')
 
@@ -118,31 +113,53 @@ describe('UsersPage', () => {
 
     await waitFor(() => {
       expect(getSpy).toHaveBeenCalledWith('/admin/users', {
-        params: { search: 'alice', page: 1, limit: 20 }
+        params: { q: 'alice', cursor: undefined, limit: 20 }
       })
     })
   })
 
   it('shows an empty state when no accounts match the search', async () => {
     vi.spyOn(api, 'get').mockResolvedValue({
-      data: makeResult({ users: [], partners: [] })
+      data: backendEnvelope(makeResult({ items: [] }))
     } as never)
     renderPage()
 
     expect(await screen.findByText(/không tìm thấy tài khoản/i)).toBeDefined()
   })
 
+  it('uses the backend cursor when loading the next page', async () => {
+    const nextCursor = '477eb37b-0f41-4e0b-bfc0-42348335ccec'
+    const getSpy = vi
+      .spyOn(api, 'get')
+      .mockResolvedValueOnce({ data: backendEnvelope(makeResult({ nextCursor })) } as never)
+      .mockResolvedValueOnce({
+        data: backendEnvelope(makeResult({ items: [makeUser({ id: 'u-2', name: 'Next User' })] }))
+      } as never)
+
+    renderPage()
+    await screen.findByText('Alice')
+    fireEvent.click(screen.getByRole('button', { name: 'Trang sau' }))
+
+    expect(await screen.findByText('Next User')).toBeDefined()
+    expect(getSpy).toHaveBeenLastCalledWith('/admin/users', {
+      params: { q: undefined, cursor: nextCursor, limit: 20 }
+    })
+  })
+
   it('locks an active account after confirmation and refreshes (Req 5.3)', async () => {
     const getSpy = vi
       .spyOn(api, 'get')
       .mockResolvedValueOnce({
-        data: makeResult({ users: [makeUser({ status: 'ACTIVE' })], partners: [] })
+        data: backendEnvelope(makeResult({ items: [makeUser({ status: 'ACTIVE' })] }))
       } as never)
       .mockResolvedValueOnce({
-        data: makeResult({ users: [makeUser({ status: 'LOCKED' })], partners: [] })
+        data: backendEnvelope(makeResult({ items: [makeUser({ status: 'LOCKED' })] }))
       } as never)
     const patchSpy = vi.spyOn(api, 'patch').mockResolvedValue({
-      data: { id: 'u-1', accountType: 'USER', status: 'LOCKED' }
+      data: {
+        success: true,
+        data: backendEnvelope(makeResult({ items: [makeUser({ status: 'LOCKED' })] })).data.items[0]
+      }
     } as never)
 
     renderPage()
@@ -161,10 +178,13 @@ describe('UsersPage', () => {
 
   it('unlocks a locked account (Req 5.4)', async () => {
     vi.spyOn(api, 'get').mockResolvedValue({
-      data: makeResult({ users: [makeUser({ status: 'LOCKED' })], partners: [] })
+      data: backendEnvelope(makeResult({ items: [makeUser({ status: 'LOCKED' })] }))
     } as never)
     const patchSpy = vi.spyOn(api, 'patch').mockResolvedValue({
-      data: { id: 'u-1', accountType: 'USER', status: 'ACTIVE' }
+      data: {
+        success: true,
+        data: backendEnvelope(makeResult({ items: [makeUser({ status: 'ACTIVE' })] })).data.items[0]
+      }
     } as never)
 
     renderPage()
@@ -180,9 +200,50 @@ describe('UsersPage', () => {
     expect(await screen.findByText(/đã mở khóa alice/i)).toBeDefined()
   })
 
+  it('changes a user role after confirmation and refreshes the list', async () => {
+    const customer = makeUser({ role: 'CUSTOMER' })
+    const partner = makeUser({ role: 'PARTNER' })
+    const getSpy = vi
+      .spyOn(api, 'get')
+      .mockResolvedValueOnce({ data: backendEnvelope(makeResult({ items: [customer] })) } as never)
+      .mockResolvedValueOnce({ data: backendEnvelope(makeResult({ items: [partner] })) } as never)
+    const patchSpy = vi.spyOn(api, 'patch').mockResolvedValue({
+      data: { success: true, data: backendEnvelope(makeResult({ items: [partner] })).data.items[0] }
+    } as never)
+
+    renderPage()
+    await screen.findByText('Alice')
+    fireEvent.click(screen.getByRole('button', { name: /đổi vai trò alice/i }))
+
+    const dialog = screen.getByRole('dialog')
+    fireEvent.change(within(dialog).getByLabelText('Vai trò mới'), { target: { value: 'PARTNER' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Xác nhận đổi' }))
+
+    await waitFor(() => {
+      expect(patchSpy).toHaveBeenCalledWith('/admin/users/u-1/role', { role: 'PARTNER' })
+    })
+    await waitFor(() => expect(getSpy).toHaveBeenCalledTimes(2))
+    expect(await screen.findByText(/đã đổi vai trò alice thành đối tác/i)).toBeDefined()
+  })
+
+  it('does not change role when the confirmation is cancelled', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue({ data: backendEnvelope(makeResult({ items: [makeUser()] })) } as never)
+    const patchSpy = vi.spyOn(api, 'patch')
+
+    renderPage()
+    await screen.findByText('Alice')
+    fireEvent.click(screen.getByRole('button', { name: /đổi vai trò alice/i }))
+    const dialog = screen.getByRole('dialog')
+    fireEvent.change(within(dialog).getByLabelText('Vai trò mới'), { target: { value: 'ADMIN' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Hủy' }))
+
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(patchSpy).not.toHaveBeenCalled()
+  })
+
   it('surfaces a server error when a lock action fails', async () => {
     vi.spyOn(api, 'get').mockResolvedValue({
-      data: makeResult({ users: [makeUser({ status: 'ACTIVE' })], partners: [] })
+      data: backendEnvelope(makeResult({ items: [makeUser({ status: 'ACTIVE' })] }))
     } as never)
     vi.spyOn(api, 'patch').mockRejectedValue({
       response: { status: 409, data: { error: { message: 'Cannot lock this account' } } }

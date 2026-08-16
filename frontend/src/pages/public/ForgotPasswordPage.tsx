@@ -1,15 +1,13 @@
 /**
  * ForgotPasswordPage — request a password reset link (task 11.x — Req 2.4).
  *
- * Renders an email/phone field and submits to `POST /auth/forgot-password`. To
+ * Renders an email/phone field and submits to `POST /auth/password-reset`. To
  * avoid account enumeration the page always shows the SAME generic confirmation
  * message regardless of whether the account exists — it never branches on the
  * outcome (Requirement 2.4).
  *
- * For local/demo environments the backend returns the `resetToken` in the
- * response (it is omitted in production). When present, a clearly-labelled
- * "Demo only" helper links straight to `/reset-password?token=…` so the flow
- * can be exercised without real email/SMS delivery.
+ * TASK-004 only simulates requesting a reset code. Completion is intentionally
+ * not exposed until the backend has a secure reset-token lifecycle.
  *
  * Mirrors the centered-card editorial style of {@link LoginPage}.
  *
@@ -25,7 +23,6 @@ import { colors, fonts, radius, shadows } from '../../theme/tokens'
 export function ForgotPasswordPage() {
   const [emailOrPhone, setEmailOrPhone] = useState('')
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
-  const [resetToken, setResetToken] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -45,7 +42,6 @@ export function ForgotPasswordPage() {
       // Surface the backend's generic message verbatim — never reveal whether
       // the account exists (Req 2.4).
       setSuccessMessage(result.message)
-      setResetToken(result.resetToken ?? null)
     } catch (err) {
       setErrorMessage(getAuthApiError(err, 'Unable to process your request. Please try again.'))
     } finally {
@@ -58,7 +54,7 @@ export function ForgotPasswordPage() {
       <p style={eyebrowStyle}>● Reset password</p>
       <h1 style={titleStyle}>Forgot your password?</h1>
       <p style={{ marginTop: 0, marginBottom: 28, color: colors.slate, fontSize: 16 }}>
-        Enter your email or phone and we&apos;ll send you a link to reset it.
+        Enter your email or phone to request password reset instructions.
       </p>
 
       {successMessage ? (
@@ -66,21 +62,6 @@ export function ForgotPasswordPage() {
           <div role='status' style={successStyle}>
             {successMessage}
           </div>
-
-          {resetToken && (
-            <div style={demoStyle}>
-              <p style={demoLabelStyle}>Demo only</p>
-              <p style={{ margin: '0 0 10px', fontSize: 14, color: colors.slate }}>
-                A reset link is normally delivered by email or SMS. In this demo environment you can continue directly:
-              </p>
-              <Link
-                to={`/reset-password?token=${encodeURIComponent(resetToken)}`}
-                style={{ color: colors.ink, fontWeight: 600, fontSize: 14 }}
-              >
-                Continue to reset password →
-              </Link>
-            </div>
-          )}
 
           <p style={{ marginTop: 24, fontSize: 14, color: colors.slate }}>
             <Link to='/login' style={{ color: colors.ink, fontWeight: 600 }}>
@@ -110,7 +91,7 @@ export function ForgotPasswordPage() {
           </div>
 
           <Button type='submit' fullWidth isLoading={isSubmitting} withArrow>
-            Send reset link
+            Request reset
           </Button>
 
           <p style={{ marginTop: 24, fontSize: 14, color: colors.slate }}>
@@ -172,24 +153,6 @@ const successStyle: CSSProperties = {
   border: `1px solid ${colors.hairline}`,
   color: colors.onSuccessSurface,
   fontSize: 14
-}
-
-const demoStyle: CSSProperties = {
-  marginTop: 16,
-  padding: '14px 16px',
-  borderRadius: radius.md,
-  background: colors.surfaceMuted,
-  border: `1px dashed ${colors.hairlineStrong}`
-}
-
-const demoLabelStyle: CSSProperties = {
-  margin: '0 0 6px',
-  fontFamily: fonts.display,
-  fontSize: 11,
-  fontWeight: 600,
-  letterSpacing: '0.08em',
-  textTransform: 'uppercase',
-  color: colors.slateMuted
 }
 
 export default ForgotPasswordPage

@@ -20,6 +20,25 @@ concurrency:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: voucherhub_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d voucherhub_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/voucherhub_test
+      NODE_ENV: test
+      JWT_SECRET: test-secret-at-least-32-characters
+      JWT_REFRESH_SECRET: test-refresh-secret-at-least-32-chars
 
     steps:
       - name: Checkout
@@ -44,17 +63,32 @@ jobs:
             echo "Chưa có backend/prisma/schema.prisma — bỏ qua prisma generate."
           fi
 
+      - name: Apply test database migrations
+        run: npm run db:deploy --workspace=backend
+
       - name: Lint
         run: npm run lint --workspaces --if-present
 
       - name: Typecheck
         run: npm run typecheck --workspaces --if-present
 
+      - name: Typecheck tests
+        run: npm run typecheck:test --workspace=backend
+
       - name: Build
         run: npm run build
 
-      - name: Test
-        run: npm test
+      - name: Test with coverage
+        run: npm run test:coverage --workspace=backend
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Typecheck E2E
+        run: npm run typecheck:e2e
+
+      - name: TASK-004 E2E
+        run: npm run test:e2e
 
       - name: Upload coverage
         if: always()
@@ -62,4 +96,14 @@ jobs:
         with:
           name: coverage
           path: "**/coverage/**"
+          if-no-files-found: ignore
+
+      - name: Upload Playwright artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: task004-playwright
+          path: |
+            playwright-report/
+            test-results/
           if-no-files-found: ignore

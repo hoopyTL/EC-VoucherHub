@@ -4,15 +4,19 @@
  * Thin typed wrappers over the shared Axios {@link api} client for the
  * self-service password lifecycle. The shared client attaches the bearer token
  * automatically, so `changePassword` requires an authenticated session while
- * `forgotPassword` / `resetPassword` are public.
+ * `forgotPassword` is public.
  *
- *   - POST /auth/forgot-password  → {@link forgotPassword}  (Req 2.4)
- *   - POST /auth/reset-password   → {@link resetPassword}   (Req 2.5)
- *   - PUT  /auth/change-password  → {@link changePassword}  (Req 2.6, authenticated)
+ *   - POST  /auth/password-reset → {@link forgotPassword}  (Req 2.4)
+ *   - PATCH /auth/password       → {@link changePassword}  (Req 2.6, authenticated)
  *
  * _Requirements: 2.4, 2.5, 2.6_
  */
 import { api } from './api'
+
+interface ApiEnvelope<T> {
+  success: true
+  data: T
+}
 
 /** Result of a forgot-password request (Req 2.4). */
 export interface ForgotPasswordResult {
@@ -22,15 +26,9 @@ export interface ForgotPasswordResult {
    * are registered.
    */
   message: string
-  /**
-   * The reset token. The backend only includes this outside production so the
-   * flow can be exercised without real email/SMS delivery — it is surfaced in a
-   * clearly-labelled "Demo only" helper, never in production.
-   */
-  resetToken?: string
 }
 
-/** Result of a reset-password or change-password call. */
+/** Result of a change-password call. */
 export interface MessageResult {
   message: string
 }
@@ -42,21 +40,43 @@ export interface MessageResult {
  * verbatim (never branching on whether the account exists).
  */
 export async function forgotPassword(emailOrPhone: string): Promise<ForgotPasswordResult> {
-  const { data } = await api.post<ForgotPasswordResult>('/auth/forgot-password', { emailOrPhone })
-  return data
+  await api.post<ApiEnvelope<{ requested: true; resetCode: string }>>('/auth/password-reset', {
+    identifier: emailOrPhone
+  })
+  return {
+    message: 'If the account exists, password reset instructions have been created.'
+  }
 }
 
-/**
- * Reset a password using a token from the reset link (Req 2.5). The backend
- * enforces the same minimum length as registration (8 characters) and rejects
- * invalid/expired tokens with a 400.
- */
-export async function resetPassword(token: string, newPassword: string): Promise<MessageResult> {
-  const { data } = await api.post<MessageResult>('/auth/reset-password', {
-    token,
-    newPassword
-  })
-  return data
+export interface AuthProfile {
+  id: string
+  email: string | null
+  phone: string | null
+  fullName: string
+  address: string | null
+  status: string
+  role: { name: 'ADMIN' | 'PARTNER' | 'CUSTOMER' }
+  createdAt: string
+  updatedAt: string
+}
+
+export interface UpdateProfileInput {
+  fullName: string
+  email?: string
+  phone?: string
+  address?: string
+}
+
+/** Read the authenticated user's current backend profile. */
+export async function getProfile(): Promise<AuthProfile> {
+  const { data: response } = await api.get<ApiEnvelope<AuthProfile>>('/me')
+  return response.data
+}
+
+/** Update supported self-service profile fields. */
+export async function updateProfile(input: UpdateProfileInput): Promise<AuthProfile> {
+  const { data: response } = await api.patch<ApiEnvelope<AuthProfile>>('/me', input)
+  return response.data
 }
 
 /**
@@ -65,11 +85,11 @@ export async function resetPassword(token: string, newPassword: string): Promise
  * when it does not match.
  */
 export async function changePassword(currentPassword: string, newPassword: string): Promise<MessageResult> {
-  const { data } = await api.put<MessageResult>('/auth/change-password', {
+  const { data: response } = await api.patch<ApiEnvelope<{ changed: true }>>('/auth/password', {
     currentPassword,
     newPassword
   })
-  return data
+  return { message: response.data.changed ? 'Password changed successfully.' : 'Unable to change password.' }
 }
 
 /** Shape of the structured error body returned by the backend error handler. */
