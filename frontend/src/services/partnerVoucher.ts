@@ -1,70 +1,48 @@
-/**
- * Partner voucher API client (task 13.2).
- *
- * Typed wrappers over the partner-scoped voucher and branch endpoints used by
- * the partner voucher-management pages:
- *   - GET   `/partner/vouchers`            → list the partner's vouchers
- *   - GET   `/partner/branches`            → list the partner's branches
- *   - POST  `/partner/vouchers`            → create a DRAFT voucher (Req 8.x)
- *   - POST  `/partner/vouchers/:id/submit` → submit for approval (Req 9.1)
- *   - PATCH `/partner/vouchers/:id/pause`  → pause an approved voucher (Req 10.1)
- *   - PATCH `/partner/vouchers/:id/resume` → resume a paused voucher (Req 10.2)
- *   - PATCH `/partner/vouchers/:id/cancel` → cancel a voucher (Req 10.3)
- *
- * All endpoints require an authenticated, APPROVED partner; the shared Axios
- * client attaches the bearer token automatically. Money columns (`Decimal`) and
- * dates (`DateTime`) are serialised to JSON `string`s over the wire, so they are
- * typed as `string` here.
- *
- * _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 9.1, 10.1, 10.2, 10.3_
- */
-import type { CreateVoucherRequest, VoucherStatus } from '@ui-contracts'
+import type {
+  BranchDto,
+  CategoryDto,
+  CreateVoucherDto,
+  ListVouchersDto,
+  VoucherDto,
+  VoucherStatus
+} from '@voucher/shared'
+import type { CreateVoucherRequest } from '@ui-contracts'
+
 import { api } from './api'
 
-// ---------------------------------------------------------------------------
-// Response shapes
-// ---------------------------------------------------------------------------
-
-/** A partner branch as returned by `GET /partner/branches`. */
-export interface PartnerBranch {
-  id: string
-  name: string
-  address: string
-  region: string
-  contact: string
-  isActive: boolean
-  partnerId: string
-  createdAt: string
-  updatedAt: string
+interface ApiEnvelope<T> {
+  success: true
+  data: T
 }
 
-/** A `voucherBranches` join row with its branch attached. */
-export interface PartnerVoucherBranchLink {
+export interface PartnerBranch extends Omit<BranchDto, 'id'> {
   id: string
-  voucherId: string
+  isActive: boolean
+}
+
+export interface PartnerVoucherBranchLink {
   branchId: string
   branch: PartnerBranch
 }
 
-/**
- * A voucher owned by the partner, as serialised by `GET /partner/vouchers`.
- * `originalPrice`/`salePrice` are `Decimal` columns serialised to strings and
- * the period fields are ISO-8601 strings.
- */
+/** UI view model retained to avoid coupling the existing pages to wire names. */
 export interface PartnerVoucher {
   id: string
   title: string
   description: string
   category: string
+  categoryId: number | null
   originalPrice: string
   salePrice: string
   totalQuantity: number
   soldQuantity: number
+  isMultiUse: boolean
+  usesPerCode: number | null
   salePeriodStart: string
   salePeriodEnd: string
   usagePeriodStart: string
   usagePeriodEnd: string
-  terms: string | null
+  terms: null
   imageUrl: string | null
   status: VoucherStatus
   rejectionReason: string | null
@@ -74,145 +52,142 @@ export interface PartnerVoucher {
   voucherBranches: PartnerVoucherBranchLink[]
 }
 
-/** Paginated envelope returned by `GET /partner/vouchers`. */
 export interface ListPartnerVouchersResponse {
   vouchers: PartnerVoucher[]
-  pagination: {
-    page: number
-    limit: number
-    total: number
-  }
+  pagination: ListVouchersDto['pagination']
 }
 
-// ---------------------------------------------------------------------------
-// Query keys
-// ---------------------------------------------------------------------------
-
-/** TanStack Query key for the partner's voucher list. */
 export const PARTNER_VOUCHERS_QUERY_KEY = ['partner-vouchers'] as const
-
-/** TanStack Query key for the partner's branch list. */
 export const PARTNER_BRANCHES_QUERY_KEY = ['partner-branches'] as const
+export const VOUCHER_CATEGORIES_QUERY_KEY = ['voucher-categories'] as const
 
-// ---------------------------------------------------------------------------
-// API calls
-// ---------------------------------------------------------------------------
-
-/** List the authenticated partner's vouchers (newest first). */
-export async function listPartnerVouchers(): Promise<ListPartnerVouchersResponse> {
-  const { data } = await api.get<ListPartnerVouchersResponse>('/partner/vouchers')
-  return data
+function toPartnerBranch(branch: BranchDto): PartnerBranch {
+  return { ...branch, id: String(branch.id), isActive: true }
 }
 
-/** List the authenticated partner's branches (active + inactive). */
-export async function listPartnerBranches(): Promise<PartnerBranch[]> {
-  const { data } = await api.get<PartnerBranch[]>('/partner/branches')
-  return data
-}
-
-/** Create a new DRAFT voucher (Req 8.1, 8.5). */
-export async function createVoucher(body: CreateVoucherRequest): Promise<PartnerVoucher> {
-  const { data } = await api.post<PartnerVoucher>('/partner/vouchers', body)
-  return data
-}
-
-/** Load one partner-owned voucher for the edit form. */
-export async function getPartnerVoucher(id: string): Promise<PartnerVoucher> {
-  const { data } = await api.get<PartnerVoucher>(`/partner/vouchers/${id}`)
-  return data
-}
-
-/** Update a partner-owned voucher draft from the shared editor. */
-export async function updatePartnerVoucher(id: string, body: CreateVoucherRequest): Promise<PartnerVoucher> {
-  const { data } = await api.patch<PartnerVoucher>(`/partner/vouchers/${id}`, body)
-  return data
-}
-
-/**
- * Upload a voucher image (future-development.md §4.3). Sends the raw file bytes
- * with the file's content type; the server validates magic bytes + size, stores
- * it, and returns the public URL to use as the voucher's `imageUrl`.
- */
-export async function uploadVoucherImage(file: File): Promise<string> {
-  const { data } = await api.post<{ url: string }>('/partner/uploads/voucher-image', file, {
-    headers: { 'Content-Type': file.type }
-  })
-  return data.url
-}
-
-/** Submit a draft/rejected voucher for admin approval (Req 9.1). */
-export async function submitVoucher(id: string): Promise<PartnerVoucher> {
-  const { data } = await api.post<PartnerVoucher>(`/partner/vouchers/${id}/submit`)
-  return data
-}
-
-/** Pause an approved voucher, hiding it from customers (Req 10.1). */
-export async function pauseVoucher(id: string): Promise<PartnerVoucher> {
-  const { data } = await api.patch<PartnerVoucher>(`/partner/vouchers/${id}/pause`)
-  return data
-}
-
-/** Resume a paused voucher (Req 10.2). */
-export async function resumeVoucher(id: string): Promise<PartnerVoucher> {
-  const { data } = await api.patch<PartnerVoucher>(`/partner/vouchers/${id}/resume`)
-  return data
-}
-
-/** Cancel a voucher, preventing further sales (Req 10.3). */
-export async function cancelVoucher(id: string): Promise<PartnerVoucher> {
-  const { data } = await api.patch<PartnerVoucher>(`/partner/vouchers/${id}/cancel`)
-  return data
-}
-
-// ---------------------------------------------------------------------------
-// Lifecycle action helpers (single source of truth for the state machine)
-// ---------------------------------------------------------------------------
-
-/**
- * A partner-driven lifecycle action available on a voucher, contextual to its
- * current status (see the design "Voucher State Machine").
- */
-export type VoucherAction = 'submit' | 'pause' | 'resume' | 'cancel'
-
-/**
- * Compute the lifecycle actions available for a voucher in the given status.
- * Mirrors the server-side transition rules so the UI only offers valid moves:
- *   - submit: DRAFT or REJECTED → PENDING_APPROVAL
- *   - pause:  APPROVED → PAUSED
- *   - resume: PAUSED → APPROVED
- *   - cancel: DRAFT / PENDING_APPROVAL / APPROVED / PAUSED → CANCELLED
- */
-export function availableActions(status: VoucherStatus): VoucherAction[] {
-  const actions: VoucherAction[] = []
-  if (status === 'DRAFT' || status === 'REJECTED') actions.push('submit')
-  if (status === 'APPROVED') actions.push('pause')
-  if (status === 'PAUSED') actions.push('resume')
-  if (status === 'DRAFT' || status === 'PENDING_APPROVAL' || status === 'APPROVED' || status === 'PAUSED') {
-    actions.push('cancel')
+function toPartnerVoucher(voucher: VoucherDto): PartnerVoucher {
+  return {
+    id: voucher.id,
+    title: voucher.name,
+    description: voucher.description,
+    category: voucher.category?.name ?? 'Chưa phân loại',
+    categoryId: voucher.categoryId,
+    originalPrice: voucher.originalPrice,
+    salePrice: voucher.salePrice,
+    totalQuantity: voucher.totalQuantity,
+    soldQuantity: voucher.soldQuantity,
+    isMultiUse: voucher.isMultiUse,
+    usesPerCode: voucher.usesPerCode,
+    salePeriodStart: voucher.saleStart,
+    salePeriodEnd: voucher.saleEnd,
+    usagePeriodStart: voucher.usageStart,
+    usagePeriodEnd: voucher.usageEnd,
+    terms: null,
+    imageUrl: voucher.imageUrl,
+    status: voucher.status,
+    rejectionReason: voucher.rejectReason,
+    partnerId: voucher.partnerId,
+    createdAt: voucher.createdAt,
+    updatedAt: voucher.updatedAt,
+    voucherBranches: voucher.branches.map((branch) => ({
+      branchId: String(branch.id),
+      branch: toPartnerBranch(branch)
+    }))
   }
-  return actions
 }
 
-// ---------------------------------------------------------------------------
-// Error helper
-// ---------------------------------------------------------------------------
+function toCreateVoucherDto(body: CreateVoucherRequest): CreateVoucherDto {
+  return {
+    categoryId: Number(body.category),
+    name: body.title,
+    description: body.description,
+    imageUrl: body.imageUrl,
+    originalPrice: body.originalPrice,
+    salePrice: body.salePrice,
+    saleStart: body.salePeriodStart,
+    saleEnd: body.salePeriodEnd,
+    usageStart: body.usagePeriodStart,
+    usageEnd: body.usagePeriodEnd,
+    totalQuantity: body.totalQuantity,
+    isMultiUse: body.isMultiUse ?? false,
+    usesPerCode: body.isMultiUse ? body.usesPerCode : null,
+    branchIds: body.branchIds.map(Number)
+  }
+}
 
-/** Shape of the structured error body returned by the backend error handler. */
+export async function listVoucherCategories(): Promise<CategoryDto[]> {
+  const { data } = await api.get<ApiEnvelope<CategoryDto[]>>('/categories')
+  return data.data
+}
+
+export async function listPartnerVouchers(page = 1, limit = 20): Promise<ListPartnerVouchersResponse> {
+  const { data } = await api.get<ApiEnvelope<ListVouchersDto>>('/partner/vouchers', { params: { page, limit } })
+  return { ...data.data, vouchers: data.data.vouchers.map(toPartnerVoucher) }
+}
+
+export async function listPartnerBranches(): Promise<PartnerBranch[]> {
+  const { data } = await api.get<ApiEnvelope<BranchDto[]>>('/partner/branches')
+  return data.data.map(toPartnerBranch)
+}
+
+export async function createVoucher(body: CreateVoucherRequest): Promise<PartnerVoucher> {
+  const { data } = await api.post<ApiEnvelope<VoucherDto>>('/vouchers', toCreateVoucherDto(body))
+  return toPartnerVoucher(data.data)
+}
+
+export async function getPartnerVoucher(id: string): Promise<PartnerVoucher> {
+  const { data } = await api.get<ApiEnvelope<VoucherDto>>(`/partner/vouchers/${id}`)
+  return toPartnerVoucher(data.data)
+}
+
+export async function updatePartnerVoucher(id: string, body: CreateVoucherRequest): Promise<PartnerVoucher> {
+  const { data } = await api.patch<ApiEnvelope<VoucherDto>>(`/vouchers/${id}`, toCreateVoucherDto(body))
+  return toPartnerVoucher(data.data)
+}
+
+export async function uploadVoucherImage(file: File): Promise<string> {
+  const body = new FormData()
+  body.append('image', file)
+  const { data } = await api.post<ApiEnvelope<{ url: string }>>('/vouchers/images', body)
+  return data.data.url
+}
+
+export async function submitVoucher(id: string): Promise<PartnerVoucher> {
+  const { data } = await api.post<ApiEnvelope<VoucherDto>>(`/vouchers/${id}/submission`)
+  return toPartnerVoucher(data.data)
+}
+
+export async function returnVoucherToDraft(id: string): Promise<PartnerVoucher> {
+  const { data } = await api.post<ApiEnvelope<VoucherDto>>(`/vouchers/${id}/draft`)
+  return toPartnerVoucher(data.data)
+}
+
+export async function pauseVoucher(id: string): Promise<PartnerVoucher> {
+  const { data } = await api.patch<ApiEnvelope<VoucherDto>>(`/vouchers/${id}/status`, { action: 'pause' })
+  return toPartnerVoucher(data.data)
+}
+
+export async function resumeVoucher(id: string): Promise<PartnerVoucher> {
+  const { data } = await api.patch<ApiEnvelope<VoucherDto>>(`/vouchers/${id}/status`, { action: 'resume' })
+  return toPartnerVoucher(data.data)
+}
+
+export type VoucherAction = 'submit' | 'revise' | 'pause' | 'resume'
+
+export function availableActions(status: VoucherStatus): VoucherAction[] {
+  if (status === 'DRAFT') return ['submit']
+  if (status === 'REJECTED') return ['revise']
+  if (status === 'ON_SALE') return ['pause']
+  if (status === 'PAUSED') return ['resume']
+  return []
+}
+
 interface ApiErrorBody {
   error?: { code?: string; message?: string }
 }
 
-/**
- * Derive a user-facing message from a failed API call. Surfaces the backend's
- * structured `{ error: { message } }` when present, otherwise a network/default
- * fallback so internals are never leaked.
- */
 export function getApiErrorMessage(err: unknown, fallback: string): string {
   const response = (err as { response?: { status?: number; data?: ApiErrorBody } })?.response
-
-  if (!response) {
-    return 'Unable to reach the server. Please check your connection and try again.'
-  }
-
+  if (!response) return 'Unable to reach the server. Please check your connection and try again.'
   return response.data?.error?.message ?? fallback
 }

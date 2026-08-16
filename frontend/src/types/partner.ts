@@ -10,8 +10,7 @@
  * as `string` here. Status enums reuse the canonical unions from
  * The UI preview imports these temporary contracts from `@ui-contracts`.
  */
-import type { VoucherStatus } from '@ui-contracts'
-import type { BranchDto, CreateBranchDto } from '@voucher/shared'
+import type { BranchDto, CreateBranchDto, VoucherStatus } from '@voucher/shared'
 
 /** A partner branch, as returned by the `/partner/branches` endpoints. */
 export type Branch = BranchDto

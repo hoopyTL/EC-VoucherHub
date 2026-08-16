@@ -16,7 +16,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import type { CSSProperties, ReactNode } from 'react'
-import { VoucherStatus } from '@ui-contracts'
+import { VoucherStatus } from '@voucher/shared'
 import { listBranches, listPartnerVouchers } from '../../services/partner'
 import type { Branch, PartnerVoucher } from '../../types/partner'
 import { Badge, variantForStatus, LoadingSpinner } from '../../components/ui'
@@ -28,7 +28,7 @@ export interface PartnerDashboardStats {
   totalBranches: number
   activeBranches: number
   totalVouchers: number
-  /** Vouchers currently live (APPROVED). */
+  /** Vouchers currently live. */
   approvedVouchers: number
   /** Total voucher units sold across all vouchers. */
   unitsSold: number
@@ -52,7 +52,7 @@ export function deriveDashboardStats(branches: Branch[], vouchers: PartnerVouche
     vouchersByStatus[voucher.status] = (vouchersByStatus[voucher.status] ?? 0) + 1
     unitsSold += voucher.soldQuantity
     grossSales += parsePrice(voucher.salePrice) * voucher.soldQuantity
-    if (voucher.status === VoucherStatus.APPROVED) approvedVouchers += 1
+    if (voucher.status === VoucherStatus.ON_SALE) approvedVouchers += 1
   }
 
   return {
@@ -69,11 +69,12 @@ export function deriveDashboardStats(branches: Branch[], vouchers: PartnerVouche
 /** Stable display order for the per-status breakdown. */
 const STATUS_ORDER: VoucherStatus[] = [
   VoucherStatus.DRAFT,
-  VoucherStatus.PENDING_APPROVAL,
+  VoucherStatus.PENDING_REVIEW,
   VoucherStatus.APPROVED,
+  VoucherStatus.ON_SALE,
   VoucherStatus.PAUSED,
   VoucherStatus.REJECTED,
-  VoucherStatus.CANCELLED
+  VoucherStatus.DISCONTINUED
 ]
 
 export function DashboardPage() {

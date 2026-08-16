@@ -99,6 +99,8 @@ export interface CreateVoucherRequest {
   terms?: string
   imageUrl?: string
   branchIds: string[]
+  isMultiUse?: boolean
+  usesPerCode?: number | null
 }
 
 export interface VoucherSearchParams {

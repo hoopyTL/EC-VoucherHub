@@ -12,8 +12,8 @@
  * strings. Status/role enums reuse the temporary UI-only unions from `@ui-contracts`
  * so the client and server stay in lockstep.
  */
-import type { AccountStatus, OrderStatus, UserRole, VoucherStatus } from '@ui-contracts'
-import type { AdminPartnerDto, ListPartnersDto } from '@voucher/shared'
+import type { AccountStatus, OrderStatus, UserRole } from '@ui-contracts'
+import type { AdminPartnerDto, ListPartnersDto, VoucherStatus } from '@voucher/shared'
 
 // ---------------------------------------------------------------------------
 // Dashboard statistics (GET /admin/dashboard/stats)

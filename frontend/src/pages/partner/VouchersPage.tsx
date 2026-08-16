@@ -20,15 +20,15 @@
 import { useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Badge, variantForStatus, Button, LoadingSpinner, Modal } from '../../components/ui'
+import { Badge, variantForStatus, Button, LoadingSpinner, Pagination } from '../../components/ui'
 import {
   availableActions,
-  cancelVoucher,
   getApiErrorMessage,
   listPartnerVouchers,
   pauseVoucher,
   PARTNER_VOUCHERS_QUERY_KEY,
   resumeVoucher,
+  returnVoucherToDraft,
   submitVoucher,
   type ListPartnerVouchersResponse,
   type PartnerVoucher,
@@ -40,17 +40,17 @@ import { colors, fonts, radius, shadows } from '../../theme/tokens'
 /** Human-readable button label for each lifecycle action. */
 const ACTION_LABEL: Record<VoucherAction, string> = {
   submit: 'Gửi duyệt',
+  revise: 'Đưa về nháp',
   pause: 'Tạm dừng',
-  resume: 'Mở bán lại',
-  cancel: 'Hủy'
+  resume: 'Mở bán lại'
 }
 
 /** Map an action to the API call that performs it. */
 const ACTION_FN: Record<VoucherAction, (id: string) => Promise<PartnerVoucher>> = {
   submit: submitVoucher,
+  revise: returnVoucherToDraft,
   pause: pauseVoucher,
-  resume: resumeVoucher,
-  cancel: cancelVoucher
+  resume: resumeVoucher
 }
 
 /** Remaining (unsold) inventory for a voucher. */
@@ -60,18 +60,18 @@ function remaining(voucher: PartnerVoucher): number {
 
 export function VouchersPage() {
   const queryClient = useQueryClient()
+  const [page, setPage] = useState(1)
+  const pageLimit = 20
 
   // Inline error banner for a failed action (keyed message, not per row, so a
   // single alert region is announced).
   const [actionError, setActionError] = useState<string | null>(null)
   // Tracks the voucher+action currently in flight so only that button spins.
   const [pending, setPending] = useState<{ id: string; action: VoucherAction } | null>(null)
-  // Voucher awaiting cancel confirmation (cancel is destructive/irreversible).
-  const [cancelTarget, setCancelTarget] = useState<PartnerVoucher | null>(null)
 
   const { data, isLoading, isError } = useQuery<ListPartnerVouchersResponse>({
-    queryKey: PARTNER_VOUCHERS_QUERY_KEY,
-    queryFn: listPartnerVouchers
+    queryKey: [...PARTNER_VOUCHERS_QUERY_KEY, page],
+    queryFn: () => listPartnerVouchers(page, pageLimit)
   })
 
   const actionMutation = useMutation({
@@ -92,21 +92,11 @@ export function VouchersPage() {
   })
 
   function runAction(voucher: PartnerVoucher, action: VoucherAction) {
-    if (action === 'cancel') {
-      setCancelTarget(voucher)
-      return
-    }
     actionMutation.mutate({ id: voucher.id, action })
   }
 
-  function confirmCancel() {
-    if (!cancelTarget) return
-    const id = cancelTarget.id
-    setCancelTarget(null)
-    actionMutation.mutate({ id, action: 'cancel' })
-  }
-
   const vouchers = data?.vouchers ?? []
+  const totalPages = Math.max(1, Math.ceil((data?.pagination.total ?? 0) / pageLimit))
 
   return (
     <section style={sectionStyle}>
@@ -143,80 +133,63 @@ export function VouchersPage() {
       )}
 
       {!isLoading && !isError && vouchers.length > 0 && (
-        <ul style={listStyle}>
-          {vouchers.map((voucher) => {
-            const actions = availableActions(voucher.status)
-            return (
-              <li key={voucher.id} style={rowStyle} data-testid={`voucher-row-${voucher.id}`}>
-                <div style={{ flex: 1, minWidth: 220 }}>
-                  <div style={titleRowStyle}>
-                    <span style={{ fontWeight: 600 }}>{voucher.title}</span>
-                    <Badge variant={variantForStatus(voucher.status)}>{formatStatus(voucher.status)}</Badge>
-                  </div>
-                  <p style={metaStyle}>
-                    {voucher.category} · {formatCurrency(voucher.salePrice)}{' '}
-                    <span style={{ textDecoration: 'line-through', color: colors.slateMuted }}>
-                      {formatCurrency(voucher.originalPrice)}
-                    </span>{' '}
-                    (−{discountPercent(voucher.originalPrice, voucher.salePrice)}%)
-                  </p>
-                  <p style={metaStyle}>
-                    Mở bán: {formatDateRange(voucher.salePeriodStart, voucher.salePeriodEnd)} · {remaining(voucher)}/
-                    {voucher.totalQuantity} còn lại
-                  </p>
-                  {voucher.status === 'REJECTED' && voucher.rejectionReason && (
-                    <p style={rejectionStyle} role='note'>
-                      Lý do từ chối: {voucher.rejectionReason}
+        <>
+          <ul style={listStyle}>
+            {vouchers.map((voucher) => {
+              const actions = availableActions(voucher.status)
+              return (
+                <li key={voucher.id} style={rowStyle} data-testid={`voucher-row-${voucher.id}`}>
+                  <div style={{ flex: 1, minWidth: 220 }}>
+                    <div style={titleRowStyle}>
+                      <span style={{ fontWeight: 600 }}>{voucher.title}</span>
+                      <Badge variant={variantForStatus(voucher.status)}>{formatStatus(voucher.status)}</Badge>
+                    </div>
+                    <p style={metaStyle}>
+                      {voucher.category} · {formatCurrency(voucher.salePrice)}{' '}
+                      <span style={{ textDecoration: 'line-through', color: colors.slateMuted }}>
+                        {formatCurrency(voucher.originalPrice)}
+                      </span>{' '}
+                      (−{discountPercent(voucher.originalPrice, voucher.salePrice)}%)
                     </p>
-                  )}
-                </div>
+                    <p style={metaStyle}>
+                      Mở bán: {formatDateRange(voucher.salePeriodStart, voucher.salePeriodEnd)} · {remaining(voucher)}/
+                      {voucher.totalQuantity} còn lại
+                    </p>
+                    {voucher.status === 'REJECTED' && voucher.rejectionReason && (
+                      <p style={rejectionStyle} role='note'>
+                        Lý do từ chối: {voucher.rejectionReason}
+                      </p>
+                    )}
+                  </div>
 
-                <div style={actionsStyle}>
-                  {actions.length === 0 ? (
-                    <span style={{ color: colors.slateMuted, fontSize: 13 }}>Không có thao tác</span>
-                  ) : (
-                    actions.map((action) => {
-                      const isBusy = pending?.id === voucher.id && pending.action === action
-                      return (
-                        <Button
-                          key={action}
-                          size='sm'
-                          variant={action === 'cancel' ? 'danger' : 'secondary'}
-                          isLoading={isBusy}
-                          disabled={actionMutation.isPending}
-                          onClick={() => runAction(voucher, action)}
-                        >
-                          {ACTION_LABEL[action]}
-                        </Button>
-                      )
-                    })
-                  )}
-                </div>
-              </li>
-            )
-          })}
-        </ul>
+                  <div style={actionsStyle}>
+                    {actions.length === 0 ? (
+                      <span style={{ color: colors.slateMuted, fontSize: 13 }}>Không có thao tác</span>
+                    ) : (
+                      actions.map((action) => {
+                        const isBusy = pending?.id === voucher.id && pending.action === action
+                        return (
+                          <Button
+                            key={action}
+                            size='sm'
+                            variant={action === 'pause' ? 'danger' : 'secondary'}
+                            isLoading={isBusy}
+                            disabled={actionMutation.isPending}
+                            onClick={() => runAction(voucher, action)}
+                          >
+                            {ACTION_LABEL[action]}
+                          </Button>
+                        )
+                      })
+                    )}
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+          <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} style={{ marginTop: 20 }} />
+        </>
       )}
-
-      <Modal
-        isOpen={cancelTarget !== null}
-        onClose={() => setCancelTarget(null)}
-        title='Hủy voucher?'
-        footer={
-          <>
-            <Button variant='secondary' onClick={() => setCancelTarget(null)}>
-              Giữ voucher
-            </Button>
-            <Button variant='danger' onClick={confirmCancel}>
-              Hủy voucher
-            </Button>
-          </>
-        }
-      >
-        <p style={{ margin: 0 }}>
-          Hủy <strong>{cancelTarget?.title}</strong> sẽ ngừng mọi lượt bán mới và không thể hoàn tác. Bạn chắc chắn chứ?
-        </p>
-      </Modal>
     </section>
   )
 }
