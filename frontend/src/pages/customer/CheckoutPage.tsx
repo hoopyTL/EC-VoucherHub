@@ -70,10 +70,16 @@ export function CheckoutPage() {
     event.preventDefault()
     setErrorMessage(null)
 
-    const body: CreateOrderRequest = {
-      recipientName: emptyToUndefined(recipientName),
-      recipientEmail: emptyToUndefined(recipientEmail),
-      recipientPhone: emptyToUndefined(recipientPhone)
+    const name = emptyToUndefined(recipientName)
+    const phone = emptyToUndefined(recipientPhone)
+    const email = emptyToUndefined(recipientEmail)
+
+    // Match backend CreateOrderDto which expects giftRecipient: { name, phone }
+    // If we only have flat fields locally, map them into the nested object
+    const giftRecipient = name || phone ? { name: name || '', phone: phone || '' } : undefined
+
+    const body: any = {
+      giftRecipient
     }
 
     createOrderMutation.mutate(body)

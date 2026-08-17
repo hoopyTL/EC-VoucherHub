@@ -1,0 +1,98 @@
+
+ RUN  v4.1.10 D:/Project cá nhân/EC-VoucherHub/backend
+
+stdout | src/modules/cart/cart.service.test.ts
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+
+ ❯ src/modules/cart/cart.service.test.ts (3 tests | 3 failed) 6ms
+       × sẽ trả về giỏ hàng nếu đã tồn tại 4ms
+       × ném lỗi NotFoundError nếu voucher không tồn tại 1ms
+       × ném lỗi ValidationError nếu voucher không đang bán 0ms
+stderr | src/modules/cart/cart.controller.test.ts > Cart Controller & Routes > POST /api/cart/items > gọi service để thêm item và trả về thành công
+Test error: BadRequestError: validation failed
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/middleware/validate.ts:22:14
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\route.js:117:3)
+    at handle (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:295:15
+    at processParams (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:582:12)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:291:5)
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/modules/cart/cart.controller.test.ts:22:33 {
+  statusCode: 400,
+  details: [
+    {
+      field: 'voucherProductId',
+      message: 'voucherProductId phải là UUID hợp lệ'
+    }
+  ]
+}
+
+ ❯ src/modules/cart/cart.controller.test.ts (2 tests | 1 failed) 40ms
+       ✓ sẽ trả về thông tin giỏ hàng 17ms
+       × gọi service để thêm item và trả về thành công 22ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/modules/cart/cart.controller.test.ts > Cart Controller & Routes > POST /api/cart/items > gọi service để thêm item và trả về thành công
+AssertionError: expected 500 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 500
+
+ ❯ src/modules/cart/cart.controller.test.ts:79:31
+     77|         .send(payload)
+     78|
+     79|       expect(response.status).toBe(200)
+       |                               ^
+     80|       expect(response.body.data).toEqual(mockCart)
+     81|       expect(cartService.addItem).toHaveBeenCalledWith('test-user-id',…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/modules/cart/cart.service.test.ts > Cart Service > getCart > sẽ trả về giỏ hàng nếu đã tồn tại
+TypeError: prismaMock.cart.findUnique.mockResolvedValue is not a function
+ ❯ src/modules/cart/cart.service.test.ts:31:34
+     29|       const mockDate = new Date()
+     30|       // Setup mock
+     31|       prismaMock.cart.findUnique.mockResolvedValue({
+       |                                  ^
+     32|         id: 'cart-1',
+     33|         customerId,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  src/modules/cart/cart.service.test.ts > Cart Service > addItem > ném lỗi NotFoundError nếu voucher không tồn tại
+TypeError: prismaMock.voucherProduct.findUnique.mockResolvedValue is not a function
+ ❯ src/modules/cart/cart.service.test.ts:65:44
+     63|   describe('addItem', () => {
+     64|     it('ném lỗi NotFoundError nếu voucher không tồn tại', async () => {
+     65|       prismaMock.voucherProduct.findUnique.mockResolvedValue(null)
+       |                                            ^
+     66|
+     67|       await expect(cartService.addItem(customerId, { voucherProductId:…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  src/modules/cart/cart.service.test.ts > Cart Service > addItem > ném lỗi ValidationError nếu voucher không đang bán
+TypeError: prismaMock.voucherProduct.findUnique.mockResolvedValue is not a function
+ ❯ src/modules/cart/cart.service.test.ts:73:44
+     71|
+     72|     it('ném lỗi ValidationError nếu voucher không đang bán', async () …
+     73|       prismaMock.voucherProduct.findUnique.mockResolvedValue({
+       |                                            ^
+     74|         id: 'vp-1',
+     75|         status: 'PAUSED',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  4 failed | 1 passed (5)
+   Start at  20:07:22
+   Duration  587ms (transform 136ms, setup 0ms, import 561ms, tests 46ms, environment 0ms)
+
