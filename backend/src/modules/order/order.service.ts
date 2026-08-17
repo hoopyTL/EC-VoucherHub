@@ -119,14 +119,19 @@ export const createOrder = async (
   customerId: string,
   dto: CreateOrderDto,
 ): Promise<OrderResponse> => {
-  // 0. Chống ôm hàng: mỗi khách chỉ được 1 đơn PENDING_PAYMENT tại bất kỳ thời điểm nào
-  const existingPending = await prisma.order.findFirst({
+  // 0. Thu thập các đơn cũ đang bị "Giam" (PENDING) để tính tổng số lượng đang chiếm dụng
+  const existingPendingOrders = await prisma.order.findMany({
     where: { customerId, status: 'PENDING_PAYMENT' },
+    include: { orderItems: true }
   })
-  if (existingPending) {
-    throw new ConflictError(
-      'Bạn đang có đơn hàng chờ thanh toán. Vui lòng thanh toán hoặc đợi đơn cũ hết hạn trước khi đặt đơn mới.'
-    )
+
+  // Đếm xem mỗi loại Voucher đang bị khách này găm bao nhiêu cái (chưa thanh toán)
+  const pendingQtyByProduct: Record<string, number> = {};
+  for (const pendingOrder of existingPendingOrders) {
+    for (const item of pendingOrder.orderItems) {
+      pendingQtyByProduct[item.voucherProductId] =
+        (pendingQtyByProduct[item.voucherProductId] || 0) + item.quantity;
+    }
   }
 
   // 1. Lấy giỏ
@@ -168,6 +173,17 @@ export const createOrder = async (
         message: `"${vp.name}" không còn đang bán`,
       })
       continue
+    }
+
+    const MAX_QUANTITY = 10;
+    const currentlyHoarded = pendingQtyByProduct[vp.id] || 0;
+    const totalWillBeHeld = item.quantity + currentlyHoarded;
+
+    if (totalWillBeHeld > MAX_QUANTITY) {
+      stockErrors.push({
+        field: `items.${vp.id}`,
+        message: `Chống đầu cơ: Bạn đang có ${currentlyHoarded} voucher chưa thanh toán. Mỗi người chỉ được giữ tối đa ${MAX_QUANTITY} voucher "${vp.name}". Vui lòng thanh toán đơn cũ hoặc chờ 15 phút.`,
+      })
     }
 
     if (item.quantity > vp.remainingQuantity) {
@@ -217,7 +233,7 @@ export const createOrder = async (
         totalAmount,
         paymentMethod: dto.paymentMethod || 'VNPAY', // Cấp mặc định để không bị Crash DB
         status: 'PENDING_PAYMENT',
-        expiresAt: new Date(Date.now() + 5 * 60 * 1000), // Khóa 5 phút — chống ôm hàng
+        expiresAt: new Date(Date.now() + 15 * 60 * 1000), // Khóa 15 phút — chống ôm hàng
         giftRecipient: dto.giftRecipient
           ? (dto.giftRecipient as unknown as Prisma.InputJsonValue)
           : Prisma.JsonNull,
@@ -447,4 +463,40 @@ export const processPayment = async (
       expiresAt: c.expiresAt.toISOString(),
     })),
   }
+}
+
+/**
+ * Hủy đơn hàng đang chờ thanh toán (Khách đổi ý).
+ * Phải hoàn lại tồn kho ngay lập tức.
+ */
+export const cancelOrder = async (
+  customerId: string,
+  orderId: string,
+): Promise<{ message: string }> => {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: { orderItems: true }
+  });
+
+  if (!order) throw new NotFoundError('Đơn hàng không tồn tại');
+  if (order.customerId !== customerId) throw new ForbiddenError('Đơn hàng không thuộc về bạn');
+  if (order.status !== 'PENDING_PAYMENT') throw new ConflictError('Chỉ có thể hủy đơn hàng đang chờ thanh toán');
+
+  await prisma.$transaction(async (tx) => {
+    // 1. Hoàn tồn kho
+    for (const item of order.orderItems) {
+      await tx.voucherProduct.update({
+        where: { id: item.voucherProductId },
+        data: { remainingQuantity: { increment: item.quantity } }
+      });
+    }
+
+    // 2. Cập nhật trạng thái
+    await tx.order.update({
+      where: { id: order.id },
+      data: { status: 'CANCELLED' }
+    });
+  });
+
+  return { message: 'Hủy đơn hàng và hoàn khóa voucher thành công' };
 }

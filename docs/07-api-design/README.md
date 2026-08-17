@@ -88,7 +88,7 @@ Client luôn kiểm tra `success` trước khi đọc `data`. Không bao giờ t
 | POST | `/cart/items` | Thêm mục | Khách hàng | FR-06 |
 | PATCH | `/cart/items/:itemId` | Cập nhật số lượng | Khách hàng | FR-06 |
 | DELETE | `/cart/items/:itemId` | Xoá mục | Khách hàng | FR-06 |
-| POST | `/orders` | Tạo đơn từ giỏ (chống ôm hàng: tối đa 1 đơn PENDING_PAYMENT/khách) | Khách hàng | FR-07 |
+| POST | `/orders` | Tạo đơn từ giỏ (tổng giỏ + đơn chờ < 10 voucher/loại) | Khách hàng | FR-07 |
 | GET | `/orders` | Lịch sử đơn của mình (cursor-based pagination) | Khách hàng | FR-09 |
 | GET | `/orders/:id` | Chi tiết đơn + mã voucher (nếu đã PAID) | Khách hàng | FR-09 |
 | POST | `/orders/:id/payment` | Thanh toán mô phỏng → phát hành mã | Khách hàng | FR-08 |
@@ -182,11 +182,11 @@ Không kết quả → `items: []` + 200 (không phải 404).
     "paidAt": null, "createdAt": "...", "updatedAt": "..." } }
 ```
 **Cơ chế chống ôm hàng (Anti-hogging)**:
-- Mỗi khách chỉ được tối đa **1 đơn PENDING_PAYMENT** cùng lúc. Nếu đặt thêm → 409 (`đang có đơn chờ thanh toán`).
-- Đơn có `expiresAt` = thời điểm tạo + **5 phút**. Cron job tự hủy + hoàn kho khi quá hạn.
-- Kho hàng bị trừ (lock) tại thời điểm tạo đơn (Pessimistic Locking), đảm bảo không oversell.
+- Không giới hạn số lượng đơn `PENDING_PAYMENT` có thể găm cùng lúc. Tuy nhiên, hệ thống thiết lập giới hạn TỔNG số lượng sản phẩm mỗi loại voucher đang được giữ (Cart + `PENDING_PAYMENT`) không vượt quá **10 voucher**. Nếu vượt ngưỡng → 422 (`vượt giới hạn ôm hàng`).
+- Đơn có `expiresAt` = thời điểm tạo + **15 phút**. Cron job tự động hủy đơn (`CANCELLED`) + hoàn kho khi quá hạn mà khách chưa thanh toán.
+- Kho hàng bị trừ (lock) tại thời điểm tạo đơn (Pessimistic Locking), đảm bảo không oversell (bán lố). Khách có thể chủ động hủy đơn (`POST /orders/:id/cancel`) để giải phóng slot khống chế (limit) của mình.
 
-**Lỗi**: giỏ rỗng → 422 (`giỏ hàng rỗng`); bất kỳ mục vượt tồn kho → 422 (`vượt quá tồn kho` + `details` theo voucher); đã có đơn pending → 409.
+**Lỗi**: giỏ rỗng → 422 (`giỏ hàng rỗng`); bất kỳ mục vượt tồn kho / vượt tổng giới hạn 10 voucher → 422 (`vượt quá tồn kho` + `details` theo voucher).
 
 ### 3.5 Thanh toán (FR-08) — VNPay Integration
 

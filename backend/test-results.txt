@@ -1,0 +1,388 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.10 [39m[90mD:/Project cá nhân/EC-VoucherHub/backend[39m
+
+ [31m❯[39m src/modules/user/user.test.ts [2m([22m[2m9 tests[22m[2m | [22m[33m9 skipped[39m[2m)[22m[32m 67[2mms[22m[39m
+     [2m[90m↓[39m[22m returns 401 without authentication and 403 for non-admin roles
+     [2m[90m↓[39m[22m protects every admin mutation route from anonymous and non-admin callers
+     [2m[90m↓[39m[22m allows an admin to search with AND filters and cursor pagination
+     [2m[90m↓[39m[22m locks and unlocks a user, invalidating and restoring an existing token
+     [2m[90m↓[39m[22m applies a role change immediately to an existing token
+     [2m[90m↓[39m[22m removes admin access from an existing token immediately after demotion
+     [2m[90m↓[39m[22m validates IDs and maps missing users to 404
+     [2m[90m↓[39m[22m supports legacy role rows while returning canonical role names
+     [2m[90m↓[39m[22m fails closed when a configured role is missing
+ [31m❯[39m src/modules/auth/auth-properties.test.ts [2m([22m[2m2 tests[22m[2m | [22m[33m2 skipped[39m[2m)[22m[32m 67[2mms[22m[39m
+     [2m[90m↓[39m[22m Properties 18/19: persists a hash and rejects every duplicate identifier through registration
+     [2m[90m↓[39m[22m Property 22: lock blocks login and unlock restores it for every round
+ [31m❯[39m src/modules/auth/auth.test.ts [2m([22m[2m22 tests[22m[2m | [22m[33m22 skipped[39m[2m)[22m[32m 64[2mms[22m[39m
+     [2m[90m↓[39m[22m registers a customer, normalizes email, and never exposes the password hash
+     [2m[90m↓[39m[22m accepts phone as the only identifier
+     [2m[90m↓[39m[22m rejects invalid registration input
+     [2m[90m↓[39m[22m rejects invalid registration input
+     [2m[90m↓[39m[22m rejects invalid registration input
+     [2m[90m↓[39m[22m rejects invalid registration input
+     [2m[90m↓[39m[22m rejects invalid registration input
+     [2m[90m↓[39m[22m rejects invalid registration input
+     [2m[90m↓[39m[22m returns 409 for duplicate email and phone
+     [2m[90m↓[39m[22m fails closed when the customer role is not configured
+     [2m[90m↓[39m[22m logs in case-insensitively and returns a usable JWT
+     [2m[90m↓[39m[22m logs in with a phone identifier
+     [2m[90m↓[39m[22m uses the same unauthorized response for a missing account and wrong password
+     [2m[90m↓[39m[22m blocks a locked account at login
+     [2m[90m↓[39m[22m does not reveal whether a password-reset account exists
+     [2m[90m↓[39m[22m marks only a registered identifier as an internally deliverable reset request
+     [2m[90m↓[39m[22m requires a valid bearer token for protected routes
+     [2m[90m↓[39m[22m updates the profile without exposing sensitive fields
+     [2m[90m↓[39m[22m rejects empty, malformed, and duplicate profile updates
+     [2m[90m↓[39m[22m changes the password only when the current password is correct
+     [2m[90m↓[39m[22m returns a stateless logout acknowledgement
+     [2m[90m↓[39m[22m maps missing service resources to 404
+stderr | src/app.test.ts > 404 handler > returns NOT_FOUND for unknown routes
+[ERROR] AppError: Route GET /nonexistent-route not found
+    at notFoundHandler (D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/not-found.ts:8:8)
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:342:13)
+    at D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:297:9
+    at processParams (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:582:12)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:291:5)
+    at read (D:\Project cá nhân\EC-VoucherHub\node_modules\body-parser\lib\read.js:53:5)
+    at urlencodedParser (D:\Project cá nhân\EC-VoucherHub\node_modules\body-parser\lib\types\urlencoded.js:51:5)
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:342:13) {
+  statusCode: 404,
+  code: 'NOT_FOUND',
+  details: undefined
+}
+
+stderr | src/app.test.ts > 404 handler > returns NOT_FOUND for unregistered HTTP methods
+[ERROR] AppError: Route DELETE /health not found
+    at notFoundHandler (D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/not-found.ts:8:8)
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:342:13)
+    at D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:297:9
+    at processParams (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:582:12)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:291:5)
+    at read (D:\Project cá nhân\EC-VoucherHub\node_modules\body-parser\lib\read.js:53:5)
+    at urlencodedParser (D:\Project cá nhân\EC-VoucherHub\node_modules\body-parser\lib\types\urlencoded.js:51:5)
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:342:13) {
+  statusCode: 404,
+  code: 'NOT_FOUND',
+  details: undefined
+}
+
+stderr | src/app.test.ts > error handler > returns BAD_REQUEST for malformed JSON body
+[ERROR] SyntaxError: Expected property name or '}' in JSON at position 2 (line 1 column 3)
+    at JSON.parse (<anonymous>)
+    at parse (D:\Project cá nhân\EC-VoucherHub\node_modules\body-parser\lib\types\json.js:91:21)
+    at D:\Project cá nhân\EC-VoucherHub\node_modules\body-parser\lib\read.js:162:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:214:14)
+    at invokeCallback (D:\Project cá nhân\EC-VoucherHub\node_modules\raw-body\index.js:238:16)
+    at done (D:\Project cá nhân\EC-VoucherHub\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (D:\Project cá nhân\EC-VoucherHub\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:508:28)
+    at endReadableNT (node:internal/streams/readable:1701:12)
+    at processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  expose: true,
+  statusCode: 400,
+  status: 400,
+  body: '{ invalid json }',
+  type: 'entity.parse.failed'
+}
+
+ [31m❯[39m src/app.test.ts [2m([22m[2m5 tests[22m[2m | [22m[31m3 failed[39m[2m)[22m[32m 42[2mms[22m[39m
+     [32m✓[39m returns 200 with success shape[32m 16[2mms[22m[39m
+     [32m✓[39m returns 200 with welcome message[32m 3[2mms[22m[39m
+[31m     [31m×[31m returns NOT_FOUND for unknown routes[39m[32m 7[2mms[22m[39m
+[31m     [31m×[31m returns NOT_FOUND for unregistered HTTP methods[39m[32m 3[2mms[22m[39m
+[31m     [31m×[31m returns BAD_REQUEST for malformed JSON body[39m[32m 10[2mms[22m[39m
+stderr | src/modules/cart/cart.controller.test.ts > Cart Controller & Routes > GET /api/cart > sẽ trả về thông tin giỏ hàng
+Test error: AppError: Authentication required
+    at AppError.unauthorized (D:/Project cá nhân/EC-VoucherHub/backend/src/utils/app-error.ts:28:12)
+    at authenticate (D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/authenticate.ts:11:26)
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:342:13)
+    at D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:297:9
+    at processParams (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:582:12)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:291:5)
+    at router.handle (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:186:3)
+    at router (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:60:12)
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17) {
+  statusCode: 401,
+  code: 'UNAUTHORIZED',
+  details: undefined
+}
+
+stderr | src/modules/cart/cart.controller.test.ts > Cart Controller & Routes > POST /api/cart/items > gọi service để thêm item và trả về thành công
+Test error: AppError: Authentication required
+    at AppError.unauthorized (D:/Project cá nhân/EC-VoucherHub/backend/src/utils/app-error.ts:28:12)
+    at authenticate (D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/authenticate.ts:11:26)
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:342:13)
+    at D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:297:9
+    at processParams (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:582:12)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:291:5)
+    at router.handle (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:186:3)
+    at router (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:60:12)
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17) {
+  statusCode: 401,
+  code: 'UNAUTHORIZED',
+  details: undefined
+}
+
+ [31m❯[39m src/modules/cart/cart.controller.test.ts [2m([22m[2m2 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[32m 35[2mms[22m[39m
+[31m       [31m×[31m sẽ trả về thông tin giỏ hàng[39m[32m 22[2mms[22m[39m
+[31m       [31m×[31m gọi service để thêm item và trả về thành công[39m[32m 11[2mms[22m[39m
+ [31m❯[39m src/modules/order/flow-003.integration.test.ts [2m([22m[2m1 test[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 27[2mms[22m[39m
+[31m     [31m×[31m Toàn bộ luồng mua sắm thành công (Thêm vào giỏ -> Đặt hàng -> Thanh toán sinh mã)[39m[32m 25[2mms[22m[39m
+ [31m❯[39m src/modules/order/order.service.test.ts [2m([22m[2m10 tests[22m[2m | [22m[31m4 failed[39m[2m)[22m[32m 13[2mms[22m[39m
+     [32m✓[39m Thanh toán thất bại (FAILURE) -> không phát hành mã, giữ status[32m 2[2mms[22m[39m
+     [32m✓[39m Từ chối nếu đơn hàng không thuộc về customer[32m 1[2mms[22m[39m
+     [32m✓[39m Từ chối nếu đơn hàng không phải PENDING_PAYMENT[32m 0[2mms[22m[39m
+[31m     [31m×[31m Thành công (SUCCESS) -> giao dịch nguyên tử sinh mã và trừ tồn kho[39m[32m 2[2mms[22m[39m
+[31m     [31m×[31m Chống oversell (Hết hàng khi thanh toán) -> rollback qua ValidationError[39m[32m 3[2mms[22m[39m
+     [32m✓[39m Trả về lỗi 403 nếu đơn hàng không thuộc về customer[32m 0[2mms[22m[39m
+     [32m✓[39m Ẩn mảng codes nếu đơn hàng chưa PAID[32m 1[2mms[22m[39m
+     [32m✓[39m Trả về mảng codes nếu đơn hàng đã PAID[32m 0[2mms[22m[39m
+[31m     [31m×[31m Cho phép tạo đơn nếu số lượng giỏ + đang giam < 10[39m[32m 0[2mms[22m[39m
+[31m     [31m×[31m Ném lỗi ValidationError nếu Tổng Giỏ + Đang Giam > 10 (Chống đầu cơ)[39m[32m 0[2mms[22m[39m
+ [31m❯[39m src/modules/cart/cart.service.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+       [32m✓[39m sẽ trả về giỏ hàng nếu đã tồn tại[32m 4[2mms[22m[39m
+       [32m✓[39m ném lỗi NotFoundError nếu voucher không tồn tại[32m 1[2mms[22m[39m
+       [32m✓[39m ném lỗi ValidationError nếu voucher không đang bán[32m 0[2mms[22m[39m
+       [32m✓[39m ném lỗi ValidationError nếu vượt giới hạn chống đầu cơ (MAX_QUANTITY = 10)[32m 0[2mms[22m[39m
+ [32m✓[39m src/modules/auth/auth-security.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 12311[2mms[22m[39m
+     [33m[2m✓[22m[39m hashes and verifies every valid password sample [33m 12263[2mms[22m[39m
+ [32m✓[39m src/configs/env.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 85[2mms[22m[39m
+ [32m✓[39m src/domain/state-machine.test.ts [2m([22m[2m20 tests[22m[2m)[22m[32m 57[2mms[22m[39m
+ [32m✓[39m src/utils/app-error.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 36[2mms[22m[39m
+ [32m✓[39m src/test/database-url.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 34[2mms[22m[39m
+ [32m✓[39m src/domain/enum-parity.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/modules/auth/auth-properties.test.ts [ src/modules/auth/auth-properties.test.ts ]
+ FAIL  src/modules/auth/auth.test.ts [ src/modules/auth/auth.test.ts ]
+ FAIL  src/modules/user/user.test.ts [ src/modules/user/user.test.ts ]
+PrismaClientInitializationError: 
+Invalid `prisma.role.upsert()` invocation in
+D:/Project cá nhân/EC-VoucherHub/backend/src/test/helpers.ts:10:55
+
+   7 
+   8 export async function seedRoles(): Promise<void> {
+   9   await Promise.all(
+→ 10     Object.values(RoleName).map((name) => prisma.role.upsert(
+Authentication failed against database server, the provided database credentials for `postgres` are not valid.
+
+Please make sure to provide valid database credentials for the database server at the configured address.
+ ❯ ei.handleRequestError ../node_modules/@prisma/client/src/runtime/RequestHandler.ts:242:12
+ ❯ ei.handleAndLogRequestError ../node_modules/@prisma/client/src/runtime/RequestHandler.ts:174:11
+ ❯ ei.request ../node_modules/@prisma/client/src/runtime/RequestHandler.ts:143:11
+ ❯ a ../node_modules/@prisma/client/src/runtime/getPrismaClient.ts:833:23
+ ❯ seedRoles src/test/helpers.ts:9:3
+      7|
+      8| export async function seedRoles(): Promise<void> {
+      9|   await Promise.all(
+       |   ^
+     10|     Object.values(RoleName).map((name) => prisma.role.upsert({ where: …
+     11|   )
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/16]⎯
+
+ FAIL  src/modules/cart/cart.service.test.ts [ src/modules/cart/cart.service.test.ts ]
+ FAIL  src/modules/order/flow-003.integration.test.ts [ src/modules/order/flow-003.integration.test.ts ]
+ FAIL  src/modules/order/order.service.test.ts [ src/modules/order/order.service.test.ts ]
+TypeError: prisma.$disconnect is not a function
+ ❯ src/test/setup.ts:12:16
+     10| afterAll(async () => {
+     11|   const { default: prisma } = await import('~/configs/prisma')
+     12|   await prisma.$disconnect()
+       |                ^
+     13| })
+     14|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/16]⎯
+
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/app.test.ts > 404 handler > returns NOT_FOUND for unknown routes
+AssertionError: expected 500 to be 404 // Object.is equality
+
+- Expected
++ Received
+
+- 404
++ 500
+
+ ❯ src/app.test.ts:33:24
+     31|     const res = await request(app).get('/nonexistent-route')
+     32|
+     33|     expect(res.status).toBe(404)
+       |                        ^
+     34|     expect(res.body.success).toBe(false)
+     35|     expect(res.body.error.code).toBe('NOT_FOUND')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/16]⎯
+
+ FAIL  src/app.test.ts > 404 handler > returns NOT_FOUND for unregistered HTTP methods
+AssertionError: expected 500 to be 404 // Object.is equality
+
+- Expected
++ Received
+
+- 404
++ 500
+
+ ❯ src/app.test.ts:42:24
+     40|     const res = await request(app).delete('/health')
+     41|
+     42|     expect(res.status).toBe(404)
+       |                        ^
+     43|     expect(res.body.success).toBe(false)
+     44|     expect(res.body.error.code).toBe('NOT_FOUND')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/16]⎯
+
+ FAIL  src/app.test.ts > error handler > returns BAD_REQUEST for malformed JSON body
+AssertionError: expected 500 to be 400 // Object.is equality
+
+- Expected
++ Received
+
+- 400
++ 500
+
+ ❯ src/app.test.ts:52:24
+     50|     const res = await request(app).post('/health').set('Content-Type',…
+     51|
+     52|     expect(res.status).toBe(400)
+       |                        ^
+     53|     expect(res.body.success).toBe(false)
+     54|     expect(res.body.error.code).toBe('BAD_REQUEST')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/16]⎯
+
+ FAIL  src/modules/cart/cart.controller.test.ts > Cart Controller & Routes > GET /api/cart > sẽ trả về thông tin giỏ hàng
+AssertionError: expected 500 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 500
+
+ ❯ src/modules/cart/cart.controller.test.ts:55:31
+     53|       const response = await request(app).get('/api/cart')
+     54|
+     55|       expect(response.status).toBe(200)
+       |                               ^
+     56|       expect(response.body.data).toEqual(mockCart)
+     57|       expect(cartService.getCart).toHaveBeenCalledWith('test-user-id')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/16]⎯
+
+ FAIL  src/modules/cart/cart.controller.test.ts > Cart Controller & Routes > POST /api/cart/items > gọi service để thêm item và trả về thành công
+AssertionError: expected 500 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 500
+
+ ❯ src/modules/cart/cart.controller.test.ts:79:31
+     77|         .send(payload)
+     78|
+     79|       expect(response.status).toBe(200)
+       |                               ^
+     80|       expect(response.body.data).toEqual(mockCart)
+     81|       expect(cartService.addItem).toHaveBeenCalledWith('test-user-id',…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/16]⎯
+
+ FAIL  src/modules/order/flow-003.integration.test.ts > FLOW-003 Checkpoint: Cart -> Order -> Payment > Toàn bộ luồng mua sắm thành công (Thêm vào giỏ -> Đặt hàng -> Thanh toán sinh mã)
+AssertionError: expected 500 to be 201 // Object.is equality
+
+- Expected
++ Received
+
+- 201
++ 500
+
+ ❯ src/modules/order/flow-003.integration.test.ts:88:29
+     86|       .send({ paymentMethod: 'SIMULATED' })
+     87|
+     88|     expect(orderRes.status).toBe(201)
+       |                             ^
+     89|     expect(orderRes.body.data.id).toBe('order-1')
+     90|     expect(orderRes.body.data.status).toBe('PENDING_PAYMENT')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/16]⎯
+
+ FAIL  src/modules/order/order.service.test.ts > Order Service - Payment > Thành công (SUCCESS) -> giao dịch nguyên tử sinh mã và trừ tồn kho
+TypeError: tx.issuedVoucherCode.createManyAndReturn is not a function
+ ❯ src/modules/order/order.service.ts:442:53
+    440|
+    441|     // 4d. Tạo các mã voucher trong DB bằng Bulk Insert (createManyAnd…
+    442|     const createdCodes = await tx.issuedVoucherCode.createManyAndRetur…
+       |                                                     ^
+    443|       data: codesData,
+    444|       select: {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/16]⎯
+
+ FAIL  src/modules/order/order.service.test.ts > Order Service - Payment > Chống oversell (Hết hàng khi thanh toán) -> rollback qua ValidationError
+AssertionError: expected error to be instance of ValidationError
+
+- Expected:
+[Function ValidationError]
+
++ Received:
+TypeError {
+  "message": "tx.issuedVoucherCode.createManyAndReturn is not a function",
+}
+
+ ❯ src/modules/order/order.service.test.ts:112:78
+    110|     })
+    111|
+    112|     await expect(processPayment(customerId, orderId, { outcome: 'SUCCE…
+       |                                                                              ^
+    113|
+    114|     expect(prismaMock.voucherProduct.update).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/16]⎯
+
+ FAIL  src/modules/order/order.service.test.ts > Order Service - createOrder > Cho phép tạo đơn nếu số lượng giỏ + đang giam < 10
+TypeError: Cannot read properties of undefined (reading 'mockResolvedValue')
+ ❯ src/modules/order/order.service.test.ts:180:31
+    178|   it('Cho phép tạo đơn nếu số lượng giỏ + đang giam < 10', async () =>…
+    179|     // Không có đơn nào đang giam
+    180|     prismaMock.order.findMany.mockResolvedValue([])
+       |                               ^
+    181|
+    182|     // Giỏ hàng hợp lệ với 5 món
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/16]⎯
+
+ FAIL  src/modules/order/order.service.test.ts > Order Service - createOrder > Ném lỗi ValidationError nếu Tổng Giỏ + Đang Giam > 10 (Chống đầu cơ)
+TypeError: Cannot read properties of undefined (reading 'mockResolvedValue')
+ ❯ src/modules/order/order.service.test.ts:219:31
+    217|   it('Ném lỗi ValidationError nếu Tổng Giỏ + Đang Giam > 10 (Chống đầu…
+    218|     // Đang giam 6 món vp-1 trong 1 đơn cũ
+    219|     prismaMock.order.findMany.mockResolvedValue([
+       |                               ^
+    220|       {
+    221|         orderItems: [
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/16]⎯
+
+
+[2m Test Files [22m [1m[31m8 failed[39m[22m[2m | [22m[1m[32m6 passed[39m[22m[90m (14)[39m
+[2m      Tests [22m [1m[31m10 failed[39m[22m[2m | [22m[1m[32m73 passed[39m[22m[2m | [22m[33m33 skipped[39m[90m (116)[39m
+[2m   Start at [22m 09:53:11
+[2m   Duration [22m 21.03s[2m (transform 424ms, setup 259ms, import 5.81s, tests 12.86s, environment 1ms)[22m
+

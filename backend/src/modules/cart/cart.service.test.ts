@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { PrismaClient } from '@prisma/client'
 import { Decimal } from '@prisma/client/runtime/library'
 
 // Hoisting mock module
@@ -79,6 +78,29 @@ describe('Cart Service', () => {
       } as any)
 
       await expect(cartService.addItem(customerId, { voucherProductId: 'vp-1', quantity: 1 }))
+        .rejects
+        .toThrow(ValidationError)
+    })
+
+    it('ném lỗi ValidationError nếu vượt giới hạn chống đầu cơ (MAX_QUANTITY = 10)', async () => {
+      // Voucher hợp lệ
+      prismaMock.voucherProduct.findUnique.mockResolvedValue({
+        id: 'vp-1',
+        status: 'ON_SALE',
+        remainingQuantity: 100
+      } as any)
+
+      // Mock existing cart item (đã có 5 cái)
+      prismaMock.cart.findUnique.mockResolvedValue({ id: 'cart-1', customerId })
+      prismaMock.cartItem.findUnique.mockResolvedValue({
+        id: 1,
+        cartId: 'cart-1',
+        voucherProductId: 'vp-1',
+        quantity: 5
+      })
+
+      // Thêm 6 cái nữa -> Tống cộng 11 -> Vượt 10 -> Cần văng lỗi
+      await expect(cartService.addItem(customerId, { voucherProductId: 'vp-1', quantity: 6 }))
         .rejects
         .toThrow(ValidationError)
     })

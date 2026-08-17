@@ -1,0 +1,1149 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.10 [39m[90mD:/Project cá nhân/EC-VoucherHub/backend[39m
+
+stderr | src/app.test.ts > 404 handler > returns NOT_FOUND for unknown routes
+[ERROR] AppError: Route GET /nonexistent-route not found
+    at notFoundHandler (D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/not-found.ts:8:8)
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:342:13)
+    at D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:297:9
+    at processParams (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:582:12)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:291:5)
+    at read (D:\Project cá nhân\EC-VoucherHub\node_modules\body-parser\lib\read.js:53:5)
+    at urlencodedParser (D:\Project cá nhân\EC-VoucherHub\node_modules\body-parser\lib\types\urlencoded.js:51:5)
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:342:13) {
+  statusCode: 404,
+  code: 'NOT_FOUND',
+  details: undefined
+}
+
+stderr | src/app.test.ts > 404 handler > returns NOT_FOUND for unregistered HTTP methods
+[ERROR] AppError: Route DELETE /health not found
+    at notFoundHandler (D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/not-found.ts:8:8)
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:342:13)
+    at D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:297:9
+    at processParams (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:582:12)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:291:5)
+    at read (D:\Project cá nhân\EC-VoucherHub\node_modules\body-parser\lib\read.js:53:5)
+    at urlencodedParser (D:\Project cá nhân\EC-VoucherHub\node_modules\body-parser\lib\types\urlencoded.js:51:5)
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:342:13) {
+  statusCode: 404,
+  code: 'NOT_FOUND',
+  details: undefined
+}
+
+stderr | src/app.test.ts > error handler > returns BAD_REQUEST for malformed JSON body
+[ERROR] SyntaxError: Expected property name or '}' in JSON at position 2 (line 1 column 3)
+    at JSON.parse (<anonymous>)
+    at parse (D:\Project cá nhân\EC-VoucherHub\node_modules\body-parser\lib\types\json.js:91:21)
+    at D:\Project cá nhân\EC-VoucherHub\node_modules\body-parser\lib\read.js:162:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:214:14)
+    at invokeCallback (D:\Project cá nhân\EC-VoucherHub\node_modules\raw-body\index.js:238:16)
+    at done (D:\Project cá nhân\EC-VoucherHub\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (D:\Project cá nhân\EC-VoucherHub\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:508:28)
+    at endReadableNT (node:internal/streams/readable:1701:12)
+    at processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  expose: true,
+  statusCode: 400,
+  status: 400,
+  body: '{ invalid json }',
+  type: 'entity.parse.failed'
+}
+
+ [31m❯[39m src/app.test.ts [2m([22m[2m5 tests[22m[2m | [22m[31m3 failed[39m[2m)[22m[32m 47[2mms[22m[39m
+     [32m✓[39m returns 200 with success shape[32m 17[2mms[22m[39m
+     [32m✓[39m returns 200 with welcome message[32m 4[2mms[22m[39m
+[31m     [31m×[31m returns NOT_FOUND for unknown routes[39m[32m 8[2mms[22m[39m
+[31m     [31m×[31m returns NOT_FOUND for unregistered HTTP methods[39m[32m 4[2mms[22m[39m
+[31m     [31m×[31m returns BAD_REQUEST for malformed JSON body[39m[32m 11[2mms[22m[39m
+stderr | src/modules/cart/cart.controller.test.ts > Cart Controller & Routes > GET /api/cart > sẽ trả về thông tin giỏ hàng
+Test error: AppError: Authentication required
+    at AppError.unauthorized (D:/Project cá nhân/EC-VoucherHub/backend/src/utils/app-error.ts:28:12)
+    at authenticate (D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/authenticate.ts:11:26)
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:342:13)
+    at D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:297:9
+    at processParams (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:582:12)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:291:5)
+    at router.handle (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:186:3)
+    at router (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:60:12)
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17) {
+  statusCode: 401,
+  code: 'UNAUTHORIZED',
+  details: undefined
+}
+
+stderr | src/modules/cart/cart.controller.test.ts > Cart Controller & Routes > POST /api/cart/items > gọi service để thêm item và trả về thành công
+Test error: AppError: Authentication required
+    at AppError.unauthorized (D:/Project cá nhân/EC-VoucherHub/backend/src/utils/app-error.ts:28:12)
+    at authenticate (D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/authenticate.ts:11:26)
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:342:13)
+    at D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:297:9
+    at processParams (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:582:12)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:291:5)
+    at router.handle (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:186:3)
+    at router (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:60:12)
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17) {
+  statusCode: 401,
+  code: 'UNAUTHORIZED',
+  details: undefined
+}
+
+ [31m❯[39m src/modules/cart/cart.controller.test.ts [2m([22m[2m2 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[32m 35[2mms[22m[39m
+[31m       [31m×[31m sẽ trả về thông tin giỏ hàng[39m[32m 22[2mms[22m[39m
+[31m       [31m×[31m gọi service để thêm item và trả về thành công[39m[32m 11[2mms[22m[39m
+ [31m❯[39m src/modules/auth/auth-properties.test.ts [2m([22m[2m2 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[33m 32915[2mms[22m[39m
+[31m     [31m×[31m Properties 18/19: persists a hash and rejects every duplicate identifier through registration[39m[33m 18957[2mms[22m[39m
+     [33m[2m✓[22m[39m Property 22: lock blocks login and unlock restores it for every round [33m 13896[2mms[22m[39m
+ [31m❯[39m src/modules/order/flow-003.integration.test.ts [2m([22m[2m1 test[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 42[2mms[22m[39m
+[31m     [31m×[31m Toàn bộ luồng mua sắm thành công (Thêm vào giỏ -> Đặt hàng -> Thanh toán sinh mã)[39m[32m 40[2mms[22m[39m
+stderr | src/modules/auth/auth.test.ts > POST /api/auth/register > rejects invalid registration input
+[ERROR] ZodError: [
+  {
+    "code": "custom",
+    "path": [
+      "email"
+    ],
+    "message": "Phải cung cấp email hoặc số điện thoại để đăng ký"
+  }
+]
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/validate.ts:13:39
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\route.js:157:13)
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/rate-limit.ts:51:5
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\route.js:117:3)
+    at handle (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:295:15
+
+stderr | src/modules/auth/auth.test.ts > POST /api/auth/register > rejects invalid registration input
+[ERROR] ZodError: [
+  {
+    "origin": "string",
+    "code": "invalid_format",
+    "format": "email",
+    "pattern": "/^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$/",
+    "path": [
+      "email"
+    ],
+    "message": "Email không đúng định dạng"
+  }
+]
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/validate.ts:13:39
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\route.js:157:13)
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/rate-limit.ts:51:5
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\route.js:117:3)
+    at handle (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:295:15
+
+stderr | src/modules/auth/auth.test.ts > POST /api/auth/register > rejects invalid registration input
+[ERROR] ZodError: [
+  {
+    "origin": "string",
+    "code": "invalid_format",
+    "format": "regex",
+    "pattern": "/^\\+?[0-9]{10,15}$/",
+    "path": [
+      "phone"
+    ],
+    "message": "Số điện thoại không đúng định dạng"
+  }
+]
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/validate.ts:13:39
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\route.js:157:13)
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/rate-limit.ts:51:5
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\route.js:117:3)
+    at handle (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:295:15
+
+stderr | src/modules/auth/auth.test.ts > POST /api/auth/register > rejects invalid registration input
+[ERROR] ZodError: [
+  {
+    "origin": "string",
+    "code": "too_small",
+    "minimum": 8,
+    "inclusive": true,
+    "path": [
+      "password"
+    ],
+    "message": "Mật khẩu phải từ 8 ký tự trở lên"
+  }
+]
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/validate.ts:13:39
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\route.js:157:13)
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/rate-limit.ts:51:5
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\route.js:117:3)
+    at handle (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:295:15
+
+stderr | src/modules/auth/auth.test.ts > POST /api/auth/register > rejects invalid registration input
+[ERROR] ZodError: [
+  {
+    "origin": "string",
+    "code": "too_big",
+    "maximum": 72,
+    "inclusive": true,
+    "path": [
+      "password"
+    ],
+    "message": "Mật khẩu không được vượt quá 72 ký tự"
+  },
+  {
+    "code": "custom",
+    "path": [
+      "password"
+    ],
+    "message": "Mật khẩu không được vượt quá 72 byte"
+  }
+]
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/validate.ts:13:39
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\route.js:157:13)
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/rate-limit.ts:51:5
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\route.js:117:3)
+    at handle (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:295:15
+
+stderr | src/modules/auth/auth.test.ts > POST /api/auth/register > rejects invalid registration input
+[ERROR] ZodError: [
+  {
+    "code": "custom",
+    "path": [
+      "password"
+    ],
+    "message": "Mật khẩu không được vượt quá 72 byte"
+  }
+]
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/validate.ts:13:39
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\route.js:157:13)
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/rate-limit.ts:51:5
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\route.js:117:3)
+    at handle (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:295:15
+
+stderr | src/modules/auth/auth.test.ts > POST /api/auth/register > returns 409 for duplicate email and phone
+[ERROR] AppError: Email hoặc số điện thoại đã được sử dụng
+    at AppError.duplicate (D:/Project cá nhân/EC-VoucherHub/backend/src/utils/app-error.ts:57:12)
+    at Object.register (D:/Project cá nhân/EC-VoucherHub/backend/src/modules/auth/auth.service.ts:41:22)
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/modules/auth/auth.controller.ts:8:18 {
+  statusCode: 409,
+  code: 'DUPLICATE_ENTRY',
+  details: undefined
+}
+
+stderr | src/modules/auth/auth.test.ts > POST /api/auth/register > returns 409 for duplicate email and phone
+[ERROR] AppError: Email hoặc số điện thoại đã được sử dụng
+    at AppError.duplicate (D:/Project cá nhân/EC-VoucherHub/backend/src/utils/app-error.ts:57:12)
+    at Object.register (D:/Project cá nhân/EC-VoucherHub/backend/src/modules/auth/auth.service.ts:41:22)
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/modules/auth/auth.controller.ts:8:18 {
+  statusCode: 409,
+  code: 'DUPLICATE_ENTRY',
+  details: undefined
+}
+
+stderr | src/modules/auth/auth.test.ts > POST /api/auth/register > fails closed when the customer role is not configured
+[ERROR] AppError: Vai trò CUSTOMER chưa được cấu hình
+    at AppError.internal (D:/Project cá nhân/EC-VoucherHub/backend/src/utils/app-error.ts:65:12)
+    at Object.register (D:/Project cá nhân/EC-VoucherHub/backend/src/modules/auth/auth.service.ts:48:22)
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/modules/auth/auth.controller.ts:8:18 {
+  statusCode: 500,
+  code: 'INTERNAL_ERROR',
+  details: undefined
+}
+
+stderr | src/modules/auth/auth.test.ts > authentication and profile flow > uses the same unauthorized response for a missing account and wrong password
+[ERROR] AppError: Sai thông tin đăng nhập
+    at AppError.unauthorized (D:/Project cá nhân/EC-VoucherHub/backend/src/utils/app-error.ts:28:12)
+    at Object.login (D:/Project cá nhân/EC-VoucherHub/backend/src/modules/auth/auth.service.ts:79:22)
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/modules/auth/auth.controller.ts:13:18 {
+  statusCode: 401,
+  code: 'UNAUTHORIZED',
+  details: undefined
+}
+
+stderr | src/modules/auth/auth.test.ts > authentication and profile flow > uses the same unauthorized response for a missing account and wrong password
+[ERROR] AppError: Sai thông tin đăng nhập
+    at AppError.unauthorized (D:/Project cá nhân/EC-VoucherHub/backend/src/utils/app-error.ts:28:12)
+    at Object.login (D:/Project cá nhân/EC-VoucherHub/backend/src/modules/auth/auth.service.ts:79:22)
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/modules/auth/auth.controller.ts:13:18 {
+  statusCode: 401,
+  code: 'UNAUTHORIZED',
+  details: undefined
+}
+
+stderr | src/modules/auth/auth.test.ts > authentication and profile flow > blocks a locked account at login
+[ERROR] AppError: Tài khoản đã bị khoá
+    at AppError.forbidden (D:/Project cá nhân/EC-VoucherHub/backend/src/utils/app-error.ts:32:12)
+    at Object.login (D:/Project cá nhân/EC-VoucherHub/backend/src/modules/auth/auth.service.ts:82:22)
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/modules/auth/auth.controller.ts:13:18 {
+  statusCode: 403,
+  code: 'FORBIDDEN',
+  details: undefined
+}
+
+stderr | src/modules/auth/auth.test.ts > authentication and profile flow > requires a valid bearer token for protected routes
+[ERROR] AppError: Authentication required
+    at AppError.unauthorized (D:/Project cá nhân/EC-VoucherHub/backend/src/utils/app-error.ts:28:12)
+    at authenticate (D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/authenticate.ts:11:26)
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\route.js:117:3)
+    at handle (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:295:15
+    at processParams (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:582:12)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:291:5) {
+  statusCode: 401,
+  code: 'UNAUTHORIZED',
+  details: undefined
+}
+
+stderr | src/modules/auth/auth.test.ts > authentication and profile flow > requires a valid bearer token for protected routes
+[ERROR] AppError: Token không hợp lệ hoặc đã hết hạn
+    at AppError.unauthorized (D:/Project cá nhân/EC-VoucherHub/backend/src/utils/app-error.ts:28:12)
+    at authenticate (D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/authenticate.ts:20:26)
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\route.js:117:3)
+    at handle (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:295:15
+    at processParams (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:582:12)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:291:5) {
+  statusCode: 401,
+  code: 'UNAUTHORIZED',
+  details: undefined
+}
+
+stderr | src/modules/auth/auth.test.ts > authentication and profile flow > requires a valid bearer token for protected routes
+[ERROR] AppError: Tài khoản không còn tồn tại
+    at AppError.unauthorized (D:/Project cá nhân/EC-VoucherHub/backend/src/utils/app-error.ts:28:12)
+    at authenticate (D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/authenticate.ts:28:26) {
+  statusCode: 401,
+  code: 'UNAUTHORIZED',
+  details: undefined
+}
+
+stderr | src/modules/auth/auth.test.ts > authentication and profile flow > rejects empty, malformed, and duplicate profile updates
+[ERROR] ZodError: [
+  {
+    "code": "custom",
+    "path": [],
+    "message": "Cần ít nhất một trường để cập nhật"
+  }
+]
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/validate.ts:13:39
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\route.js:157:13)
+    at authenticate (D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/authenticate.ts:43:3)
+
+stderr | src/modules/auth/auth.test.ts > authentication and profile flow > rejects empty, malformed, and duplicate profile updates
+[ERROR] ZodError: [
+  {
+    "origin": "string",
+    "code": "invalid_format",
+    "format": "regex",
+    "pattern": "/^\\+?[0-9]{10,15}$/",
+    "path": [
+      "phone"
+    ],
+    "message": "Số điện thoại không đúng định dạng"
+  }
+]
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/validate.ts:13:39
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\route.js:157:13)
+    at authenticate (D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/authenticate.ts:43:3)
+
+stderr | src/modules/auth/auth.test.ts > authentication and profile flow > rejects empty, malformed, and duplicate profile updates
+[ERROR] PrismaClientKnownRequestError: 
+Invalid `prisma.user.update()` invocation in
+D:/Project cá nhân/EC-VoucherHub/backend/src/modules/auth/auth.service.ts:141:36
+
+  138 },
+  139 
+  140 async updateProfile(userId: string, dto: UpdateProfileDto) {
+→ 141   const user = await prisma.user.update(
+Unique constraint failed on the fields: (`email`)
+    at ei.handleRequestError (D:\Project cá nhân\EC-VoucherHub\node_modules\@prisma\client\runtime\library.js:121:7268)
+    at ei.handleAndLogRequestError (D:\Project cá nhân\EC-VoucherHub\node_modules\@prisma\client\runtime\library.js:121:6593)
+    at ei.request (D:\Project cá nhân\EC-VoucherHub\node_modules\@prisma\client\runtime\library.js:121:6300)
+    at a (D:\Project cá nhân\EC-VoucherHub\node_modules\@prisma\client\runtime\library.js:130:9551)
+    at Object.updateProfile (D:/Project cá nhân/EC-VoucherHub/backend/src/modules/auth/auth.service.ts:141:18)
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/modules/auth/auth.controller.ts:38:18 {
+  code: 'P2002',
+  meta: { modelName: 'User', target: [ 'email' ] },
+  clientVersion: '6.19.3'
+}
+
+stderr | src/modules/auth/auth.test.ts > authentication and profile flow > changes the password only when the current password is correct
+[ERROR] AppError: Mật khẩu hiện tại không đúng
+    at AppError.unauthorized (D:/Project cá nhân/EC-VoucherHub/backend/src/utils/app-error.ts:28:12)
+    at Object.changePassword (D:/Project cá nhân/EC-VoucherHub/backend/src/modules/auth/auth.service.ts:116:22)
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/modules/auth/auth.controller.ts:28:18 {
+  statusCode: 401,
+  code: 'UNAUTHORIZED',
+  details: undefined
+}
+
+stderr | src/modules/auth/auth.test.ts > authentication and profile flow > changes the password only when the current password is correct
+[ERROR] AppError: Sai thông tin đăng nhập
+    at AppError.unauthorized (D:/Project cá nhân/EC-VoucherHub/backend/src/utils/app-error.ts:28:12)
+    at Object.login (D:/Project cá nhân/EC-VoucherHub/backend/src/modules/auth/auth.service.ts:79:22)
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/modules/auth/auth.controller.ts:13:18 {
+  statusCode: 401,
+  code: 'UNAUTHORIZED',
+  details: undefined
+}
+
+stderr | src/modules/auth/auth.test.ts > authentication and profile flow > changes the password only when the current password is correct
+[ERROR] AppError: Token không còn hiệu lực
+    at AppError.unauthorized (D:/Project cá nhân/EC-VoucherHub/backend/src/utils/app-error.ts:28:12)
+    at authenticate (D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/authenticate.ts:34:26) {
+  statusCode: 401,
+  code: 'UNAUTHORIZED',
+  details: undefined
+}
+
+stderr | src/modules/auth/auth.test.ts > authentication and profile flow > changes the password only when the current password is correct
+[ERROR] ZodError: [
+  {
+    "origin": "string",
+    "code": "too_small",
+    "minimum": 8,
+    "inclusive": true,
+    "path": [
+      "newPassword"
+    ],
+    "message": "Mật khẩu phải từ 8 ký tự trở lên"
+  }
+]
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/validate.ts:13:39
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\route.js:157:13)
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/rate-limit.ts:51:5
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\route.js:157:13)
+    at authenticate (D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/authenticate.ts:43:3)
+
+ [31m❯[39m src/modules/auth/auth.test.ts [2m([22m[2m22 tests[22m[2m | [22m[31m13 failed[39m[2m)[22m[33m 1999[2mms[22m[39m
+     [32m✓[39m registers a customer, normalizes email, and never exposes the password hash[32m 181[2mms[22m[39m
+     [32m✓[39m accepts phone as the only identifier[32m 79[2mms[22m[39m
+[31m     [31m×[31m rejects invalid registration input[39m[32m 18[2mms[22m[39m
+[31m     [31m×[31m rejects invalid registration input[39m[32m 10[2mms[22m[39m
+[31m     [31m×[31m rejects invalid registration input[39m[32m 10[2mms[22m[39m
+[31m     [31m×[31m rejects invalid registration input[39m[32m 9[2mms[22m[39m
+[31m     [31m×[31m rejects invalid registration input[39m[32m 9[2mms[22m[39m
+[31m     [31m×[31m rejects invalid registration input[39m[32m 9[2mms[22m[39m
+[31m     [31m×[31m returns 409 for duplicate email and phone[39m[32m 84[2mms[22m[39m
+[31m     [31m×[31m fails closed when the customer role is not configured[39m[32m 18[2mms[22m[39m
+     [32m✓[39m logs in case-insensitively and returns a usable JWT[32m 152[2mms[22m[39m
+     [32m✓[39m logs in with a phone identifier[32m 142[2mms[22m[39m
+[31m     [31m×[31m uses the same unauthorized response for a missing account and wrong password[39m[32m 200[2mms[22m[39m
+[31m     [31m×[31m blocks a locked account at login[39m[32m 134[2mms[22m[39m
+     [32m✓[39m does not reveal whether a password-reset account exists[32m 80[2mms[22m[39m
+     [32m✓[39m marks only a registered identifier as an internally deliverable reset request[32m 72[2mms[22m[39m
+[31m     [31m×[31m requires a valid bearer token for protected routes[39m[32m 17[2mms[22m[39m
+     [32m✓[39m updates the profile without exposing sensitive fields[32m 81[2mms[22m[39m
+[31m     [31m×[31m rejects empty, malformed, and duplicate profile updates[39m[32m 159[2mms[22m[39m
+[31m     [31m×[31m changes the password only when the current password is correct[39m[33m 414[2mms[22m[39m
+     [32m✓[39m returns a stateless logout acknowledgement[32m 81[2mms[22m[39m
+     [32m✓[39m maps missing service resources to 404[32m 9[2mms[22m[39m
+stderr | src/modules/user/user.test.ts > admin user RBAC > returns 401 without authentication and 403 for non-admin roles
+[ERROR] AppError: Authentication required
+    at AppError.unauthorized (D:/Project cá nhân/EC-VoucherHub/backend/src/utils/app-error.ts:28:12)
+    at authenticate (D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/authenticate.ts:11:26)
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:342:13)
+    at D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:297:9
+    at processParams (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:582:12)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:291:5)
+    at router.handle (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:186:3)
+    at router (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:60:12)
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17) {
+  statusCode: 401,
+  code: 'UNAUTHORIZED',
+  details: undefined
+}
+
+stderr | src/modules/user/user.test.ts > admin user RBAC > returns 401 without authentication and 403 for non-admin roles
+[ERROR] AppError: Không đủ quyền truy cập
+    at AppError.forbidden (D:/Project cá nhân/EC-VoucherHub/backend/src/utils/app-error.ts:32:12)
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/authorize.ts:14:28
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:342:13)
+    at D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:297:9
+    at processParams (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:582:12)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:291:5)
+    at authenticate (D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/authenticate.ts:43:3) {
+  statusCode: 403,
+  code: 'FORBIDDEN',
+  details: undefined
+}
+
+stderr | src/modules/user/user.test.ts > admin user RBAC > returns 401 without authentication and 403 for non-admin roles
+[ERROR] AppError: Không đủ quyền truy cập
+    at AppError.forbidden (D:/Project cá nhân/EC-VoucherHub/backend/src/utils/app-error.ts:32:12)
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/authorize.ts:14:28
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:342:13)
+    at D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:297:9
+    at processParams (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:582:12)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:291:5)
+    at authenticate (D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/authenticate.ts:43:3) {
+  statusCode: 403,
+  code: 'FORBIDDEN',
+  details: undefined
+}
+
+stderr | src/modules/user/user.test.ts > admin user RBAC > protects every admin mutation route from anonymous and non-admin callers
+[ERROR] AppError: Authentication required
+    at AppError.unauthorized (D:/Project cá nhân/EC-VoucherHub/backend/src/utils/app-error.ts:28:12)
+    at authenticate (D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/authenticate.ts:11:26)
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:342:13)
+    at D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:297:9
+    at processParams (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:582:12)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:291:5)
+    at router.handle (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:186:3)
+    at router (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:60:12)
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17) {
+  statusCode: 401,
+  code: 'UNAUTHORIZED',
+  details: undefined
+}
+
+stderr | src/modules/user/user.test.ts > admin user RBAC > protects every admin mutation route from anonymous and non-admin callers
+[ERROR] AppError: Không đủ quyền truy cập
+    at AppError.forbidden (D:/Project cá nhân/EC-VoucherHub/backend/src/utils/app-error.ts:32:12)
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/authorize.ts:14:28
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:342:13)
+    at D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:297:9
+    at processParams (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:582:12)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:291:5)
+    at authenticate (D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/authenticate.ts:43:3) {
+  statusCode: 403,
+  code: 'FORBIDDEN',
+  details: undefined
+}
+
+stderr | src/modules/user/user.test.ts > admin user RBAC > protects every admin mutation route from anonymous and non-admin callers
+[ERROR] AppError: Không đủ quyền truy cập
+    at AppError.forbidden (D:/Project cá nhân/EC-VoucherHub/backend/src/utils/app-error.ts:32:12)
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/authorize.ts:14:28
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:342:13)
+    at D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:297:9
+    at processParams (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:582:12)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:291:5)
+    at authenticate (D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/authenticate.ts:43:3) {
+  statusCode: 403,
+  code: 'FORBIDDEN',
+  details: undefined
+}
+
+stderr | src/modules/user/user.test.ts > admin user RBAC > locks and unlocks a user, invalidating and restoring an existing token
+[ERROR] AppError: Tài khoản đã bị khoá
+    at AppError.forbidden (D:/Project cá nhân/EC-VoucherHub/backend/src/utils/app-error.ts:32:12)
+    at authenticate (D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/authenticate.ts:31:26) {
+  statusCode: 403,
+  code: 'FORBIDDEN',
+  details: undefined
+}
+
+stderr | src/modules/user/user.test.ts > admin user RBAC > removes admin access from an existing token immediately after demotion
+[ERROR] AppError: Không đủ quyền truy cập
+    at AppError.forbidden (D:/Project cá nhân/EC-VoucherHub/backend/src/utils/app-error.ts:32:12)
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/authorize.ts:14:28
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:342:13)
+    at D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:297:9
+    at processParams (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:582:12)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:291:5)
+    at authenticate (D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/authenticate.ts:43:3) {
+  statusCode: 403,
+  code: 'FORBIDDEN',
+  details: undefined
+}
+
+stderr | src/modules/user/user.test.ts > admin user RBAC > validates IDs and maps missing users to 404
+[ERROR] ZodError: [
+  {
+    "origin": "string",
+    "code": "invalid_format",
+    "format": "uuid",
+    "pattern": "/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/",
+    "path": [
+      "id"
+    ],
+    "message": "ID người dùng không hợp lệ"
+  }
+]
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/middlewares/validate.ts:15:45
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at next (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\route.js:117:3)
+    at handle (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (D:\Project cá nhân\EC-VoucherHub\node_modules\router\lib\layer.js:152:17)
+    at D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:295:15
+    at param (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:600:14)
+    at param (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:610:14)
+    at processParams (D:\Project cá nhân\EC-VoucherHub\node_modules\router\index.js:664:3)
+
+stderr | src/modules/user/user.test.ts > admin user RBAC > validates IDs and maps missing users to 404
+[ERROR] PrismaClientKnownRequestError: 
+Invalid `prisma.user.update()` invocation in
+D:/Project cá nhân/EC-VoucherHub/backend/src/modules/user/user.service.ts:17:34
+
+  14 } as const
+  15 
+  16 async function updateUserStatus(id: string, status: UserStatus) {
+→ 17   const user = await prisma.user.update(
+An operation failed because it depends on one or more records that were required but not found. No record was found for an update.
+    at ei.handleRequestError (D:\Project cá nhân\EC-VoucherHub\node_modules\@prisma\client\runtime\library.js:121:7268)
+    at ei.handleAndLogRequestError (D:\Project cá nhân\EC-VoucherHub\node_modules\@prisma\client\runtime\library.js:121:6593)
+    at ei.request (D:\Project cá nhân\EC-VoucherHub\node_modules\@prisma\client\runtime\library.js:121:6300)
+    at a (D:\Project cá nhân\EC-VoucherHub\node_modules\@prisma\client\runtime\library.js:130:9551)
+    at updateUserStatus (D:/Project cá nhân/EC-VoucherHub/backend/src/modules/user/user.service.ts:17:16)
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/modules/user/user.controller.ts:14:30 {
+  code: 'P2025',
+  meta: { modelName: 'User', cause: 'No record was found for an update.' },
+  clientVersion: '6.19.3'
+}
+
+ [31m❯[39m src/modules/user/user.test.ts [2m([22m[2m9 tests[22m[2m | [22m[31m5 failed[39m[2m)[22m[33m 1476[2mms[22m[39m
+[31m     [31m×[31m returns 401 without authentication and 403 for non-admin roles[39m[32m 201[2mms[22m[39m
+[31m     [31m×[31m protects every admin mutation route from anonymous and non-admin callers[39m[32m 229[2mms[22m[39m
+     [32m✓[39m allows an admin to search with AND filters and cursor pagination[32m 291[2mms[22m[39m
+[31m     [31m×[31m locks and unlocks a user, invalidating and restoring an existing token[39m[32m 168[2mms[22m[39m
+     [32m✓[39m applies a role change immediately to an existing token[32m 150[2mms[22m[39m
+[31m     [31m×[31m removes admin access from an existing token immediately after demotion[39m[32m 147[2mms[22m[39m
+[31m     [31m×[31m validates IDs and maps missing users to 404[39m[32m 90[2mms[22m[39m
+     [32m✓[39m supports legacy role rows while returning canonical role names[32m 87[2mms[22m[39m
+     [32m✓[39m fails closed when a configured role is missing[32m 80[2mms[22m[39m
+ [31m❯[39m src/modules/order/order.service.test.ts [2m([22m[2m10 tests[22m[2m | [22m[31m3 failed[39m[2m)[22m[32m 13[2mms[22m[39m
+     [32m✓[39m Thanh toán thất bại (FAILURE) -> không phát hành mã, giữ status[32m 2[2mms[22m[39m
+     [32m✓[39m Từ chối nếu đơn hàng không thuộc về customer[32m 1[2mms[22m[39m
+     [32m✓[39m Từ chối nếu đơn hàng không phải PENDING_PAYMENT[32m 0[2mms[22m[39m
+[31m     [31m×[31m Thành công (SUCCESS) -> giao dịch nguyên tử sinh mã và trừ tồn kho[39m[32m 3[2mms[22m[39m
+[31m     [31m×[31m Chống oversell (Hết hàng khi thanh toán) -> rollback qua ValidationError[39m[32m 2[2mms[22m[39m
+     [32m✓[39m Trả về lỗi 403 nếu đơn hàng không thuộc về customer[32m 0[2mms[22m[39m
+     [32m✓[39m Ẩn mảng codes nếu đơn hàng chưa PAID[32m 1[2mms[22m[39m
+     [32m✓[39m Trả về mảng codes nếu đơn hàng đã PAID[32m 0[2mms[22m[39m
+[31m     [31m×[31m Cho phép tạo đơn nếu số lượng giỏ + đang giam < 10[39m[32m 1[2mms[22m[39m
+     [32m✓[39m Ném lỗi ValidationError nếu Tổng Giỏ + Đang Giam > 10 (Chống đầu cơ)[32m 0[2mms[22m[39m
+ [31m❯[39m src/modules/cart/cart.service.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+       [32m✓[39m sẽ trả về giỏ hàng nếu đã tồn tại[32m 5[2mms[22m[39m
+       [32m✓[39m ném lỗi NotFoundError nếu voucher không tồn tại[32m 1[2mms[22m[39m
+       [32m✓[39m ném lỗi ValidationError nếu voucher không đang bán[32m 0[2mms[22m[39m
+       [32m✓[39m ném lỗi ValidationError nếu vượt giới hạn chống đầu cơ (MAX_QUANTITY = 10)[32m 0[2mms[22m[39m
+ [32m✓[39m src/modules/auth/auth-security.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 12033[2mms[22m[39m
+     [33m[2m✓[22m[39m hashes and verifies every valid password sample [33m 11985[2mms[22m[39m
+ [32m✓[39m src/configs/env.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 85[2mms[22m[39m
+ [32m✓[39m src/domain/state-machine.test.ts [2m([22m[2m20 tests[22m[2m)[22m[32m 56[2mms[22m[39m
+ [32m✓[39m src/utils/app-error.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 65[2mms[22m[39m
+ [32m✓[39m src/test/database-url.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 33[2mms[22m[39m
+ [32m✓[39m src/domain/enum-parity.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/modules/cart/cart.service.test.ts [ src/modules/cart/cart.service.test.ts ]
+ FAIL  src/modules/order/flow-003.integration.test.ts [ src/modules/order/flow-003.integration.test.ts ]
+ FAIL  src/modules/order/order.service.test.ts [ src/modules/order/order.service.test.ts ]
+TypeError: prisma.$disconnect is not a function
+ ❯ src/test/setup.ts:12:16
+     10| afterAll(async () => {
+     11|   const { default: prisma } = await import('~/configs/prisma')
+     12|   await prisma.$disconnect()
+       |                ^
+     13| })
+     14|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/31]⎯
+
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 28 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/app.test.ts > 404 handler > returns NOT_FOUND for unknown routes
+AssertionError: expected 500 to be 404 // Object.is equality
+
+- Expected
++ Received
+
+- 404
++ 500
+
+ ❯ src/app.test.ts:33:24
+     31|     const res = await request(app).get('/nonexistent-route')
+     32|
+     33|     expect(res.status).toBe(404)
+       |                        ^
+     34|     expect(res.body.success).toBe(false)
+     35|     expect(res.body.error.code).toBe('NOT_FOUND')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/31]⎯
+
+ FAIL  src/app.test.ts > 404 handler > returns NOT_FOUND for unregistered HTTP methods
+AssertionError: expected 500 to be 404 // Object.is equality
+
+- Expected
++ Received
+
+- 404
++ 500
+
+ ❯ src/app.test.ts:42:24
+     40|     const res = await request(app).delete('/health')
+     41|
+     42|     expect(res.status).toBe(404)
+       |                        ^
+     43|     expect(res.body.success).toBe(false)
+     44|     expect(res.body.error.code).toBe('NOT_FOUND')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/31]⎯
+
+ FAIL  src/app.test.ts > error handler > returns BAD_REQUEST for malformed JSON body
+AssertionError: expected 500 to be 400 // Object.is equality
+
+- Expected
++ Received
+
+- 400
++ 500
+
+ ❯ src/app.test.ts:52:24
+     50|     const res = await request(app).post('/health').set('Content-Type',…
+     51|
+     52|     expect(res.status).toBe(400)
+       |                        ^
+     53|     expect(res.body.success).toBe(false)
+     54|     expect(res.body.error.code).toBe('BAD_REQUEST')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/31]⎯
+
+ FAIL  src/modules/auth/auth-properties.test.ts > TASK-004 database properties > Properties 18/19: persists a hash and rejects every duplicate identifier through registration
+Error: Property failed after 20 tests
+{ seed: -398008469, path: "19:0:0:0:1:1:4:8:0:4:1", endOnFailure: true }
+Counterexample: ["00000000-0000-1000-8000-00005eff3d7d","ihQWkdZr!w@iilDPvbyf60x",false]
+Shrunk 10 time(s)
+Got error: promise resolved "{ …(5) }" instead of rejecting
+    at _Assertion.__VITEST_REJECTS__ (file:///D:/Project%20c%C3%A1%20nh%C3%A2n/EC-VoucherHub/node_modules/@vitest/expect/dist/index.js:1747:17)
+    at _Assertion.propertyGetter (file:///D:/Project%20c%C3%A1%20nh%C3%A2n/EC-VoucherHub/node_modules/chai/index.js:1570:27)
+    at Reflect.get (<anonymous>)
+    at Object.proxyGetter [as get] (file:///D:/Project%20c%C3%A1%20nh%C3%A2n/EC-VoucherHub/node_modules/chai/index.js:1659:22)
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/modules/auth/auth-properties.test.ts:36:50
+    at AsyncProperty.run (file:///D:/Project%20c%C3%A1%20nh%C3%A2n/EC-VoucherHub/node_modules/fast-check/lib/esm/check/property/AsyncProperty.generic.js:46:28)
+    at asyncRunIt (file:///D:/Project%20c%C3%A1%20nh%C3%A2n/EC-VoucherHub/node_modules/fast-check/lib/esm/check/runner/Runner.js:33:21)
+    at D:/Project cá nhân/EC-VoucherHub/backend/src/modules/auth/auth-properties.test.ts:16:5
+    at file:///D:/Project%20c%C3%A1%20nh%C3%A2n/EC-VoucherHub/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+
+Hint: Enable verbose mode in order to have the list of all failing values encountered during the run
+ ❯ src/modules/auth/auth-properties.test.ts:36:50
+     34|           expect(stored.passwordHash).not.toBe(password)
+     35|           expect(await verifyPassword(password, stored.passwordHash)).…
+     36|           await expect(authService.register(dto)).rejects.toMatchObjec…
+       |                                                  ^
+     37|           await prisma.user.delete({ where: { id: created.id } })
+     38|         }
+ ❯ AsyncProperty.run ../../../Project%20c%C3%A1%20nh%C3%A2n/EC-VoucherHub/node_modules/fast-check/lib/esm/check/property/AsyncProperty.generic.js:46:28
+ ❯ asyncRunIt ../../../Project%20c%C3%A1%20nh%C3%A2n/EC-VoucherHub/node_modules/fast-check/lib/esm/check/runner/Runner.js:33:21
+ ❯ src/modules/auth/auth-properties.test.ts:16:5
+ ❯ buildError ../../../Project%20c%C3%A1%20nh%C3%A2n/EC-VoucherHub/node_modules/fast-check/lib/esm/check/runner/utils/RunDetailsFormatter.js:126:15
+ ❯ asyncThrowIfFailed ../../../Project%20c%C3%A1%20nh%C3%A2n/EC-VoucherHub/node_modules/fast-check/lib/esm/check/runner/utils/RunDetailsFormatter.js:143:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/31]⎯
+
+ FAIL  src/modules/auth/auth.test.ts > POST /api/auth/register > rejects invalid registration input
+ FAIL  src/modules/auth/auth.test.ts > POST /api/auth/register > rejects invalid registration input
+ FAIL  src/modules/auth/auth.test.ts > POST /api/auth/register > rejects invalid registration input
+ FAIL  src/modules/auth/auth.test.ts > POST /api/auth/register > rejects invalid registration input
+ FAIL  src/modules/auth/auth.test.ts > POST /api/auth/register > rejects invalid registration input
+ FAIL  src/modules/auth/auth.test.ts > POST /api/auth/register > rejects invalid registration input
+AssertionError: expected 500 to be 400 // Object.is equality
+
+- Expected
++ Received
+
+- 400
++ 500
+
+ ❯ src/modules/auth/auth.test.ts:55:29
+     53|     const response = await request(app).post('/api/auth/register').sen…
+     54|
+     55|     expect(response.status).toBe(400)
+       |                             ^
+     56|     expect(response.body.error.code).toBe('VALIDATION_ERROR')
+     57|     expect(response.body.error.details.some((item: { field: string }) …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/31]⎯
+
+ FAIL  src/modules/auth/auth.test.ts > POST /api/auth/register > returns 409 for duplicate email and phone
+AssertionError: expected 500 to be 409 // Object.is equality
+
+- Expected
++ Received
+
+- 409
++ 500
+
+ ❯ src/modules/auth/auth.test.ts:79:35
+     77|     })
+     78|
+     79|     expect(duplicateEmail.status).toBe(409)
+       |                                   ^
+     80|     expect(duplicatePhone.status).toBe(409)
+     81|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/31]⎯
+
+ FAIL  src/modules/auth/auth.test.ts > POST /api/auth/register > fails closed when the customer role is not configured
+AssertionError: expected undefined to be 'INTERNAL_ERROR' // Object.is equality
+
+- Expected:
+"INTERNAL_ERROR"
+
++ Received:
+undefined
+
+ ❯ src/modules/auth/auth.test.ts:94:40
+     92|
+     93|       expect(response.status).toBe(500)
+     94|       expect(response.body.error.code).toBe('INTERNAL_ERROR')
+       |                                        ^
+     95|     } finally {
+     96|       await prisma.role.create({ data: { name: 'CUSTOMER' } })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/31]⎯
+
+ FAIL  src/modules/auth/auth.test.ts > authentication and profile flow > uses the same unauthorized response for a missing account and wrong password
+AssertionError: expected 500 to be 401 // Object.is equality
+
+- Expected
++ Received
+
+- 401
++ 500
+
+ ❯ src/modules/auth/auth.test.ts:142:28
+    140|     })
+    141|
+    142|     expect(missing.status).toBe(401)
+       |                            ^
+    143|     expect(wrongPassword.status).toBe(401)
+    144|     expect(missing.body.error).toEqual(wrongPassword.body.error)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/31]⎯
+
+ FAIL  src/modules/auth/auth.test.ts > authentication and profile flow > blocks a locked account at login
+AssertionError: expected 500 to be 403 // Object.is equality
+
+- Expected
++ Received
+
+- 403
++ 500
+
+ ❯ src/modules/auth/auth.test.ts:155:29
+    153|     })
+    154|
+    155|     expect(response.status).toBe(403)
+       |                             ^
+    156|   })
+    157|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/31]⎯
+
+ FAIL  src/modules/auth/auth.test.ts > authentication and profile flow > requires a valid bearer token for protected routes
+AssertionError: expected 500 to be 401 // Object.is equality
+
+- Expected
++ Received
+
+- 401
++ 500
+
+ ❯ src/modules/auth/auth.test.ts:186:28
+    184|     const deletedUser = await request(app).get('/api/me').set(authHead…
+    185|
+    186|     expect(missing.status).toBe(401)
+       |                            ^
+    187|     expect(malformed.status).toBe(401)
+    188|     expect(deletedUser.status).toBe(401)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/31]⎯
+
+ FAIL  src/modules/auth/auth.test.ts > authentication and profile flow > rejects empty, malformed, and duplicate profile updates
+AssertionError: expected 500 to be 400 // Object.is equality
+
+- Expected
++ Received
+
+- 400
++ 500
+
+ ❯ src/modules/auth/auth.test.ts:213:26
+    211|     const duplicate = await request(app).patch('/api/me').set(headers)…
+    212|
+    213|     expect(empty.status).toBe(400)
+       |                          ^
+    214|     expect(malformed.status).toBe(400)
+    215|     expect(duplicate.status).toBe(409)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/31]⎯
+
+ FAIL  src/modules/auth/auth.test.ts > authentication and profile flow > changes the password only when the current password is correct
+AssertionError: expected 500 to be 401 // Object.is equality
+
+- Expected
++ Received
+
+- 401
++ 500
+
+ ❯ src/modules/auth/auth.test.ts:245:26
+    243|       .send({ currentPassword: 'NewPassword123!', newPassword: 'short'…
+    244|
+    245|     expect(wrong.status).toBe(401)
+       |                          ^
+    246|     expect(changed.status).toBe(200)
+    247|     expect(login.status).toBe(200)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/31]⎯
+
+ FAIL  src/modules/cart/cart.controller.test.ts > Cart Controller & Routes > GET /api/cart > sẽ trả về thông tin giỏ hàng
+AssertionError: expected 500 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 500
+
+ ❯ src/modules/cart/cart.controller.test.ts:55:31
+     53|       const response = await request(app).get('/api/cart')
+     54|
+     55|       expect(response.status).toBe(200)
+       |                               ^
+     56|       expect(response.body.data).toEqual(mockCart)
+     57|       expect(cartService.getCart).toHaveBeenCalledWith('test-user-id')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/31]⎯
+
+ FAIL  src/modules/cart/cart.controller.test.ts > Cart Controller & Routes > POST /api/cart/items > gọi service để thêm item và trả về thành công
+AssertionError: expected 500 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 500
+
+ ❯ src/modules/cart/cart.controller.test.ts:79:31
+     77|         .send(payload)
+     78|
+     79|       expect(response.status).toBe(200)
+       |                               ^
+     80|       expect(response.body.data).toEqual(mockCart)
+     81|       expect(cartService.addItem).toHaveBeenCalledWith('test-user-id',…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/31]⎯
+
+ FAIL  src/modules/order/flow-003.integration.test.ts > FLOW-003 Checkpoint: Cart -> Order -> Payment > Toàn bộ luồng mua sắm thành công (Thêm vào giỏ -> Đặt hàng -> Thanh toán sinh mã)
+AssertionError: expected 500 to be 201 // Object.is equality
+
+- Expected
++ Received
+
+- 201
++ 500
+
+ ❯ src/modules/order/flow-003.integration.test.ts:88:29
+     86|       .send({ paymentMethod: 'SIMULATED' })
+     87|
+     88|     expect(orderRes.status).toBe(201)
+       |                             ^
+     89|     expect(orderRes.body.data.id).toBe('order-1')
+     90|     expect(orderRes.body.data.status).toBe('PENDING_PAYMENT')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/31]⎯
+
+ FAIL  src/modules/order/order.service.test.ts > Order Service - Payment > Thành công (SUCCESS) -> giao dịch nguyên tử sinh mã và trừ tồn kho
+TypeError: Cannot read properties of undefined (reading 'map')
+ ❯ Module.processPayment src/modules/order/order.service.ts:459:24
+    457|     orderId: order.id,
+    458|     status: 'PAID',
+    459|     codes: issuedCodes.map((c) => ({
+       |                        ^
+    460|       code: c.code,
+    461|       voucherProductId: c.voucherProductId,
+ ❯ src/modules/order/order.service.test.ts:87:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/31]⎯
+
+ FAIL  src/modules/order/order.service.test.ts > Order Service - Payment > Chống oversell (Hết hàng khi thanh toán) -> rollback qua ValidationError
+AssertionError: expected error to be instance of ValidationError
+
+- Expected:
+[Function ValidationError]
+
++ Received:
+TypeError {
+  "message": "Cannot read properties of undefined (reading 'map')",
+}
+
+ ❯ src/modules/order/order.service.test.ts:113:78
+    111|     })
+    112|
+    113|     await expect(processPayment(customerId, orderId, { outcome: 'SUCCE…
+       |                                                                              ^
+    114|
+    115|     expect(prismaMock.voucherProduct.update).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/31]⎯
+
+ FAIL  src/modules/order/order.service.test.ts > Order Service - createOrder > Cho phép tạo đơn nếu số lượng giỏ + đang giam < 10
+Error: [DecimalError] Invalid argument: [object Object]
+ ❯ new i ../../../Project%20c%C3%A1%20nh%C3%A2n/EC-VoucherHub/node_modules/@prisma/client/runtime/library.mjs:28:32277
+ ❯ i.m.plus.m.add ../../../Project%20c%C3%A1%20nh%C3%A2n/EC-VoucherHub/node_modules/@prisma/client/runtime/library.mjs:28:14041
+ ❯ Module.createOrder src/modules/order/order.service.ts:204:31
+    202|   let totalAmount = new Decimal(0)
+    203|   for (const item of cart.cartItems) {
+    204|     totalAmount = totalAmount.add(item.voucherProduct.salePrice.mul(it…
+       |                               ^
+    205|   }
+    206|
+ ❯ src/modules/order/order.service.test.ts:214:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/31]⎯
+
+ FAIL  src/modules/user/user.test.ts > admin user RBAC > returns 401 without authentication and 403 for non-admin roles
+AssertionError: expected 500 to be 401 // Object.is equality
+
+- Expected
++ Received
+
+- 401
++ 500
+
+ ❯ src/modules/user/user.test.ts:21:30
+     19|     const partnerResponse = await request(app).get('/api/admin/users')…
+     20|
+     21|     expect(anonymous.status).toBe(401)
+       |                              ^
+     22|     expect(customerResponse.status).toBe(403)
+     23|     expect(partnerResponse.status).toBe(403)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/31]⎯
+
+ FAIL  src/modules/user/user.test.ts > admin user RBAC > protects every admin mutation route from anonymous and non-admin callers
+AssertionError: expected 500 to be 401 // Object.is equality
+
+- Expected
++ Received
+
+- 401
++ 500
+
+ ❯ src/modules/user/user.test.ts:44:32
+     42|         .send(route.body)
+     43|
+     44|       expect(anonymous.status).toBe(401)
+       |                                ^
+     45|       expect(customerResponse.status).toBe(403)
+     46|       expect(partnerResponse.status).toBe(403)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/31]⎯
+
+ FAIL  src/modules/user/user.test.ts > admin user RBAC > locks and unlocks a user, invalidating and restoring an existing token
+AssertionError: expected 500 to be 403 // Object.is equality
+
+- Expected
++ Received
+
+- 403
++ 500
+
+ ❯ src/modules/user/user.test.ts:94:35
+     92|
+     93|     expect(locked.body.data.status).toBe('LOCKED')
+     94|     expect(blockedProfile.status).toBe(403)
+       |                                   ^
+     95|     expect(unlocked.body.data.status).toBe('ACTIVE')
+     96|     expect(restoredProfile.status).toBe(200)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/31]⎯
+
+ FAIL  src/modules/user/user.test.ts > admin user RBAC > removes admin access from an existing token immediately after demotion
+AssertionError: expected 500 to be 403 // Object.is equality
+
+- Expected
++ Received
+
+- 403
++ 500
+
+ ❯ src/modules/user/user.test.ts:127:27
+    125|
+    126|     expect(changed.status).toBe(200)
+    127|     expect(denied.status).toBe(403)
+       |                           ^
+    128|   })
+    129|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/31]⎯
+
+ FAIL  src/modules/user/user.test.ts > admin user RBAC > validates IDs and maps missing users to 404
+AssertionError: expected 500 to be 400 // Object.is equality
+
+- Expected
++ Received
+
+- 400
++ 500
+
+ ❯ src/modules/user/user.test.ts:137:28
+    135|     const missing = await request(app).patch('/api/admin/users/0000000…
+    136|
+    137|     expect(invalid.status).toBe(400)
+       |                            ^
+    138|     expect(missing.status).toBe(404)
+    139|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/31]⎯
+
+
+[2m Test Files [22m [1m[31m8 failed[39m[22m[2m | [22m[1m[32m6 passed[39m[22m[90m (14)[39m
+[2m      Tests [22m [1m[31m28 failed[39m[22m[2m | [22m[1m[32m88 passed[39m[22m[90m (116)[39m
+[2m   Start at [22m 10:00:01
+[2m   Duration [22m 56.96s[2m (transform 438ms, setup 259ms, import 5.81s, tests 48.82s, environment 1ms)[22m
+

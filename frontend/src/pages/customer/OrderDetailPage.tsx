@@ -12,7 +12,7 @@
  *
  * _Requirements: 17.1, 17.2_
  */
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import type { CSSProperties } from 'react'
 import { api } from '../../services/api'
@@ -26,10 +26,7 @@ async function fetchOrder(id: string): Promise<Order> {
   return (data as any).data || data
 }
 
-async function fetchMyCodes(): Promise<VoucherCode[]> {
-  const { data } = await api.get<any>('/my-codes')
-  return (data as any).data || data || []
-}
+
 
 /** True when the failed query was a 404 (missing / not owned). */
 function isNotFound(error: unknown): boolean {
@@ -50,16 +47,23 @@ export function OrderDetailPage() {
     enabled: Boolean(id)
   })
 
+  const queryClient = useQueryClient();
+  const cancelMutation = useMutation({
+    mutationFn: async () => {
+      const { cancelOrder } = await import('../../services/orders');
+      return cancelOrder(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['order', id] });
+      alert('Đã hủy đơn hàng thành công, số lượng voucher đã được hoàn lại kho.');
+    },
+    onError: (err: any) => {
+      alert('Lỗi hủy đơn: ' + (err?.response?.data?.message || err?.message || 'Không xác định'));
+    }
+  });
+
   const isPaid = order?.status === 'PAID'
-
-  // Voucher codes are only relevant (and only issued) for a PAID order.
-  const { data: allCodes } = useQuery({
-    queryKey: ['my-codes'],
-    queryFn: fetchMyCodes,
-    enabled: isPaid
-  })
-
-  const orderCodes = (allCodes ?? []).filter((code) => code.orderId === id)
+  const orderCodes = order?.codes || []
 
   if (isLoading) {
     return (
@@ -160,21 +164,36 @@ export function OrderDetailPage() {
       {order.status === 'PENDING_PAYMENT' && (
         <div style={cardStyle}>
           <p style={{ margin: 0, color: colors.ink }}>Đơn hàng đang chờ hoàn tất thanh toán.</p>
-          <Button
-            variant='primary'
-            style={{ marginTop: 16, backgroundColor: '#005baa' }}
-            onClick={async () => {
-              try {
-                const { getVNPayUrl } = await import('../../services/orders');
-                const url = await getVNPayUrl(order.id);
-                window.location.href = url;
-              } catch (e) {
-                alert('Khởi tạo VNPay thất bại, vui lòng thử lại!');
-              }
-            }}
-          >
-            Thanh toán qua VNPay
-          </Button>
+          <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
+            <Button
+              variant='primary'
+              style={{ backgroundColor: '#005baa' }}
+              onClick={async () => {
+                try {
+                  const { getVNPayUrl } = await import('../../services/orders');
+                  const url = await getVNPayUrl(order.id);
+                  window.location.href = url;
+                } catch (e) {
+                  alert('Khởi tạo VNPay thất bại, vui lòng thử lại!');
+                }
+              }}
+            >
+              Thanh toán qua VNPay
+            </Button>
+
+            <Button
+              variant='danger'
+              disabled={cancelMutation.isPending}
+              isLoading={cancelMutation.isPending}
+              onClick={() => {
+                if (window.confirm('Bạn có chắc muốn hủy đơn hàng này không? Voucher sẽ được trả lại kho.')) {
+                  cancelMutation.mutate();
+                }
+              }}
+            >
+              Hủy đơn
+            </Button>
+          </div>
         </div>
       )}
 
@@ -186,9 +205,9 @@ export function OrderDetailPage() {
           ) : (
             <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
               {orderCodes.map((code) => (
-                <li key={code.id} style={codeRowStyle}>
-                  <strong style={{ fontFamily: 'monospace', color: colors.ink }}>{code.code}</strong>
-                  <Badge variant={variantForStatus(code.status)}>{formatStatus(code.status)}</Badge>
+                <li key={code.code} style={codeRowStyle}>
+                  <strong style={{ fontFamily: 'monospace', color: colors.ink, fontSize: 16 }}>{code.code}</strong>
+                  <Badge variant={variantForStatus(code.status as any)}>{formatStatus(code.status as any)}</Badge>
                 </li>
               ))}
             </ul>

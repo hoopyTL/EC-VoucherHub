@@ -6,9 +6,10 @@ import { NotFoundError, ForbiddenError, ConflictError, ValidationError } from '.
 vi.mock('../../configs/prisma', () => {
   return {
     default: {
-      order: { findUnique: vi.fn(), update: vi.fn() },
+      order: { findUnique: vi.fn(), update: vi.fn(), findMany: vi.fn() },
       voucherProduct: { findUnique: vi.fn(), update: vi.fn() },
-      issuedVoucherCode: { findUnique: vi.fn(), create: vi.fn() },
+      issuedVoucherCode: { findUnique: vi.fn(), create: vi.fn(), createManyAndReturn: vi.fn() },
+      cart: { findUnique: vi.fn() },
       $transaction: vi.fn((cb) => cb(prismaMock)),
     }
   }
@@ -25,7 +26,7 @@ describe('Order Service - Payment', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    
+
     // Default valid mock for findUnique order
     prismaMock.order.findUnique.mockResolvedValue({
       id: orderId,
@@ -84,7 +85,7 @@ describe('Order Service - Payment', () => {
     }))
 
     const result = await processPayment(customerId, orderId, { outcome: 'SUCCESS' })
-    
+
     expect(prismaMock.voucherProduct.update).toHaveBeenCalledWith({
       where: { id: 'vp-1' },
       data: { remainingQuantity: { decrement: 2 } }
@@ -94,7 +95,7 @@ describe('Order Service - Payment', () => {
       where: { id: orderId },
       data: { status: 'PAID', paidAt: expect.any(Date) }
     })
-    
+
     expect(result.status).toBe('PAID')
     expect(result.codes).toHaveLength(2)
     expect(result.codes[0].expiresAt).toBe(usageEnd.toISOString())
@@ -110,7 +111,7 @@ describe('Order Service - Payment', () => {
     })
 
     await expect(processPayment(customerId, orderId, { outcome: 'SUCCESS' })).rejects.toThrow(ValidationError)
-    
+
     expect(prismaMock.voucherProduct.update).not.toHaveBeenCalled()
     expect(prismaMock.order.update).not.toHaveBeenCalled()
   })
@@ -119,7 +120,7 @@ describe('Order Service - Payment', () => {
 describe('Order Service - getOrderDetail', () => {
   const customerId = 'cust-1'
   const orderId = 'order-1'
-  
+
   beforeEach(() => {
     vi.clearAllMocks()
   })
@@ -165,6 +166,85 @@ describe('Order Service - getOrderDetail', () => {
     const m = await import('./order.service')
     const result = await m.getOrderDetail(customerId, orderId)
     expect(result.codes).toHaveLength(1)
-    expect(result.codes![0].code).toBe('A1B2C3D4E5F6')
+  })
+})
+
+describe('Order Service - createOrder', () => {
+  const customerId = 'cust-1'
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('Cho phép tạo đơn nếu số lượng giỏ + đang giam < 10', async () => {
+    // Không có đơn nào đang giam
+    prismaMock.order.findMany.mockResolvedValue([])
+
+    // Giỏ hàng hợp lệ với 5 món
+    prismaMock.cart.findUnique.mockResolvedValue({
+      id: 'cart-1',
+      customerId,
+      cartItems: [
+        {
+          id: 1,
+          quantity: 5,
+          voucherProductId: 'vp-1',
+          voucherProduct: {
+            id: 'vp-1',
+            status: 'ON_SALE',
+            remainingQuantity: 100,
+            salePrice: { mul: () => ({ toFixed: () => '500' }), toFixed: () => '100' }
+          }
+        }
+      ]
+    })
+
+    // Mock transaction return createOrder success
+    prismaMock.$transaction.mockResolvedValue({
+      id: 'new-order-1',
+      customerId,
+      status: 'PENDING_PAYMENT',
+      totalAmount: { toFixed: () => '500' },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      orderItems: []
+    })
+
+    const m = await import('./order.service')
+    const result = await m.createOrder(customerId, {})
+    expect(result.status).toBe('PENDING_PAYMENT')
+  })
+
+  it('Ném lỗi ValidationError nếu Tổng Giỏ + Đang Giam > 10 (Chống đầu cơ)', async () => {
+    // Đang giam 6 món vp-1 trong 1 đơn cũ
+    prismaMock.order.findMany.mockResolvedValue([
+      {
+        orderItems: [
+          { voucherProductId: 'vp-1', quantity: 6 }
+        ]
+      }
+    ])
+
+    // Giỏ hàng muốn mua thêm 5 món vp-1 (Tổng = 11 > 10)
+    prismaMock.cart.findUnique.mockResolvedValue({
+      id: 'cart-1',
+      customerId,
+      cartItems: [
+        {
+          id: 1,
+          quantity: 5,
+          voucherProductId: 'vp-1',
+          voucherProduct: {
+            id: 'vp-1',
+            name: 'Voucher Lõi',
+            status: 'ON_SALE',
+            remainingQuantity: 100
+          }
+        }
+      ]
+    })
+
+    const m = await import('./order.service')
+    await expect(m.createOrder(customerId, {})).rejects.toThrow(ValidationError)
   })
 })

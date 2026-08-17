@@ -137,6 +137,16 @@ export const addItem = async (
 
   const newQuantity = existingItem ? existingItem.quantity + quantity : quantity
 
+  const MAX_QUANTITY = 10;
+  if (newQuantity > MAX_QUANTITY) {
+    throw new ValidationError('Giới hạn độ lượng', [
+      {
+        field: 'quantity',
+        message: `Mỗi người chỉ được mua tối đa ${MAX_QUANTITY} voucher loại này. Giỏ hàng của bạn đã có ${existingItem?.quantity ?? 0} cái.`,
+      },
+    ])
+  }
+
   // 4. Validate tồn kho
   if (newQuantity > voucher.remainingQuantity) {
     throw new ValidationError('vượt quá tồn kho', [
@@ -192,6 +202,16 @@ export const updateItem = async (
 
   if (item.cart.customerId !== customerId) {
     throw new ForbiddenError('mục không thuộc giỏ của bạn')
+  }
+
+  const MAX_QUANTITY = 10;
+  if (quantity > MAX_QUANTITY) {
+    throw new ValidationError('Giới hạn độ lượng', [
+      {
+        field: 'quantity',
+        message: `Quy định chống đầu cơ: Bạn chỉ được mua tối đa ${MAX_QUANTITY} voucher loại này.`,
+      },
+    ])
   }
 
   // 2. Validate tồn kho

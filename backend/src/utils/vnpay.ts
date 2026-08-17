@@ -5,7 +5,7 @@ import { format } from 'date-fns'
 export const VNP_TMNCODE = process.env.VNP_TMNCODE || 'YOUR_TMNCODE';
 export const VNP_HASHSECRET = process.env.VNP_HASHSECRET || 'YOUR_SECRET';
 export const VNP_URL = process.env.VNP_URL || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html';
-export const VNP_RETURN_URL = process.env.VNP_RETURN_URL || 'http://localhost:4000/api/orders/vnpay-return';
+export const VNP_RETURN_URL = process.env.VNP_RETURN_URL || 'http://localhost:5173/payment-result';
 
 export function createVNPayUrl(ipAddr: string, orderId: string, amount: number, orderInfo: string) {
     const date = new Date();

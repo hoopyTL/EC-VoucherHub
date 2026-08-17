@@ -36,6 +36,7 @@ import { OrdersPage } from './pages/customer/OrdersPage'
 import { OrderDetailPage } from './pages/customer/OrderDetailPage'
 import { CheckoutPage } from './pages/customer/CheckoutPage'
 import { CartPage } from './pages/customer/CartPage'
+import { PaymentResultPage } from './pages/customer/PaymentResultPage'
 import { VouchersPage as PartnerVouchersPage } from './pages/partner/VouchersPage'
 import { CreateVoucherPage as PartnerCreateVoucherPage } from './pages/partner/CreateVoucherPage'
 import { DashboardPage as PartnerDashboardPage } from './pages/partner/DashboardPage'
@@ -137,6 +138,9 @@ export function AppRoutes() {
           <Route path='profile' element={<AccountPage />} />
           <Route path='account' element={<Navigate to='/profile' replace />} />
         </Route>
+
+        {/* Màn hình kết quả thanh toán mở tự do (tránh bị kẹt vì mất JWT) */}
+        <Route path='payment-result' element={<PaymentResultPage />} />
       </Route>
 
       {/* Partner workspace */}
