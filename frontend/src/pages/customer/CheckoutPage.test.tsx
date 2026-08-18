@@ -97,15 +97,15 @@ describe('CheckoutPage', () => {
     getCartMock.mockResolvedValue(SAMPLE_CART)
     createOrderMock.mockResolvedValue({
       id: 'order-123',
-      userId: 'u-1',
+      customerId: 'u-1',
       totalAmount: '130',
       status: 'PENDING_PAYMENT',
-      recipientName: null,
-      recipientEmail: null,
-      recipientPhone: null,
+      paymentMethod: 'VNPAY',
+      giftRecipient: null,
+      paidAt: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      orderItems: []
+      items: []
     })
 
     renderCheckout()
@@ -117,26 +117,22 @@ describe('CheckoutPage', () => {
       expect(screen.getByTestId('location').textContent).toBe('/orders/order-123')
     })
     // No recipient details entered → all fields omitted.
-    expect(createOrderMock).toHaveBeenCalledWith({
-      recipientName: undefined,
-      recipientEmail: undefined,
-      recipientPhone: undefined
-    })
+    expect(createOrderMock).toHaveBeenCalledWith({ giftRecipient: undefined })
   })
 
   it('passes gift recipient details when provided', async () => {
     getCartMock.mockResolvedValue(SAMPLE_CART)
     createOrderMock.mockResolvedValue({
       id: 'order-9',
-      userId: 'u-1',
+      customerId: 'u-1',
       totalAmount: '130',
       status: 'PENDING_PAYMENT',
-      recipientName: 'Bob',
-      recipientEmail: 'bob@example.com',
-      recipientPhone: null,
+      paymentMethod: 'VNPAY',
+      giftRecipient: { name: 'Bob', email: 'bob@example.com' },
+      paidAt: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      orderItems: []
+      items: []
     })
 
     renderCheckout()
@@ -152,9 +148,11 @@ describe('CheckoutPage', () => {
 
     await waitFor(() => {
       expect(createOrderMock).toHaveBeenCalledWith({
-        recipientName: 'Bob',
-        recipientEmail: 'bob@example.com',
-        recipientPhone: undefined
+        giftRecipient: {
+          name: 'Bob',
+          email: 'bob@example.com',
+          phone: undefined
+        }
       })
     })
   })

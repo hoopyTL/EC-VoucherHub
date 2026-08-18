@@ -22,13 +22,15 @@ import { colors, fonts, radius, shadows } from '../../theme/tokens'
 
 /** Fetch the customer's orders (newest first per the backend ordering). */
 async function fetchOrders(): Promise<Order[]> {
-  const { data } = await api.get<Order[]>('/orders')
-  return data
+  const { data } = await api.get<any>('/orders')
+  const unwrapped = (data as any).data || data
+  // Backend returns { items: Order[], nextCursor } via OrderListResponse
+  return unwrapped.items || unwrapped || []
 }
 
 /** Total number of voucher units in an order (sum of line quantities). */
 function itemCount(order: Order): number {
-  return order.orderItems.reduce((sum, item) => sum + item.quantity, 0)
+  return (order.items || []).reduce((sum, item) => sum + item.quantity, 0)
 }
 
 export function OrdersPage() {

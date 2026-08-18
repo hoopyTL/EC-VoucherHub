@@ -94,13 +94,15 @@ Client luôn kiểm tra `success` trước khi đọc `data`. Không bao giờ t
 | POST | `/cart/items` | Thêm mục | Khách hàng | FR-06 |
 | PATCH | `/cart/items/:itemId` | Cập nhật số lượng | Khách hàng | FR-06 |
 | DELETE | `/cart/items/:itemId` | Xoá mục | Khách hàng | FR-06 |
-| POST | `/orders` | Tạo đơn từ giỏ | Khách hàng | FR-07 |
-| GET | `/orders` | Lịch sử đơn của mình | Khách hàng | FR-09 |
-| GET | `/orders/:id` | Chi tiết đơn + mã (nếu đã TT) | Khách hàng | FR-09 |
+| POST | `/orders` | Tạo đơn từ giỏ (tổng giỏ + đơn chờ < 10 voucher/loại) | Khách hàng | FR-07 |
+| GET | `/orders` | Lịch sử đơn của mình (cursor-based pagination) | Khách hàng | FR-09 |
+| GET | `/orders/:id` | Chi tiết đơn + mã voucher (nếu đã PAID) | Khách hàng | FR-09 |
 | POST | `/orders/:id/payment` | Thanh toán mô phỏng → phát hành mã | Khách hàng | FR-08 |
+| GET | `/orders/:id/vnpay` | Tạo URL thanh toán VNPay Sandbox | Khách hàng | FR-08 |
+| GET | `/vnpay-return` | Callback từ VNPay → xử lý thanh toán + redirect về chi tiết đơn | Hệ thống | FR-08 |
 | GET | `/admin/orders` | Tra cứu đơn | Admin | FR-20 |
-| PATCH | `/admin/orders/:id/cancel` | Huỷ đơn `cho_thanh_toan` | Admin | FR-20 |
-| PATCH | `/admin/orders/:id/refund` | Hoàn tiền đơn `da_thanh_toan` | Admin | FR-20 |
+| PATCH | `/admin/orders/:id/cancel` | Huỷ đơn `PENDING_PAYMENT` | Admin | FR-20 |
+| PATCH | `/admin/orders/:id/refund` | Hoàn tiền đơn `PAID` | Admin | FR-20 |
 
 ### 2.4 Redemption (kiểm tra & sử dụng)
 
@@ -176,28 +178,47 @@ Không kết quả → `items: []` + 200 (không phải 404).
 
 **Request**
 ```jsonc
-{ "paymentMethod": "SIMULATED",
+{ "paymentMethod": "VNPAY",   // mặc định VNPAY nếu không truyền
   "giftRecipient": { "name": "Bình", "phone": "090..." } }  // optional (FR-07 AC2)
 ```
-**201 Created** — đơn `cho_thanh_toan`, tổng = tạm tính:
+**201 Created** — đơn `PENDING_PAYMENT`, tổng = tạm tính, TTL 5 phút:
 ```jsonc
 { "success": true,
-  "data": { "id": "clx...", "status": "cho_thanh_toan", "totalAmount": 400000,
-    "items": [ { "voucherId": "clx...", "quantity": 2, "unitPrice": 200000 } ] } }
+  "data": { "id": "clx...", "status": "PENDING_PAYMENT", "totalAmount": "400000.00",
+    "paymentMethod": "VNPAY",
+    "items": [ { "id": 1, "voucherProductId": "clx...", "voucherProductName": "Giảm 20% buffet",
+                 "quantity": 2, "unitPrice": "200000.00" } ],
+    "giftRecipient": { "name": "Bình", "phone": "090..." },
+    "paidAt": null, "createdAt": "...", "updatedAt": "..." } }
 ```
-**Lỗi**: giỏ rỗng → 422 (`giỏ hàng rỗng`); bất kỳ mục vượt tồn kho → 422 (`vượt quá tồn kho` + `details` theo voucher).
+**Cơ chế chống ôm hàng (Anti-hogging)**:
+- Không giới hạn số lượng đơn `PENDING_PAYMENT` có thể găm cùng lúc. Tuy nhiên, hệ thống thiết lập giới hạn TỔNG số lượng sản phẩm mỗi loại voucher đang được giữ (Cart + `PENDING_PAYMENT`) không vượt quá **10 voucher**. Nếu vượt ngưỡng → 422 (`vượt giới hạn ôm hàng`).
+- Đơn có `expiresAt` = thời điểm tạo + **15 phút**. Cron job tự động hủy đơn (`CANCELLED`) + hoàn kho khi quá hạn mà khách chưa thanh toán.
+- Kho hàng bị trừ (lock) tại thời điểm tạo đơn (Pessimistic Locking), đảm bảo không oversell (bán lố). Khách có thể chủ động hủy đơn (`POST /orders/:id/cancel`) để giải phóng slot khống chế (limit) của mình.
 
-### 3.5 `POST /orders/:id/payment` (FR-08) — endpoint lõi
+**Lỗi**: giỏ rỗng → 422 (`giỏ hàng rỗng`); bất kỳ mục vượt tồn kho / vượt tổng giới hạn 10 voucher → 422 (`vượt quá tồn kho` + `details` theo voucher).
+
+### 3.5 Thanh toán (FR-08) — VNPay Integration
+
+Thanh toán được thực hiện qua **VNPay Sandbox** thay vì mô phỏng đơn giản.
+
+**Luồng thanh toán VNPay**:
+1. Frontend gọi `GET /orders/:id/vnpay` → Backend tạo URL thanh toán VNPay với HMAC-SHA512.
+2. Khách được redirect sang cổng VNPay Sandbox → nhập thẻ test NCB (9704198526191432198).
+3. VNPay trả kết quả về `GET /vnpay-return?vnp_TxnRef=orderId&vnp_ResponseCode=00`.
+4. Backend verify chữ ký → gọi `processPayment(SUCCESS/FAILURE)` → redirect về `/orders/:id`.
+
+**`POST /orders/:id/payment`** (endpoint mô phỏng, dùng cho test/fallback):
 
 **Request** `{ "outcome": "SUCCESS" }` (mô phỏng; `SUCCESS`/`FAILURE`).
-**200 OK** (thành công) — chạy trong **một transaction**: re-check + trừ tồn kho → đơn `da_thanh_toan` → phát hành N mã duy nhất:
+**200 OK** (thành công) — chạy trong **một Prisma transaction**: đơn → `PAID` → phát hành N mã duy nhất (CSPRNG ≥ 12 ký tự):
 ```jsonc
 { "success": true,
-  "data": { "orderId": "clx...", "status": "da_thanh_toan",
-    "codes": [ { "code": "A1B2C3D4E5F6", "voucherId": "clx...",
-                 "status": "chua_su_dung", "expiresAt": "2026-12-31T23:59:59Z" } ] } }
+  "data": { "orderId": "clx...", "status": "PAID",
+    "codes": [ { "code": "A1B2C3D4E5F6", "voucherProductId": "clx...",
+                 "status": "UNUSED", "expiresAt": "2026-12-31T23:59:59Z" } ] } }
 ```
-**Lỗi**: `outcome=FAILURE` → 200 `{ success:true, data:{ status:"cho_thanh_toan" } }` (giữ trạng thái, không phát hành — FR-08 AC7); đơn không thuộc khách → 403; đơn không `cho_thanh_toan` → 409. **Mã không bao giờ trả về nếu đơn chưa `da_thanh_toan`** (FR-08 AC8).
+**Lỗi**: `outcome=FAILURE` → 200 `{ success:true, data:{ status:"PENDING_PAYMENT" } }` (giữ trạng thái, không phát hành — FR-08 AC7); đơn không thuộc khách → 403; đơn không `PENDING_PAYMENT` → 409; đơn hết hạn thanh toán → 409. **Mã không bao giờ trả về nếu đơn chưa `PAID`** (FR-08 AC8).
 
 ### 3.6 `GET /voucher-codes/:code` (FR-14)
 
@@ -211,7 +232,7 @@ Không kết quả → `items: []` + 200 (không phải 404).
 
 ### 3.7 `POST /voucher-codes/:code/redemption` (FR-15) — endpoint lõi
 
-**Request** `{ "branchId": "clx..." }`
+**Request** `{ "branchId": 1 }`
 **200 OK** (một-lượt) — transaction: `da_su_dung` + ghi Nhật_ký_sử_dụng:
 ```jsonc
 { "success": true,

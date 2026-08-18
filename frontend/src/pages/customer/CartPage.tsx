@@ -60,19 +60,21 @@ interface ApiErrorBody {
 /* API helpers (built on the shared Axios client)                             */
 /* -------------------------------------------------------------------------- */
 
+import { mapCartData } from '../../services/orders'
+
 async function fetchCart(): Promise<CartView> {
-  const { data } = await api.get<CartView>('/cart')
-  return data
+  const { data } = await api.get<{ data: any }>('/cart')
+  return mapCartData((data as any).data || data) as unknown as CartView // CartResponse signature matches exactly CartView fields
 }
 
 async function putCartItemQuantity(id: string, quantity: number): Promise<CartView> {
-  const { data } = await api.put<CartView>(`/cart/${id}`, { quantity })
-  return data
+  const { data } = await api.patch<{ data: any }>(`/cart/items/${id}`, { quantity })
+  return mapCartData((data as any).data || data) as unknown as CartView
 }
 
 async function deleteCartItem(id: string): Promise<CartView> {
-  const { data } = await api.delete<CartView>(`/cart/${id}`)
-  return data
+  const { data } = await api.delete<{ data: any }>(`/cart/items/${id}`)
+  return mapCartData((data as any).data || data) as unknown as CartView
 }
 
 /* -------------------------------------------------------------------------- */
@@ -81,9 +83,9 @@ async function deleteCartItem(id: string): Promise<CartView> {
 
 /** Format a numeric amount as a currency string. */
 export function formatPrice(value: number): string {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
-    currency: 'USD'
+    currency: 'VND'
   }).format(value)
 }
 
