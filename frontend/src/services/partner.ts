@@ -15,12 +15,26 @@
  * _Requirements: 7.1, 7.2, 7.3, 7.4_
  */
 import { api } from './api'
-import type { ListVouchersDto } from '@voucher/shared'
+import type { ListVouchersDto, PartnerDto, UpdatePartnerDto } from '@voucher/shared'
 import type { Branch, BranchFormValues, PartnerVouchersResponse } from '../types/partner'
 
 interface ApiEnvelope<T> {
   success: true
   data: T
+}
+
+export interface PartnerProfile extends PartnerDto {
+  owner: { email: string | null; phone: string | null; fullName: string }
+}
+
+export async function getPartnerProfile(): Promise<PartnerProfile> {
+  const { data } = await api.get<ApiEnvelope<PartnerProfile>>('/partner')
+  return data.data
+}
+
+export async function updatePartnerProfile(body: UpdatePartnerDto): Promise<PartnerProfile> {
+  const { data } = await api.patch<ApiEnvelope<PartnerProfile>>('/partner', body)
+  return data.data
 }
 
 /** List the authenticated partner's branches (active and inactive). */

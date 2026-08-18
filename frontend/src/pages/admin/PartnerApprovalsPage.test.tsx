@@ -91,10 +91,16 @@ describe('PartnerApprovalsPage', () => {
   })
 
   it('approves a partner and refreshes the list (Req 6.2)', async () => {
-    const getSpy = vi
-      .spyOn(api, 'get')
-      .mockResolvedValueOnce({ data: { success: true, data: makeResult() } } as never)
-      .mockResolvedValueOnce({ data: { success: true, data: makeResult({ partners: [] }) } } as never)
+    let pendingRequestCount = 0
+    vi.spyOn(api, 'get').mockImplementation(async (url) => {
+      if (url === '/admin/partners/pending') {
+        pendingRequestCount += 1
+        return {
+          data: { success: true, data: makeResult(pendingRequestCount > 1 ? { partners: [] } : {}) }
+        } as never
+      }
+      return { data: { success: true, data: makeResult() } } as never
+    })
     const patchSpy = vi.spyOn(api, 'patch').mockResolvedValue({
       data: { success: true, data: makePartner({ approvalStatus: 'APPROVED' }) }
     } as never)
@@ -107,7 +113,7 @@ describe('PartnerApprovalsPage', () => {
     await waitFor(() => {
       expect(patchSpy).toHaveBeenCalledWith('/admin/partners/p-1/approval', { action: 'approve' })
     })
-    await waitFor(() => expect(getSpy).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(pendingRequestCount).toBe(2))
     expect(await screen.findByText(/saigon food has been approved/i)).toBeDefined()
   })
 

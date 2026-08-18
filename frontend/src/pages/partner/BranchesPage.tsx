@@ -21,7 +21,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createBranch, deleteBranch, getPartnerApiError, listBranches, updateBranch } from '../../services/partner'
 import type { Branch, BranchFormValues } from '../../types/partner'
 import { VOUCHER_REGIONS } from '../../constants/voucher'
-import { Badge, Button, Input, LoadingSpinner, Modal } from '../../components/ui'
+import { Button, Input, LoadingSpinner, Modal } from '../../components/ui'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
 
 /** Query key for the partner branches list. */
@@ -190,7 +190,6 @@ export function BranchesPage() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontWeight: 600 }}>{branch.name}</span>
-                  <Badge variant='success'>Active</Badge>
                 </div>
                 <p style={metaStyle}>{branch.address}</p>
                 <p style={metaStyle}>{branch.region}</p>

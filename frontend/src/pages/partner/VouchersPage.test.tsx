@@ -18,6 +18,9 @@ function makeVoucher(overrides: Partial<PartnerVoucher> = {}): PartnerVoucher {
     salePrice: '350000',
     totalQuantity: 100,
     soldQuantity: 20,
+    issuedCodeCount: 20,
+    usedCodeCount: 8,
+    expiredCodeCount: 2,
     isMultiUse: false,
     usesPerCode: null,
     salePeriodStart: '2027-01-01T00:00:00.000Z',
@@ -60,6 +63,9 @@ function toWire(voucher: PartnerVoucher) {
     category: { id: voucher.categoryId ?? 1, name: voucher.category, parentId: null },
     branches: [],
     soldQuantity: voucher.soldQuantity,
+    issuedCodeCount: voucher.issuedCodeCount,
+    usedCodeCount: voucher.usedCodeCount,
+    expiredCodeCount: voucher.expiredCodeCount,
     createdAt: voucher.createdAt,
     updatedAt: voucher.updatedAt
   }

@@ -44,6 +44,7 @@ interface BranchFieldErrors {
 
 interface FieldErrors {
   email?: string
+  phone?: string
   password?: string
   legalName?: string
   taxCode?: string
@@ -59,11 +60,19 @@ function emptyBranch(): BranchForm {
  * Extracts a human-readable message (and HTTP status) from an unknown error,
  * understanding the API's `{ error: { code, message } }` envelope.
  */
-function describeApiError(err: unknown, fallback: string): { status?: number; message: string } {
+interface ValidationDetail {
+  field: string
+  message: string
+}
+
+function describeApiError(
+  err: unknown,
+  fallback: string
+): { status?: number; message: string; details?: ValidationDetail[] } {
   if (axios.isAxiosError(err)) {
     const status = err.response?.status
-    const data = err.response?.data as { error?: { message?: string } } | undefined
-    return { status, message: data?.error?.message ?? fallback }
+    const data = err.response?.data as { error?: { message?: string; details?: ValidationDetail[] } } | undefined
+    return { status, message: data?.error?.message ?? fallback, details: data?.error?.details }
   }
   return { message: fallback }
 }
@@ -102,7 +111,15 @@ export function RegisterPartnerPage() {
   function validate(): FieldErrors {
     const errors: FieldErrors = {}
 
-    if (!email.trim()) errors.email = 'Email is required.'
+    const normalizedEmail = email.trim()
+    const normalizedPhone = phone.trim()
+    if (!normalizedEmail && !normalizedPhone) errors.email = 'Provide an email or phone number.'
+    if (normalizedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      errors.email = 'Enter a valid email address.'
+    }
+    if (normalizedPhone && !/^\+?[0-9]{10,15}$/.test(normalizedPhone)) {
+      errors.phone = 'Phone must contain 10 to 15 digits, optionally starting with +.'
+    }
     if (password.length < MIN_PASSWORD_LENGTH) {
       errors.password = `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`
     }
@@ -135,7 +152,6 @@ export function RegisterPartnerPage() {
     }
 
     const payload: RegisterPartnerDto = {
-      email: email.trim(),
       password,
       legalName: legalName.trim(),
       taxCode: taxCode.trim(),
@@ -145,6 +161,7 @@ export function RegisterPartnerPage() {
         address: branch.address.trim(),
         region: branch.region.trim()
       })),
+      ...(email.trim() ? { email: email.trim() } : {}),
       ...(phone.trim() ? { phone: phone.trim() } : {})
     }
 
@@ -157,7 +174,27 @@ export function RegisterPartnerPage() {
         state: { registered: true, role: 'PARTNER', pendingApproval: true }
       })
     } catch (err) {
-      const { status, message } = describeApiError(err, 'Registration failed. Please try again.')
+      const { status, message, details } = describeApiError(err, 'Registration failed. Please try again.')
+      if (details?.length) {
+        const nextErrors: FieldErrors = {}
+        for (const detail of details) {
+          if (detail.field === 'email') nextErrors.email = detail.message
+          if (detail.field === 'phone') nextErrors.phone = detail.message
+          if (detail.field === 'password') nextErrors.password = detail.message
+          if (detail.field === 'legalName') nextErrors.legalName = detail.message
+          if (detail.field === 'taxCode') nextErrors.taxCode = detail.message
+          if (detail.field === 'representative') nextErrors.representative = detail.message
+          const branchMatch = /^branches\.(\d+)\.(name|address|region)$/.exec(detail.field)
+          if (branchMatch) {
+            const index = Number(branchMatch[1])
+            const field = branchMatch[2] as keyof BranchFieldErrors
+            nextErrors.branches ??= []
+            nextErrors.branches[index] ??= {}
+            nextErrors.branches[index][field] = detail.message
+          }
+        }
+        setFieldErrors(nextErrors)
+      }
       // 409 = duplicate email/phone (Requirement 3.3).
       setFormError(status === 409 ? message || 'An account with this email or phone number already exists.' : message)
     } finally {
@@ -187,16 +224,23 @@ export function RegisterPartnerPage() {
               label='Email'
               type='email'
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value)
+                if (fieldErrors.email) setFieldErrors((current) => ({ ...current, email: undefined }))
+              }}
               error={fieldErrors.email}
-              required
               autoComplete='email'
             />
             <Input
               label='Phone'
               type='tel'
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => {
+                setPhone(e.target.value)
+                if (fieldErrors.phone) setFieldErrors((current) => ({ ...current, phone: undefined }))
+              }}
+              error={fieldErrors.phone}
+              hint='10–15 digits; email or phone is required.'
               autoComplete='tel'
             />
             <Input

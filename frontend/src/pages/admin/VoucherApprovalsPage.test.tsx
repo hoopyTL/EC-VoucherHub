@@ -31,6 +31,9 @@ function wireVoucher(status = 'PENDING_REVIEW') {
     category: { id: 3, name: 'Beauty Spa', parentId: null },
     branches: [],
     soldQuantity: 0,
+    issuedCodeCount: 0,
+    usedCodeCount: 0,
+    expiredCodeCount: 0,
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z'
   }
@@ -77,9 +80,15 @@ describe('VoucherApprovalsPage', () => {
   })
 
   it('approves through the shared approval endpoint and refreshes', async () => {
-    vi.spyOn(api, 'get')
-      .mockResolvedValueOnce({ data: result() } as never)
-      .mockResolvedValueOnce({ data: result([]) } as never)
+    let pendingRequestCount = 0
+    vi.spyOn(api, 'get').mockImplementation(async (_url, config) => {
+      const status = (config as { params?: { status?: string } } | undefined)?.params?.status
+      if (status === 'PENDING_REVIEW') {
+        pendingRequestCount += 1
+        return { data: result(pendingRequestCount > 1 ? [] : [wireVoucher()]) } as never
+      }
+      return { data: result([]) } as never
+    })
     const patchSpy = vi.spyOn(api, 'patch').mockResolvedValue({
       data: { success: true, data: wireVoucher('APPROVED') }
     } as never)
@@ -111,5 +120,38 @@ describe('VoucherApprovalsPage', () => {
         reason: 'Price too low'
       })
     )
+  })
+
+  it('publishes an approved voucher from lifecycle management', async () => {
+    vi.spyOn(api, 'get').mockImplementation(async (_url, config) => {
+      const status = (config as { params?: { status?: string } } | undefined)?.params?.status
+      return { data: status === 'PENDING_REVIEW' ? result([]) : result([wireVoucher('APPROVED')]) } as never
+    })
+    const patchSpy = vi.spyOn(api, 'patch').mockResolvedValue({
+      data: { success: true, data: wireVoucher('ON_SALE') }
+    } as never)
+    renderPage()
+
+    await screen.findByText('Spa Day Pass')
+    fireEvent.click(screen.getByRole('button', { name: 'Công bố' }))
+    await waitFor(() => expect(patchSpy).toHaveBeenCalledWith('/admin/vouchers/v-1/status', { action: 'publish' }))
+  })
+
+  it('confirms before permanently discontinuing a live voucher', async () => {
+    vi.spyOn(api, 'get').mockImplementation(async (_url, config) => {
+      const status = (config as { params?: { status?: string } } | undefined)?.params?.status
+      return { data: status === 'PENDING_REVIEW' ? result([]) : result([wireVoucher('ON_SALE')]) } as never
+    })
+    const patchSpy = vi.spyOn(api, 'patch').mockResolvedValue({
+      data: { success: true, data: wireVoucher('DISCONTINUED') }
+    } as never)
+    renderPage()
+
+    await screen.findByText('Spa Day Pass')
+    fireEvent.click(screen.getByRole('button', { name: 'Ngừng bán' }))
+    const dialog = screen.getByRole('dialog')
+    expect(patchSpy).not.toHaveBeenCalled()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Ngừng bán' }))
+    await waitFor(() => expect(patchSpy).toHaveBeenCalledWith('/admin/vouchers/v-1/status', { action: 'discontinue' }))
   })
 })

@@ -26,6 +26,7 @@ import type { PartnerApprovalView } from '../../types/admin'
 import { Badge, Button, LoadingSpinner, Modal, Pagination, useToast, variantForStatus } from '../../components/ui'
 import { formatDateTime, formatStatus } from '../../utils/format'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
+import { PartnerManagementSection } from './PartnerManagementSection'
 
 /** Page size for the pending-partners listing. */
 const PAGE_LIMIT = 20
@@ -82,6 +83,7 @@ export function PartnerApprovalsPage() {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_LIMIT))
 
   function openReject(partner: PartnerApprovalView) {
+    setDetail(null)
     setReason('')
     setReasonError(null)
     setRejecting(partner)
@@ -211,6 +213,8 @@ export function PartnerApprovalsPage() {
         </>
       )}
 
+      <PartnerManagementSection />
+
       {/* Partner detail modal */}
       <Modal
         isOpen={detail !== null}
@@ -268,7 +272,7 @@ export function PartnerApprovalsPage() {
           {rejecting && (
             <p style={{ margin: '0 0 12px', color: colors.slate }}>
               Provide a reason for rejecting <strong style={{ color: colors.ink }}>{rejecting.legalName}</strong>. This
-              is shared with the partner.
+              is stored with this application for audit and follow-up.
             </p>
           )}
           <label htmlFor='partner-reject-reason' style={labelStyle}>

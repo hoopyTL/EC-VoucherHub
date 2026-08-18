@@ -17,7 +17,7 @@
  * _Requirements: 5.1, 5.2, 5.3, 5.4, 6.1, 6.2, 6.3, 9.2, 9.3, 9.4_
  */
 import type { AccountStatus, UserRole } from '@ui-contracts'
-import type { ListVouchersDto, VoucherDto } from '@voucher/shared'
+import type { AdminPartnerDto, ListPartnersDto, ListVouchersDto, UpdateBranchDto, VoucherDto } from '@voucher/shared'
 
 import { api } from './api'
 import type {
@@ -161,6 +161,31 @@ export async function rejectPartner(id: string, reason: string): Promise<Partner
   return data.data
 }
 
+/** List every Partner, including approved, rejected, active, and suspended records. */
+export async function listPartners(params: { page?: number; limit?: number } = {}): Promise<ListPartnersDto> {
+  const { data } = await api.get<ApiEnvelope<ListPartnersDto>>('/admin/partners', { params })
+  return data.data
+}
+
+/** Suspend or reactivate a Partner's business operations. */
+export async function changePartnerOperatingStatus(id: string, action: 'lock' | 'unlock'): Promise<AdminPartnerDto> {
+  const { data } = await api.patch<ApiEnvelope<AdminPartnerDto>>(`/admin/partners/${id}/lock`, { action })
+  return data.data
+}
+
+/** Correct a Partner branch as an administrator. */
+export async function updatePartnerBranch(
+  partnerId: string,
+  branchId: number,
+  values: UpdateBranchDto
+): Promise<AdminPartnerDto['branches'][number]> {
+  const { data } = await api.patch<ApiEnvelope<AdminPartnerDto['branches'][number]>>(
+    `/admin/partners/${partnerId}/branches/${branchId}`,
+    values
+  )
+  return data.data
+}
+
 // ---------------------------------------------------------------------------
 // Voucher approval (FR-ADM-03)
 // ---------------------------------------------------------------------------
@@ -197,11 +222,27 @@ export async function rejectVoucher(id: string, reason: string): Promise<Voucher
   return toVoucherApprovalView(data.data)
 }
 
+/** List vouchers across every lifecycle state for the admin management view. */
+export async function listAdminVouchers(params: { page?: number; limit?: number } = {}): Promise<ListVouchersDto> {
+  const { data } = await api.get<ApiEnvelope<ListVouchersDto>>('/admin/vouchers', { params })
+  return data.data
+}
+
+/** Publish, suspend, resume, or permanently discontinue a voucher. */
+export async function changeAdminVoucherStatus(
+  id: string,
+  action: 'publish' | 'suspend' | 'resume' | 'discontinue'
+): Promise<VoucherDto> {
+  const { data } = await api.patch<ApiEnvelope<VoucherDto>>(`/admin/vouchers/${id}/status`, { action })
+  return data.data
+}
+
 function toVoucherApprovalView(voucher: VoucherDto): VoucherApprovalView {
   return {
     id: voucher.id,
     title: voucher.name,
     description: voucher.description,
+    imageUrl: voucher.imageUrl,
     category: voucher.category?.name ?? 'Chưa phân loại',
     originalPrice: voucher.originalPrice,
     salePrice: voucher.salePrice,

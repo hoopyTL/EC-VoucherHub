@@ -36,6 +36,9 @@ export interface PartnerVoucher {
   salePrice: string
   totalQuantity: number
   soldQuantity: number
+  issuedCodeCount: number
+  usedCodeCount: number
+  expiredCodeCount: number
   isMultiUse: boolean
   usesPerCode: number | null
   salePeriodStart: string
@@ -76,6 +79,9 @@ function toPartnerVoucher(voucher: VoucherDto): PartnerVoucher {
     salePrice: voucher.salePrice,
     totalQuantity: voucher.totalQuantity,
     soldQuantity: voucher.soldQuantity,
+    issuedCodeCount: voucher.issuedCodeCount,
+    usedCodeCount: voucher.usedCodeCount,
+    expiredCodeCount: voucher.expiredCodeCount,
     isMultiUse: voucher.isMultiUse,
     usesPerCode: voucher.usesPerCode,
     salePeriodStart: voucher.saleStart,
