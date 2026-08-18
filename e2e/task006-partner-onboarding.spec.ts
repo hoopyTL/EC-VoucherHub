@@ -56,12 +56,13 @@ test('@FLOW-005 partner registers, gets approved, then manages branches', async 
   await expect(page).toHaveURL(/\/login$/)
   await login(page, e2eUsers.admin.email)
   await expect(page).toHaveURL(/\/admin\/partners$/)
-  await expect(page.getByText(applicant.legalName)).toBeVisible()
+  const applicantRow = page.getByRole('row').filter({ hasText: applicant.email })
+  await expect(applicantRow).toBeVisible()
 
   const approvalResponse = page.waitForResponse(
     (response) => response.url().includes('/api/admin/partners/') && response.url().endsWith('/approval')
   )
-  await page.getByRole('button', { name: `Approve ${applicant.legalName}` }).click()
+  await applicantRow.getByRole('button', { name: `Approve ${applicant.legalName}` }).click()
   expect((await approvalResponse).status()).toBe(200)
   await expect(page.getByText(`${applicant.legalName} has been approved.`)).toBeVisible()
 
