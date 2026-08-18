@@ -62,7 +62,10 @@ describe('BranchesPage', () => {
 
     expect(await screen.findByText('Downtown')).toBeDefined()
     const airportRow = screen.getByTestId('branch-2')
-    expect(within(airportRow).getByText('Active')).toBeDefined()
+    expect(within(airportRow).getByText('Airport')).toBeDefined()
+    expect(within(airportRow).getByText('1 Main St')).toBeDefined()
+    expect(within(airportRow).getByRole('button', { name: 'Edit Airport' })).toBeDefined()
+    expect(within(airportRow).getByRole('button', { name: 'Delete Airport' })).toBeDefined()
   })
 
   it('shows the empty state when there are no branches', async () => {
