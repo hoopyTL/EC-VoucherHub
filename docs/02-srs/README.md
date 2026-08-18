@@ -106,7 +106,7 @@ Mỗi FR truy vết về yêu cầu gốc `R<n>` trong BRD/requirements. Accepta
   - AC2: khi `da_thanh_toan` → phát hành 1 mã cho mỗi đơn vị voucher.
   - AC3: mỗi mã duy nhất toàn hệ thống.
   - AC4: mã sinh từ CSPRNG, độ dài ≥ 12 ký tự.
-  - AC5: mã khởi tạo `chua_su_dung` + `issued_at` + `expires_at` theo thời gian sử dụng voucher.
+  - AC5: mã khởi tạo `chua_su_dung`, thiết lập `issued_at` = hiện tại, `expires_at` theo thời gian sử dụng voucher, và `remaining_uses` = `uses_per_code` (nếu có, mặc định là 1).
   - AC6: khi `da_thanh_toan` → giảm tồn kho theo số lượng mua.
   - AC7: thanh toán thất bại → giữ `cho_thanh_toan`, không phát hành mã.
   - AC8: không hiển thị giá trị mã trước khi đơn `da_thanh_toan`.

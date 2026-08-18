@@ -10,6 +10,8 @@ import { notFoundHandler } from '~/middlewares/not-found'
 import { errorHandler } from '~/middlewares/error-handler'
 import { ApiResponse } from '~/utils/api-response'
 import apiRouter from '~/modules'
+import cartRoutes from '~/modules/cart/cart.routes'
+import orderRoutes from '~/modules/order/order.routes'
 
 const app = express()
 
@@ -38,9 +40,12 @@ app.get('/', (_req, res) => {
   ApiResponse.success(res, { message: 'Welcome VoucherHub' })
 })
 
+// API routes
 app.use('/api', apiRouter)
+app.use('/api/cart', cartRoutes)
+app.use('/api/orders', orderRoutes)
 
-// Error handling
+// Error handling must remain after all routes.
 app.use(notFoundHandler)
 app.use(errorHandler)
 

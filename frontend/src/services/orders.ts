@@ -42,31 +42,34 @@ export interface CartResponse {
 }
 
 /**
- * An order line item. `unitPrice`/`subtotal` arrive as JSON strings (Prisma
- * `Decimal`) but may be numbers in tests — normalise with {@link toNumber}.
+ * An order line item from the backend JSON response
  */
 export interface OrderItemResponse {
-  id: string
-  orderId: string
-  voucherId: string
+  id: number
+  voucherProductId: string
+  voucherProductName: string
   quantity: number
   unitPrice: string | number
-  subtotal: string | number
-  voucher: { id: string; title: string }
 }
 
 /** An order with its line items, as returned by the order/payment endpoints. */
 export interface OrderResponse {
   id: string
-  userId: string
+  customerId: string
   totalAmount: string | number
   status: OrderStatus
-  recipientName: string | null
-  recipientEmail: string | null
-  recipientPhone: string | null
+  paymentMethod: string
+  giftRecipient: { name?: string; phone?: string; email?: string } | null
+  paidAt: string | null
   createdAt: string
   updatedAt: string
-  orderItems: OrderItemResponse[]
+  items: OrderItemResponse[]
+  codes?: Array<{
+    code: string
+    voucherProductId: string
+    status: string
+    expiresAt: string
+  }>
 }
 
 /** Result of a successful payment (`POST /orders/:id/pay`). */
@@ -80,10 +83,25 @@ export interface PaymentResultResponse {
 // API calls
 // ---------------------------------------------------------------------------
 
+export function mapCartData(apiCart: any): CartResponse {
+  if (!apiCart) return { items: [], total: 0 }
+  return {
+    items: (apiCart.items || []).map((item: any) => ({
+      id: String(item.id),
+      voucherId: item.voucherProductId || item.voucherId,
+      title: item.voucherProductName || item.title,
+      unitPrice: Number(item.salePrice ?? item.unitPrice),
+      quantity: Number(item.quantity),
+      subtotal: Number(item.itemTotal ?? item.subtotal)
+    })),
+    total: Number(apiCart.subtotal ?? apiCart.total ?? 0)
+  }
+}
+
 /** Fetch the authenticated customer's cart (used to render the order summary). */
 export async function getCart(): Promise<CartResponse> {
-  const { data } = await api.get<CartResponse>('/cart')
-  return data
+  const { data } = await api.get<{ data: any }>('/cart')
+  return mapCartData((data as any).data || data)
 }
 
 /**
@@ -94,32 +112,38 @@ export async function getCart(): Promise<CartResponse> {
  * returns the refreshed cart with recalculated subtotals/total.
  */
 export async function addToCart(voucherId: string, quantity: number): Promise<CartResponse> {
-  const { data } = await api.post<CartResponse>('/cart', { voucherId, quantity })
-  return data
+  const { data } = await api.post<{ data: any }>('/cart/items', { voucherProductId: voucherId, quantity })
+  return mapCartData((data as any).data || data)
 }
 
 /** Create an order from the customer's cart, with optional gift recipient. */
 export async function createOrder(body: CreateOrderRequest): Promise<OrderResponse> {
-  const { data } = await api.post<OrderResponse>('/orders', body)
-  return data
+  const { data } = await api.post<{ data: OrderResponse }>('/orders', body)
+  return (data as any).data || data
 }
 
 /** Fetch a single order owned by the customer. */
 export async function getOrder(orderId: string): Promise<OrderResponse> {
   const { data } = await api.get<OrderResponse>(`/orders/${orderId}`)
-  return data
+  return (data as any).data || data
 }
 
 /** Submit a simulated payment for an order (success/failure). */
 export async function payOrder(orderId: string, body: PaymentRequest): Promise<PaymentResultResponse> {
   const { data } = await api.post<PaymentResultResponse>(`/orders/${orderId}/pay`, body)
-  return data
+  return (data as any).data || data
 }
 
 /** Cancel a pending order before payment, restoring inventory (Req 15.4). */
 export async function cancelOrder(orderId: string): Promise<OrderResponse> {
-  const { data } = await api.post<OrderResponse>(`/orders/${orderId}/cancel`, {})
-  return data
+  const { data } = await api.post<{ data: any }>(`/orders/${orderId}/cancel`, {})
+  return (data as any).data || data
+}
+
+/** Get VNPay Payment URL for an order */
+export async function getVNPayUrl(orderId: string): Promise<string> {
+  const { data } = await api.get<{ data: { url: string } }>(`/orders/${orderId}/vnpay`)
+  return data.data.url
 }
 
 // ---------------------------------------------------------------------------

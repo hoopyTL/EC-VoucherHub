@@ -5,56 +5,31 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AxiosError, AxiosHeaders } from 'axios'
 import { OrderDetailPage } from './OrderDetailPage'
 import { api } from '../../services/api'
-import type { Order, VoucherCode } from '../../types/customer'
+import type { Order } from '../../types/customer'
 
 function makeOrder(overrides: Partial<Order> = {}): Order {
   return {
     id: 'order-1',
-    userId: 'user-1',
+    customerId: 'user-1',
     totalAmount: '250000',
     status: 'PAID',
-    recipientName: null,
-    recipientEmail: null,
-    recipientPhone: null,
+    paymentMethod: 'VNPAY',
+    giftRecipient: null,
+    paidAt: '2025-01-05T10:01:00.000Z',
     createdAt: '2025-01-05T10:00:00.000Z',
     updatedAt: '2025-01-05T10:00:00.000Z',
-    orderItems: [
+    items: [
       {
-        id: 'item-1',
-        orderId: 'order-1',
-        voucherId: 'v-1',
+        id: 1,
+        voucherProductId: 'v-1',
+        voucherProductName: 'Spa Day',
         quantity: 2,
-        unitPrice: '125000',
-        subtotal: '250000',
-        voucher: { id: 'v-1', title: 'Spa Day' }
+        unitPrice: '125000'
       }
     ],
-    ...overrides
-  }
-}
-
-function makeCode(overrides: Partial<VoucherCode> = {}): VoucherCode {
-  return {
-    id: 'code-1',
-    code: 'SPA-AAAA-1111',
-    status: 'ACTIVE',
-    voucherId: 'v-1',
-    orderId: 'order-1',
-    ownerId: 'user-1',
-    redeemedAt: null,
-    redemptionBranchId: null,
-    createdAt: '2025-01-05T10:00:00.000Z',
-    updatedAt: '2025-01-05T10:00:00.000Z',
-    voucher: {
-      id: 'v-1',
-      title: 'Spa Day',
-      description: 'Relaxing spa',
-      category: 'Spa & Beauty',
-      usagePeriodStart: '2025-01-01T00:00:00.000Z',
-      usagePeriodEnd: '2025-12-31T00:00:00.000Z',
-      terms: null
-    },
-    order: { id: 'order-1', createdAt: '2025-01-05T10:00:00.000Z', status: 'PAID' },
+    codes: [
+      { code: 'SPA-AAAA-1111', voucherProductId: 'v-1', status: 'UNUSED', expiresAt: '2025-12-31T00:00:00.000Z' }
+    ],
     ...overrides
   }
 }
@@ -109,9 +84,6 @@ describe('OrderDetailPage', () => {
     vi.spyOn(api, 'get').mockImplementation((url: string) => {
       if (url === '/orders/order-1') {
         return Promise.resolve({ data: makeOrder() } as never)
-      }
-      if (url === '/my-codes') {
-        return Promise.resolve({ data: [makeCode()] } as never)
       }
       return Promise.resolve({ data: [] } as never)
     })
