@@ -2,10 +2,8 @@ import { expect, test } from '@playwright/test'
 
 import { E2E_PASSWORD, e2eUsers } from './fixtures/task004'
 
-const applicant = {
-  email: 'partner-applicant.e2e@voucherhub.test',
+const applicantBase = {
   legalName: 'E2E Partner Applicant',
-  taxCode: 'E2E-TAX-006',
   representative: 'E2E Representative',
   branchName: 'E2E Registration Branch'
 }
@@ -16,7 +14,17 @@ async function login(page: import('@playwright/test').Page, email: string) {
   await page.getByRole('button', { name: /log in|đăng nhập/i }).click()
 }
 
-test('@FLOW-005 partner registers, gets approved, then manages branches', async ({ page }) => {
+test('@FLOW-005 partner registers, gets approved, then manages branches', async ({ page }, testInfo) => {
+  // A failed attempt can already have created the applicant before Playwright
+  // retries the complete scenario. Give every retry its own unique account so
+  // the next attempt is isolated instead of failing with duplicate email/tax.
+  const attempt = `${testInfo.workerIndex}-${testInfo.retry}`
+  const applicant = {
+    ...applicantBase,
+    email: `partner-applicant-${attempt}.e2e@voucherhub.test`,
+    taxCode: `E2E-TAX-006-${attempt}`
+  }
+
   const pageErrors: string[] = []
   page.on('pageerror', (error) => pageErrors.push(error.message))
 
@@ -34,7 +42,8 @@ test('@FLOW-005 partner registers, gets approved, then manages branches', async 
     (response) => response.url().endsWith('/api/partners') && response.request().method() === 'POST'
   )
   await page.getByRole('button', { name: 'Submit registration' }).click()
-  expect((await registerResponse).status()).toBe(201)
+  const registration = await registerResponse
+  expect(registration.status(), `Partner registration failed: ${await registration.text()}`).toBe(201)
   await expect(page).toHaveURL(/\/login$/)
 
   const pendingLoginResponse = page.waitForResponse((response) => response.url().endsWith('/api/auth/login'))

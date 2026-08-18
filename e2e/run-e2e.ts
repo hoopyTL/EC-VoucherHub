@@ -4,6 +4,7 @@ import path from 'node:path'
 import dotenv from 'dotenv'
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm'
 
 dotenv.config({ path: path.join(rootDir, 'backend/.env.test'), override: false, quiet: true })
 
@@ -23,7 +24,12 @@ function assertE2eDatabase(): void {
 
 function run(command: string, args: string[]): Promise<number> {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { cwd: rootDir, env: process.env, stdio: 'inherit' })
+    const child = spawn(command, args, {
+      cwd: rootDir,
+      env: process.env,
+      stdio: 'inherit',
+      shell: process.platform === 'win32'
+    })
     child.on('error', reject)
     child.on('exit', (code) => resolve(code ?? 1))
   })
@@ -32,7 +38,7 @@ function run(command: string, args: string[]): Promise<number> {
 async function main(): Promise<void> {
   assertE2eDatabase()
 
-  const migrateCode = await run('npm', ['run', 'db:deploy', '--workspace=backend'])
+  const migrateCode = await run(npmCommand, ['run', 'db:deploy', '--workspace=backend'])
   if (migrateCode !== 0) process.exit(migrateCode)
 
   const database = await import('./setup-e2e-db')
@@ -50,7 +56,7 @@ async function main(): Promise<void> {
     '--config=e2e/playwright.config.ts',
     ...process.argv.slice(2)
   ]
-  process.exitCode = await run('npm', playwrightArgs)
+  process.exitCode = await run(npmCommand, playwrightArgs)
 }
 
 void main().catch((error: unknown) => {
