@@ -21,6 +21,7 @@ test('@FLOW-005 partner registers, gets approved, then manages branches', async 
   const attempt = `${testInfo.workerIndex}-${testInfo.retry}`
   const applicant = {
     ...applicantBase,
+    legalName: `${applicantBase.legalName} ${attempt}`,
     email: `partner-applicant-${attempt}.e2e@voucherhub.test`,
     taxCode: `E2E-TAX-006-${attempt}`
   }
