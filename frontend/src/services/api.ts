@@ -41,8 +41,8 @@ const IS_DESIGN_PREVIEW = import.meta.env.VITE_DESIGN_PREVIEW === 'true'
 /** The current access token (JWT). Backed up to sessionStorage to survive VNPay payment redirects. */
 let accessToken: string | null = null
 try {
-  accessToken = sessionStorage.getItem('v_access_token');
-} catch { }
+  accessToken = sessionStorage.getItem('v_access_token')
+} catch {}
 
 /** Returns the access token, or `null` when no session is active. */
 export function getAccessToken(): string | null {
@@ -53,17 +53,17 @@ export function getAccessToken(): string | null {
 export function setAccessToken(token: string | null): void {
   accessToken = token
   try {
-    if (token) sessionStorage.setItem('v_access_token', token);
-    else sessionStorage.removeItem('v_access_token');
-  } catch { }
+    if (token) sessionStorage.setItem('v_access_token', token)
+    else sessionStorage.removeItem('v_access_token')
+  } catch {}
 }
 
 /** Clears the access token when the session ends. */
 export function clearAccessToken(): void {
   accessToken = null
   try {
-    sessionStorage.removeItem('v_access_token');
-  } catch { }
+    sessionStorage.removeItem('v_access_token')
+  } catch {}
 }
 
 // ---------------------------------------------------------------------------

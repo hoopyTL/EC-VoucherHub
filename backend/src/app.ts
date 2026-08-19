@@ -34,7 +34,10 @@ app.use(helmet())
 // Cors
 app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }))
 
-// Body parsing
+// Webhook của Stripe bắt buộc phải là Raw Body để kiểm tra chữ ký (Signature) an toàn
+app.use('/api/orders/webhook/stripe', express.raw({ type: 'application/json' }))
+
+// Body parsing cho tất cả các API bình thường khác
 app.use(express.json({ limit: '1mb' }))
 app.use(express.urlencoded({ extended: true }))
 app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')))

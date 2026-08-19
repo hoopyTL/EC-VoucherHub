@@ -1,10 +1,6 @@
 import { Prisma } from '@prisma/client'
 import prisma from '../../configs/prisma'
-import {
-  NotFoundError,
-  ValidationError,
-  ForbiddenError,
-} from '../../middleware/error-handler'
+import { NotFoundError, ValidationError, ForbiddenError } from '../../middleware/error-handler'
 import type { AddCartItemDto, UpdateCartItemDto, CartResponse, CartItemResponse } from '@voucher/shared'
 import { Decimal } from '@prisma/client/runtime/library'
 
@@ -15,22 +11,20 @@ const formatDecimal = (d: Decimal): string => d.toFixed(2)
 /**
  * Map cart + items + voucherProduct join → CartResponse DTO.
  */
-const toCartResponse = (
-  cart: {
-    id: string
-    customerId: string
-    updatedAt: Date
-    cartItems: Array<{
-      id: number
-      voucherProductId: string
-      quantity: number
-      voucherProduct: {
-        name: string
-        salePrice: Decimal
-      }
-    }>
-  },
-): CartResponse => {
+const toCartResponse = (cart: {
+  id: string
+  customerId: string
+  updatedAt: Date
+  cartItems: Array<{
+    id: number
+    voucherProductId: string
+    quantity: number
+    voucherProduct: {
+      name: string
+      salePrice: Decimal
+    }
+  }>
+}): CartResponse => {
   let subtotal = new Decimal(0)
 
   const items: CartItemResponse[] = cart.cartItems.map((ci) => {
@@ -43,7 +37,7 @@ const toCartResponse = (
       voucherProductName: ci.voucherProduct.name,
       salePrice: formatDecimal(ci.voucherProduct.salePrice),
       quantity: ci.quantity,
-      itemTotal: formatDecimal(itemTotal),
+      itemTotal: formatDecimal(itemTotal)
     }
   })
 
@@ -52,7 +46,7 @@ const toCartResponse = (
     customerId: cart.customerId,
     items,
     subtotal: formatDecimal(subtotal),
-    updatedAt: cart.updatedAt.toISOString(),
+    updatedAt: cart.updatedAt.toISOString()
   }
 }
 
@@ -61,11 +55,11 @@ const cartInclude = {
   cartItems: {
     include: {
       voucherProduct: {
-        select: { name: true, salePrice: true },
-      },
+        select: { name: true, salePrice: true }
+      }
     },
-    orderBy: { createdAt: Prisma.SortOrder.asc },
-  },
+    orderBy: { createdAt: Prisma.SortOrder.asc }
+  }
 } as const
 
 // ─── Service ────────────────────────────────────────────────────────
@@ -76,13 +70,13 @@ const cartInclude = {
 export const getCart = async (customerId: string): Promise<CartResponse> => {
   let cart = await prisma.cart.findUnique({
     where: { customerId },
-    include: cartInclude,
+    include: cartInclude
   })
 
   if (!cart) {
     cart = await prisma.cart.create({
       data: { customerId },
-      include: cartInclude,
+      include: cartInclude
     })
   }
 
@@ -92,16 +86,13 @@ export const getCart = async (customerId: string): Promise<CartResponse> => {
 /**
  * Thêm mục vào giỏ. Upsert: nếu đã có → cộng dồn quantity.
  */
-export const addItem = async (
-  customerId: string,
-  dto: AddCartItemDto,
-): Promise<CartResponse> => {
+export const addItem = async (customerId: string, dto: AddCartItemDto): Promise<CartResponse> => {
   const { voucherProductId, quantity } = dto
 
   // 1. Validate voucher tồn tại + đang bán
   const voucher = await prisma.voucherProduct.findUnique({
     where: { id: voucherProductId },
-    select: { id: true, status: true, remainingQuantity: true, name: true },
+    select: { id: true, status: true, remainingQuantity: true, name: true }
   })
 
   if (!voucher) {
@@ -110,18 +101,18 @@ export const addItem = async (
 
   if (voucher.status !== 'ON_SALE') {
     throw new ValidationError('voucher không đang bán', [
-      { field: 'voucherProductId', message: 'voucher không ở trạng thái đang bán' },
+      { field: 'voucherProductId', message: 'voucher không ở trạng thái đang bán' }
     ])
   }
 
   // 2. Lazy init giỏ
   let cart = await prisma.cart.findUnique({
-    where: { customerId },
+    where: { customerId }
   })
 
   if (!cart) {
     cart = await prisma.cart.create({
-      data: { customerId },
+      data: { customerId }
     })
   }
 
@@ -130,20 +121,20 @@ export const addItem = async (
     where: {
       cartId_voucherProductId: {
         cartId: cart.id,
-        voucherProductId,
-      },
-    },
+        voucherProductId
+      }
+    }
   })
 
   const newQuantity = existingItem ? existingItem.quantity + quantity : quantity
 
-  const MAX_QUANTITY = 10;
+  const MAX_QUANTITY = 10
   if (newQuantity > MAX_QUANTITY) {
     throw new ValidationError('Giới hạn độ lượng', [
       {
         field: 'quantity',
-        message: `Mỗi người chỉ được mua tối đa ${MAX_QUANTITY} voucher loại này. Giỏ hàng của bạn đã có ${existingItem?.quantity ?? 0} cái.`,
-      },
+        message: `Mỗi người chỉ được mua tối đa ${MAX_QUANTITY} voucher loại này. Giỏ hàng của bạn đã có ${existingItem?.quantity ?? 0} cái.`
+      }
     ])
   }
 
@@ -152,8 +143,8 @@ export const addItem = async (
     throw new ValidationError('vượt quá tồn kho', [
       {
         field: 'quantity',
-        message: `chỉ còn ${voucher.remainingQuantity} sản phẩm, bạn đã có ${existingItem?.quantity ?? 0} trong giỏ`,
-      },
+        message: `chỉ còn ${voucher.remainingQuantity} sản phẩm, bạn đã có ${existingItem?.quantity ?? 0} trong giỏ`
+      }
     ])
   }
 
@@ -161,15 +152,15 @@ export const addItem = async (
   if (existingItem) {
     await prisma.cartItem.update({
       where: { id: existingItem.id },
-      data: { quantity: newQuantity },
+      data: { quantity: newQuantity }
     })
   } else {
     await prisma.cartItem.create({
       data: {
         cartId: cart.id,
         voucherProductId,
-        quantity,
-      },
+        quantity
+      }
     })
   }
 
@@ -180,11 +171,7 @@ export const addItem = async (
 /**
  * Cập nhật số lượng mục trong giỏ.
  */
-export const updateItem = async (
-  customerId: string,
-  itemId: number,
-  dto: UpdateCartItemDto,
-): Promise<CartResponse> => {
+export const updateItem = async (customerId: string, itemId: number, dto: UpdateCartItemDto): Promise<CartResponse> => {
   const { quantity } = dto
 
   // 1. Tìm item + validate ownership
@@ -192,8 +179,8 @@ export const updateItem = async (
     where: { id: itemId },
     include: {
       cart: { select: { customerId: true } },
-      voucherProduct: { select: { remainingQuantity: true } },
-    },
+      voucherProduct: { select: { remainingQuantity: true } }
+    }
   })
 
   if (!item) {
@@ -204,13 +191,13 @@ export const updateItem = async (
     throw new ForbiddenError('mục không thuộc giỏ của bạn')
   }
 
-  const MAX_QUANTITY = 10;
+  const MAX_QUANTITY = 10
   if (quantity > MAX_QUANTITY) {
     throw new ValidationError('Giới hạn độ lượng', [
       {
         field: 'quantity',
-        message: `Quy định chống đầu cơ: Bạn chỉ được mua tối đa ${MAX_QUANTITY} voucher loại này.`,
-      },
+        message: `Quy định chống đầu cơ: Bạn chỉ được mua tối đa ${MAX_QUANTITY} voucher loại này.`
+      }
     ])
   }
 
@@ -219,15 +206,15 @@ export const updateItem = async (
     throw new ValidationError('vượt quá tồn kho', [
       {
         field: 'quantity',
-        message: `chỉ còn ${item.voucherProduct.remainingQuantity} sản phẩm`,
-      },
+        message: `chỉ còn ${item.voucherProduct.remainingQuantity} sản phẩm`
+      }
     ])
   }
 
   // 3. Update
   await prisma.cartItem.update({
     where: { id: itemId },
-    data: { quantity },
+    data: { quantity }
   })
 
   return getCart(customerId)
@@ -236,14 +223,11 @@ export const updateItem = async (
 /**
  * Xoá mục khỏi giỏ.
  */
-export const removeItem = async (
-  customerId: string,
-  itemId: number,
-): Promise<CartResponse> => {
+export const removeItem = async (customerId: string, itemId: number): Promise<CartResponse> => {
   // 1. Tìm + validate ownership
   const item = await prisma.cartItem.findUnique({
     where: { id: itemId },
-    include: { cart: { select: { customerId: true } } },
+    include: { cart: { select: { customerId: true } } }
   })
 
   if (!item) {

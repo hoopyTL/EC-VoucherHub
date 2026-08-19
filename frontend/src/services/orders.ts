@@ -83,7 +83,7 @@ export interface PaymentResultResponse {
 // ---------------------------------------------------------------------------
 
 export function mapCartData(apiCart: any): CartResponse {
-  if (!apiCart) return { items: [], total: 0 };
+  if (!apiCart) return { items: [], total: 0 }
   return {
     items: (apiCart.items || []).map((item: any) => ({
       id: String(item.id),
@@ -94,7 +94,7 @@ export function mapCartData(apiCart: any): CartResponse {
       subtotal: Number(item.itemTotal ?? item.subtotal)
     })),
     total: Number(apiCart.subtotal ?? apiCart.total ?? 0)
-  };
+  }
 }
 
 /** Fetch the authenticated customer's cart (used to render the order summary). */
@@ -141,8 +141,14 @@ export async function cancelOrder(orderId: string): Promise<OrderResponse> {
 
 /** Get VNPay Payment URL for an order */
 export async function getVNPayUrl(orderId: string): Promise<string> {
-  const { data } = await api.get<{ data: { url: string } }>(`/orders/${orderId}/vnpay`);
-  return data.data.url;
+  const { data } = await api.get<{ data: { url: string } }>(`/orders/${orderId}/vnpay`)
+  return data.data.url
+}
+
+/** Get Stripe Payment URL for an order */
+export async function getStripeUrl(orderId: string): Promise<string> {
+  const { data } = await api.get<{ data: { url: string } }>(`/orders/${orderId}/stripe`)
+  return data.data.url
 }
 
 // ---------------------------------------------------------------------------

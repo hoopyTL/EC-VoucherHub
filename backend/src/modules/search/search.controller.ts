@@ -11,7 +11,7 @@ import { searchVoucherQuerySchema } from '@voucher/shared'
 export const searchVouchers = asyncHandler(async (req: Request, res: Response) => {
   // Validate query parameters bằng Zod Schema đã định nghĩa
   const query = searchVoucherQuerySchema.parse(req.query)
-  
+
   const result = await searchService.searchVouchers(query)
   successResponse(res, result)
 })

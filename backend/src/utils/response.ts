@@ -4,11 +4,7 @@ import { Response } from 'express'
  * Response wrapper nhất quán theo API contract:
  * { success: true, data: <T> }
  */
-export const successResponse = <T>(
-  res: Response,
-  data: T,
-  statusCode = 200,
-): void => {
+export const successResponse = <T>(res: Response, data: T, statusCode = 200): void => {
   res.status(statusCode).json({ success: true, data })
 }
 

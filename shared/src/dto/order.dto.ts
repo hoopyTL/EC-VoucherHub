@@ -10,20 +10,20 @@ export const giftRecipientSchema = z.object({
   phone: z
     .string({ error: 'số điện thoại người nhận là bắt buộc' })
     .min(1, 'số điện thoại không được rỗng')
-    .max(20, 'số điện thoại quá dài'),
+    .max(20, 'số điện thoại quá dài')
 })
 export type GiftRecipient = z.infer<typeof giftRecipientSchema>
 
 export const createOrderSchema = z.object({
   paymentMethod: z.string().optional(),
-  giftRecipient: giftRecipientSchema.optional(),
+  giftRecipient: giftRecipientSchema.optional()
 })
 export type CreateOrderDto = z.infer<typeof createOrderSchema>
 
 export const paymentOutcomeSchema = z.object({
   outcome: z.enum(['SUCCESS', 'FAILURE'], {
-    error: 'outcome phải là SUCCESS hoặc FAILURE',
-  }),
+    error: 'outcome phải là SUCCESS hoặc FAILURE'
+  })
 })
 export type PaymentOutcomeDto = z.infer<typeof paymentOutcomeSchema>
 
