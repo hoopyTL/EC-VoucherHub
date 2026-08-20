@@ -161,4 +161,3 @@ export interface ListVouchersDto {
     total: number
   }
 }
-

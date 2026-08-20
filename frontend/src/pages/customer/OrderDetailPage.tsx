@@ -26,8 +26,6 @@ async function fetchOrder(id: string): Promise<Order> {
   return (data as any).data || data
 }
 
-
-
 /** True when the failed query was a 404 (missing / not owned). */
 function isNotFound(error: unknown): boolean {
   return (error as { response?: { status?: number } } | null)?.response?.status === 404
@@ -47,20 +45,20 @@ export function OrderDetailPage() {
     enabled: Boolean(id)
   })
 
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
   const cancelMutation = useMutation({
     mutationFn: async () => {
-      const { cancelOrder } = await import('../../services/orders');
-      return cancelOrder(id);
+      const { cancelOrder } = await import('../../services/orders')
+      return cancelOrder(id)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['order', id] });
-      alert('Đã hủy đơn hàng thành công, số lượng voucher đã được hoàn lại kho.');
+      queryClient.invalidateQueries({ queryKey: ['order', id] })
+      alert('Đã hủy đơn hàng thành công, số lượng voucher đã được hoàn lại kho.')
     },
     onError: (err: any) => {
-      alert('Lỗi hủy đơn: ' + (err?.response?.data?.message || err?.message || 'Không xác định'));
+      alert('Lỗi hủy đơn: ' + (err?.response?.data?.message || err?.message || 'Không xác định'))
     }
-  });
+  })
 
   const isPaid = order?.status === 'PAID'
   const orderCodes = order?.codes || []
@@ -146,7 +144,9 @@ export function OrderDetailPage() {
                 <td style={tdStyle}>{item.voucherProductName}</td>
                 <td style={{ ...tdStyle, textAlign: 'center' }}>{item.quantity}</td>
                 <td style={{ ...tdStyle, textAlign: 'right' }}>{formatCurrency(item.unitPrice)}</td>
-                <td style={{ ...tdStyle, textAlign: 'right' }}>{formatCurrency(Number(item.unitPrice) * item.quantity)}</td>
+                <td style={{ ...tdStyle, textAlign: 'right' }}>
+                  {formatCurrency(Number(item.unitPrice) * item.quantity)}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -170,15 +170,31 @@ export function OrderDetailPage() {
               style={{ backgroundColor: '#005baa' }}
               onClick={async () => {
                 try {
-                  const { getVNPayUrl } = await import('../../services/orders');
-                  const url = await getVNPayUrl(order.id);
-                  window.location.href = url;
+                  const { getVNPayUrl } = await import('../../services/orders')
+                  const url = await getVNPayUrl(order.id)
+                  window.location.href = url
                 } catch (e) {
-                  alert('Khởi tạo VNPay thất bại, vui lòng thử lại!');
+                  alert('Khởi tạo VNPay thất bại, vui lòng thử lại!')
                 }
               }}
             >
               Thanh toán qua VNPay
+            </Button>
+
+            <Button
+              variant='primary'
+              style={{ backgroundColor: '#635BFF' }} // Brand color of Stripe
+              onClick={async () => {
+                try {
+                  const { getStripeUrl } = await import('../../services/orders')
+                  const url = await getStripeUrl(order.id)
+                  window.location.href = url
+                } catch (e) {
+                  alert('Khởi tạo Stripe thất bại, vui lòng thử lại!')
+                }
+              }}
+            >
+              Thanh toán qua thẻ quốc tế (Stripe)
             </Button>
 
             <Button
@@ -187,7 +203,7 @@ export function OrderDetailPage() {
               isLoading={cancelMutation.isPending}
               onClick={() => {
                 if (window.confirm('Bạn có chắc muốn hủy đơn hàng này không? Voucher sẽ được trả lại kho.')) {
-                  cancelMutation.mutate();
+                  cancelMutation.mutate()
                 }
               }}
             >

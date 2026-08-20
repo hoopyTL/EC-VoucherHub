@@ -16,7 +16,7 @@ export const validate = (schema: ZodSchema) => {
       if (err instanceof ZodError) {
         const details = err.issues.map((e) => ({
           field: e.path.join('.'),
-          message: e.message,
+          message: e.message
         }))
 
         next(new BadRequestError('validation failed', details))

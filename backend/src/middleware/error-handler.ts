@@ -6,11 +6,7 @@ export class AppError extends Error {
   public readonly statusCode: number
   public readonly details?: Array<{ field: string; message: string }>
 
-  constructor(
-    message: string,
-    statusCode: number,
-    details?: Array<{ field: string; message: string }>,
-  ) {
+  constructor(message: string, statusCode: number, details?: Array<{ field: string; message: string }>) {
     super(message)
     this.name = 'AppError'
     this.statusCode = statusCode
@@ -26,20 +22,14 @@ export class NotFoundError extends AppError {
 }
 
 export class ValidationError extends AppError {
-  constructor(
-    message = 'validation failed',
-    details?: Array<{ field: string; message: string }>,
-  ) {
+  constructor(message = 'validation failed', details?: Array<{ field: string; message: string }>) {
     super(message, 422, details)
     this.name = 'ValidationError'
   }
 }
 
 export class BadRequestError extends AppError {
-  constructor(
-    message = 'yêu cầu không hợp lệ',
-    details?: Array<{ field: string; message: string }>,
-  ) {
+  constructor(message = 'yêu cầu không hợp lệ', details?: Array<{ field: string; message: string }>) {
     super(message, 400, details)
     this.name = 'BadRequestError'
   }
@@ -68,17 +58,12 @@ export class UnauthorizedError extends AppError {
 
 // ─── Error Handler Middleware ───────────────────────────────────────
 
-export const errorHandler = (
-  err: Error,
-  _req: Request,
-  res: Response,
-  _next: NextFunction,
-): void => {
+export const errorHandler = (err: Error, _req: Request, res: Response, _next: NextFunction): void => {
   // Typed AppError → map sang status + wrapper
   if (err instanceof AppError) {
     const body: Record<string, unknown> = {
       success: false,
-      error: err.message,
+      error: err.message
     }
     if (err.details && err.details.length > 0) {
       body.details = err.details
@@ -92,5 +77,7 @@ export const errorHandler = (
   res.status(500).json({
     success: false,
     error: 'lỗi hệ thống',
+    debugMessage: err.message,
+    debugStack: err.stack
   })
 }

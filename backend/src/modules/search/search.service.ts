@@ -35,16 +35,14 @@ const toVoucherResponse = (vp: any): VoucherResponse => {
     partner: { businessName: vp.partner?.legalName || 'Unknown Partner' },
     category: vp.category?.name || 'Chưa phân loại',
     terms: null,
-    voucherBranches: [], // Hardcode tạm chờ bảng branches
+    voucherBranches: [] // Hardcode tạm chờ bảng branches
   }
 }
 
 /**
  * Tìm kiếm và lọc voucher (chỉ lấy voucher ON_SALE)
  */
-export const searchVouchers = async (
-  query: SearchVoucherQueryDto
-): Promise<VoucherListResponse> => {
+export const searchVouchers = async (query: SearchVoucherQueryDto): Promise<VoucherListResponse> => {
   const { keyword, minPrice, maxPrice, category, region, partnerId, minDiscount, page = 1, limit = 20 } = query
   const skip = (page - 1) * limit
 
@@ -94,7 +92,7 @@ export const searchVouchers = async (
       orderBy: { createdAt: 'desc' }
     })
 
-    const filtered = allVouchers.filter(vp => {
+    const filtered = allVouchers.filter((vp) => {
       const discount = Math.round(((Number(vp.originalPrice) - Number(vp.salePrice)) / Number(vp.originalPrice)) * 100)
       return discount >= minDiscount
     })
@@ -110,7 +108,7 @@ export const searchVouchers = async (
         include: { partner: true, category: true },
         orderBy: { createdAt: 'desc' },
         skip,
-        take: limit,
+        take: limit
       })
     ])
     total = count

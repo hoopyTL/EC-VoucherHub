@@ -3,13 +3,11 @@ import { z } from 'zod'
 // ─── Cart DTOs ──────────────────────────────────────────────────────
 
 export const addCartItemSchema = z.object({
-  voucherProductId: z
-    .string({ error: 'voucherProductId là bắt buộc' })
-    .uuid('voucherProductId phải là UUID hợp lệ'),
+  voucherProductId: z.string({ error: 'voucherProductId là bắt buộc' }).uuid('voucherProductId phải là UUID hợp lệ'),
   quantity: z
     .number({ error: 'quantity là bắt buộc' })
     .int('quantity phải là số nguyên')
-    .positive('quantity phải lớn hơn 0'),
+    .positive('quantity phải lớn hơn 0')
 })
 export type AddCartItemDto = z.infer<typeof addCartItemSchema>
 
@@ -17,7 +15,7 @@ export const updateCartItemSchema = z.object({
   quantity: z
     .number({ error: 'quantity là bắt buộc' })
     .int('quantity phải là số nguyên')
-    .positive('quantity phải lớn hơn 0'),
+    .positive('quantity phải lớn hơn 0')
 })
 export type UpdateCartItemDto = z.infer<typeof updateCartItemSchema>
 

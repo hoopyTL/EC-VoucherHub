@@ -20,24 +20,22 @@ export const startOrderCleanupCron = () => {
       const expiredOrders = await prisma.order.findMany({
         where: {
           status: 'PENDING_PAYMENT',
-          expiresAt: { lt: now },
+          expiresAt: { lt: now }
         },
         include: {
           orderItems: {
             include: {
               voucherProduct: {
-                select: { id: true, salePrice: true },
-              },
-            },
-          },
-        },
+                select: { id: true, salePrice: true }
+              }
+            }
+          }
+        }
       })
 
       if (expiredOrders.length === 0) return
 
-      console.log(
-        `[OrderCron] Found ${expiredOrders.length} expired order(s). Cleaning up...`,
-      )
+      console.log(`[OrderCron] Found ${expiredOrders.length} expired order(s). Cleaning up...`)
 
       // 2. Xử lý từng đơn trong transaction riêng
       for (const order of expiredOrders) {
@@ -48,19 +46,19 @@ export const startOrderCleanupCron = () => {
               await tx.voucherProduct.update({
                 where: { id: item.voucherProductId },
                 data: {
-                  remainingQuantity: { increment: item.quantity },
-                },
+                  remainingQuantity: { increment: item.quantity }
+                }
               })
             }
 
             // 2b. Trả items về giỏ hàng
             // Tìm hoặc tạo cart cho khách
             let cart = await tx.cart.findUnique({
-              where: { customerId: order.customerId },
+              where: { customerId: order.customerId }
             })
             if (!cart) {
               cart = await tx.cart.create({
-                data: { customerId: order.customerId },
+                data: { customerId: order.customerId }
               })
             }
 
@@ -70,46 +68,41 @@ export const startOrderCleanupCron = () => {
                 where: {
                   cartId_voucherProductId: {
                     cartId: cart.id,
-                    voucherProductId: item.voucherProductId,
-                  },
-                },
+                    voucherProductId: item.voucherProductId
+                  }
+                }
               })
 
               if (existingCartItem) {
                 await tx.cartItem.update({
                   where: { id: existingCartItem.id },
                   data: {
-                    quantity: existingCartItem.quantity + item.quantity,
-                  },
+                    quantity: existingCartItem.quantity + item.quantity
+                  }
                 })
               } else {
                 await tx.cartItem.create({
                   data: {
                     cartId: cart.id,
                     voucherProductId: item.voucherProductId,
-                    quantity: item.quantity,
-                  },
+                    quantity: item.quantity
+                  }
                 })
               }
             }
 
             // 2c. Xóa OrderItems rồi xóa Order (không lưu đơn rác)
             await tx.orderItem.deleteMany({
-              where: { orderId: order.id },
+              where: { orderId: order.id }
             })
             await tx.order.delete({
-              where: { id: order.id },
+              where: { id: order.id }
             })
           })
 
-          console.log(
-            `[OrderCron] Expired order ${order.id} → items restored to cart, order deleted.`,
-          )
+          console.log(`[OrderCron] Expired order ${order.id} → items restored to cart, order deleted.`)
         } catch (txError) {
-          console.error(
-            `[OrderCron] Failed to clean up order ${order.id}:`,
-            txError,
-          )
+          console.error(`[OrderCron] Failed to clean up order ${order.id}:`, txError)
         }
       }
     } catch (error) {

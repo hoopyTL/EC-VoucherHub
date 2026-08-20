@@ -10,7 +10,7 @@ async function main() {
   const rolePartner = await prisma.role.upsert({
     where: { name: 'DOI_TAC' },
     update: {},
-    create: { name: 'DOI_TAC' },
+    create: { name: 'DOI_TAC' }
   })
 
   // 2. Ensure a Partner User
@@ -22,8 +22,8 @@ async function main() {
       passwordHash: 'dummy_hash',
       fullName: 'Mock Partner Owner',
       roleId: rolePartner.id,
-      status: UserStatus.ACTIVE,
-    },
+      status: UserStatus.ACTIVE
+    }
   })
 
   // 3. Ensure a Partner profile
@@ -36,8 +36,8 @@ async function main() {
       taxCode: 'MOCK-123456789',
       representative: 'John Doe',
       approvalStatus: ApprovalStatus.APPROVED,
-      operatingStatus: OperatingStatus.ACTIVE,
-    },
+      operatingStatus: OperatingStatus.ACTIVE
+    }
   })
 
   // 3.5 Ensure Categories
@@ -112,7 +112,7 @@ async function main() {
   let createdCount = 0
   for (const v of mockVouchers) {
     const exists = await prisma.voucherProduct.findFirst({
-      where: { name: v.name, partnerId: partner.id },
+      where: { name: v.name, partnerId: partner.id }
     })
 
     if (!exists) {
@@ -131,8 +131,8 @@ async function main() {
           totalQuantity: v.totalQuantity,
           remainingQuantity: v.remainingQuantity,
           isMultiUse: false,
-          status: v.status,
-        },
+          status: v.status
+        }
       })
       createdCount++
     } else {
