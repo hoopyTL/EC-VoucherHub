@@ -25,7 +25,7 @@ vi.mock('../../middlewares/authorize', () => ({ authorize: () => (_req: any, _re
 const app = express()
 app.use(express.json())
 app.use('/api/cart', cartRoutes)
-app.use((err: any, req: any, res: any, next: any) => {
+app.use((err: any, _req: any, res: any, _next: any) => {
   console.error('Test error:', err)
   res.status(500).json({ error: err.stack || err.message })
 })

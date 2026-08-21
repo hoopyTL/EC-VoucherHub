@@ -74,12 +74,13 @@ export const vnpayIpn = asyncHandler(async (req: Request, res: Response) => {
   const orderId = rawTxnRef.split('_')[0]
   const responseCode = vnp_Params['vnp_ResponseCode'] as string
 
-  console.log(`[VNPay IPN] Order: ${orderId} | Status: ${responseCode} | SignatureValid: ${isValid}`)
+  // Never write callback parameters to logs: query values are controlled by an external caller.
+  console.info('[VNPay IPN] Callback received', { signatureValid: isValid })
 
   // 1. Kiểm tra chữ ký bảo mật (Checksum)
   // Nếu sai, dữ liệu URL đã bị giả mạo hoặc encode sai định dạng.
   if (!isValid) {
-    console.warn(`[VNPay IPN] CẢNH BÁO: Checksum thất bại! Đơn hàng: ${orderId}.`)
+    console.warn('[VNPay IPN] Invalid callback signature')
     return res.status(200).json({ RspCode: '97', Message: 'Invalid signature' })
   }
 
