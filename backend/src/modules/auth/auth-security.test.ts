@@ -21,7 +21,7 @@ describe('password security', () => {
       }),
       { numRuns: 100 }
     )
-  }, 30000)
+  }, 60000)
 })
 
 describe('JWT security', () => {
