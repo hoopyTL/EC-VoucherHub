@@ -71,7 +71,7 @@ describe('VoucherApprovalsPage', () => {
     vi.spyOn(api, 'get').mockResolvedValue({ data: result() } as never)
     renderPage()
     await screen.findByText('Spa Day Pass')
-    fireEvent.click(screen.getByRole('button', { name: /view spa day pass/i }))
+    fireEvent.click(screen.getByRole('button', { name: /xem spa day pass/i }))
 
     expect(within(screen.getByRole('dialog')).getByText(/a relaxing day at the spa/i)).toBeDefined()
   })
@@ -85,10 +85,10 @@ describe('VoucherApprovalsPage', () => {
     } as never)
     renderPage()
     await screen.findByText('Spa Day Pass')
-    fireEvent.click(screen.getByRole('button', { name: /approve spa day pass/i }))
+    fireEvent.click(screen.getByRole('button', { name: /duyệt spa day pass/i }))
 
     await waitFor(() => expect(patchSpy).toHaveBeenCalledWith('/admin/vouchers/v-1/approval', { action: 'approve' }))
-    expect(await screen.findByText(/spa day pass.*has been approved/i)).toBeDefined()
+    expect(await screen.findByText(/đã duyệt voucher.*spa day pass/i)).toBeDefined()
   })
 
   it('requires and sends a rejection reason through the canonical endpoint', async () => {
@@ -98,13 +98,13 @@ describe('VoucherApprovalsPage', () => {
     } as never)
     renderPage()
     await screen.findByText('Spa Day Pass')
-    fireEvent.click(screen.getByRole('button', { name: /reject spa day pass/i }))
+    fireEvent.click(screen.getByRole('button', { name: /từ chối spa day pass/i }))
     const dialog = screen.getByRole('dialog')
-    fireEvent.click(within(dialog).getByRole('button', { name: /reject voucher/i }))
-    expect(await within(dialog).findByText(/a rejection reason is required/i)).toBeDefined()
+    fireEvent.click(within(dialog).getByRole('button', { name: /xác nhận từ chối/i }))
+    expect(await within(dialog).findByText(/vui lòng nhập lý do từ chối/i)).toBeDefined()
 
-    fireEvent.change(within(dialog).getByLabelText(/rejection reason/i), { target: { value: 'Price too low' } })
-    fireEvent.click(within(dialog).getByRole('button', { name: /reject voucher/i }))
+    fireEvent.change(within(dialog).getByLabelText(/lý do từ chối/i), { target: { value: 'Price too low' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: /xác nhận từ chối/i }))
     await waitFor(() =>
       expect(patchSpy).toHaveBeenCalledWith('/admin/vouchers/v-1/approval', {
         action: 'reject',

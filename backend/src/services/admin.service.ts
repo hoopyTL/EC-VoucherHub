@@ -149,7 +149,7 @@ function normalizeContentInput(input: ContentInput, partial = false) {
 
   if (!partial || input.type !== undefined) {
     const type = stringValue(input.type, 'type')
-    if (!contentTypes.includes(type as (typeof contentTypes)[number])) throw badRequest('Invalid content type')
+    if (!contentTypes.includes(type as (typeof contentTypes)[number])) throw badRequest('Loại nội dung không hợp lệ')
     data.type = type
   }
   if (!partial || input.title !== undefined) data.title = stringValue(input.title, 'title')
@@ -157,7 +157,7 @@ function normalizeContentInput(input: ContentInput, partial = false) {
   if (!partial || input.status !== undefined) {
     const status = stringValue(input.status ?? 'draft', 'status').toLowerCase()
     if (!contentStatuses.includes(status as (typeof contentStatuses)[number]))
-      throw badRequest('Invalid content status')
+      throw badRequest('Trạng thái nội dung không hợp lệ')
     data.status = status
   }
   if (input.displayFrom !== undefined) data.displayFrom = optionalDateValue(input.displayFrom, 'displayFrom')
@@ -245,7 +245,7 @@ export async function getAdminOrder(orderId: string) {
     include: orderInclude
   })
 
-  if (!order) throw notFound('Order not found')
+  if (!order) throw notFound('Không tìm thấy đơn hàng')
   return mapOrder(order)
 }
 
@@ -256,9 +256,9 @@ export async function cancelAdminOrder(orderId: string, actorEmail?: string) {
       include: orderInclude
     })
 
-    if (!order) throw notFound('Order not found')
+    if (!order) throw notFound('Không tìm thấy đơn hàng')
     if (order.status !== OrderStatus.PENDING_PAYMENT) {
-      throw conflict('Only pending payment orders can be cancelled')
+      throw conflict('Chỉ có thể hủy đơn hàng đang chờ thanh toán')
     }
 
     const updated = await tx.order.update({
@@ -287,14 +287,14 @@ export async function refundAdminOrder(orderId: string, actorEmail?: string) {
       include: orderInclude
     })
 
-    if (!order) throw notFound('Order not found')
+    if (!order) throw notFound('Không tìm thấy đơn hàng')
     if (order.status !== OrderStatus.PAID) {
-      throw conflict('Only paid orders can be refunded')
+      throw conflict('Chỉ có thể hoàn tiền cho đơn hàng đã thanh toán')
     }
 
     const usedCodes = order.issuedVoucherCodes.filter((code) => code.status === VoucherCodeStatus.USED)
     if (usedCodes.length > 0) {
-      throw conflict('Cannot refund an order with used voucher codes', {
+      throw conflict('Không thể hoàn tiền đơn hàng có mã voucher đã sử dụng', {
         usedCodes: usedCodes.map((code) => code.code)
       })
     }
@@ -430,6 +430,115 @@ export async function getAdminDashboard() {
   }
 }
 
+/** Dashboard contract consumed by the React administration workspace. */
+export async function getAdminDashboardStats() {
+  const now = new Date()
+  const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const startWeek = new Date(startToday)
+  startWeek.setDate(startToday.getDate() - ((startToday.getDay() + 6) % 7))
+  const startMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+
+  const [revenueRows, statusRows, topRows, partners] = await Promise.all([
+    prisma.order.findMany({ where: { status: OrderStatus.PAID }, select: { totalAmount: true, paidAt: true, createdAt: true } }),
+    prisma.order.groupBy({ by: ['status'], _count: { _all: true } }),
+    prisma.orderItem.groupBy({ by: ['voucherProductId'], _sum: { quantity: true }, orderBy: { _sum: { quantity: 'desc' } }, take: 5 }),
+    prisma.partner.findMany({
+      select: {
+        id: true,
+        legalName: true,
+        voucherProducts: {
+          select: {
+            orderItems: { select: { quantity: true, unitPrice: true, order: { select: { status: true } } } }
+          }
+        },
+        _count: { select: { voucherProducts: true } }
+      }
+    })
+  ])
+
+  const sumSince = (from?: Date) => revenueRows.reduce((sum, row) => {
+    const date = row.paidAt ?? row.createdAt
+    return !from || date >= from ? sum + Number(row.totalAmount) : sum
+  }, 0)
+  const ids = topRows.map((row) => row.voucherProductId)
+  const products = await prisma.voucherProduct.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, name: true, salePrice: true, partner: { select: { legalName: true } } }
+  })
+  const productMap = new Map(products.map((item) => [item.id, item]))
+  const ordersByStatus = Object.fromEntries(Object.values(OrderStatus).map((status) => [status, 0]))
+  for (const row of statusRows) ordersByStatus[row.status] = row._count._all
+
+  return {
+    revenue: { today: sumSince(startToday), thisWeek: sumSince(startWeek), thisMonth: sumSince(startMonth), total: sumSince() },
+    ordersByStatus,
+    topVouchers: topRows.map((row) => {
+      const product = productMap.get(row.voucherProductId)
+      return { voucherId: row.voucherProductId, title: product?.name ?? 'Voucher', soldQuantity: row._sum.quantity ?? 0, salePrice: Number(product?.salePrice ?? 0), partnerName: product?.partner.legalName ?? 'Đối tác' }
+    }),
+    partnerPerformance: partners.map((partner) => {
+      const paidItems = partner.voucherProducts.flatMap((voucher) => voucher.orderItems).filter((item) => item.order.status === OrderStatus.PAID)
+      return {
+        partnerId: partner.id,
+        businessName: partner.legalName,
+        voucherCount: partner._count.voucherProducts,
+        orderCount: paidItems.length,
+        revenue: paidItems.reduce((sum, item) => sum + item.quantity * Number(item.unitPrice), 0)
+      }
+    }).sort((a, b) => b.revenue - a.revenue)
+  }
+}
+
+export async function getAdminAnalytics(daysInput = 30) {
+  const days = Math.max(7, Math.min(Number(daysInput) || 30, 365))
+  const start = new Date()
+  start.setHours(0, 0, 0, 0)
+  start.setDate(start.getDate() - days + 1)
+  const [orders, signups, categoryRows, totals] = await Promise.all([
+    prisma.order.findMany({ where: { createdAt: { gte: start } }, select: { status: true, totalAmount: true, createdAt: true, paidAt: true } }),
+    prisma.user.findMany({ where: { createdAt: { gte: start } }, select: { createdAt: true } }),
+    prisma.orderItem.findMany({
+      where: { order: { status: OrderStatus.PAID } },
+      select: { quantity: true, unitPrice: true, voucherProduct: { select: { category: { select: { name: true } } } } }
+    }),
+    prisma.order.groupBy({ by: ['status'], _count: { _all: true } })
+  ])
+  const keys = Array.from({ length: days }, (_, index) => {
+    const date = new Date(start)
+    date.setDate(start.getDate() + index)
+    return date.toISOString().slice(0, 10)
+  })
+  const revenue = new Map(keys.map((key) => [key, { date: key, revenue: 0, orders: 0 }]))
+  const signup = new Map(keys.map((key) => [key, { date: key, signups: 0 }]))
+  for (const order of orders) {
+    if (order.status !== OrderStatus.PAID) continue
+    const point = revenue.get((order.paidAt ?? order.createdAt).toISOString().slice(0, 10))
+    if (point) { point.revenue += Number(order.totalAmount); point.orders += 1 }
+  }
+  for (const user of signups) {
+    const point = signup.get(user.createdAt.toISOString().slice(0, 10))
+    if (point) point.signups += 1
+  }
+  const categories = new Map<string, { category: string; revenue: number; unitsSold: number }>()
+  for (const item of categoryRows) {
+    const name = item.voucherProduct.category?.name ?? 'Khác'
+    const current = categories.get(name) ?? { category: name, revenue: 0, unitsSold: 0 }
+    current.unitsSold += item.quantity
+    current.revenue += item.quantity * Number(item.unitPrice)
+    categories.set(name, current)
+  }
+  const count = (status: OrderStatus) => totals.find((row) => row.status === status)?._count._all ?? 0
+  const created = totals.reduce((sum, row) => sum + row._count._all, 0)
+  const paid = count(OrderStatus.PAID)
+  return {
+    windowDays: days,
+    revenueSeries: [...revenue.values()],
+    signupSeries: [...signup.values()],
+    categoryBreakdown: [...categories.values()].sort((a, b) => b.revenue - a.revenue),
+    funnel: { ordersCreated: created, ordersPaid: paid, ordersCancelled: count(OrderStatus.CANCELLED), paidConversionRate: created ? paid / created : 0 }
+  }
+}
+
 export async function listAdminUsers(query: ListQuery) {
   const limit = clampLimit(query.limit)
   const status = query.status?.toUpperCase()
@@ -485,7 +594,7 @@ export async function setAdminUserStatus(userId: string, status: UserStatus, act
       where: { id: userId },
       select: { status: true }
     })
-    if (!before) throw notFound('User not found')
+    if (!before) throw notFound('Không tìm thấy người dùng')
 
     const updated = await tx.user.update({
       where: { id: userId },
@@ -582,7 +691,7 @@ export async function setAdminPartnerApproval(
       where: { id: partnerId },
       select: { approvalStatus: true }
     })
-    if (!before) throw notFound('Partner not found')
+    if (!before) throw notFound('Không tìm thấy đối tác')
 
     const partner = await tx.partner.update({
       where: { id: partnerId },
@@ -615,7 +724,7 @@ export async function setAdminPartnerOperatingStatus(
       where: { id: partnerId },
       select: { operatingStatus: true }
     })
-    if (!before) throw notFound('Partner not found')
+    if (!before) throw notFound('Không tìm thấy đối tác')
 
     const partner = await tx.partner.update({
       where: { id: partnerId },
@@ -700,7 +809,7 @@ export async function setAdminVoucherApproval(
 ) {
   const allowedStatuses: readonly VoucherStatus[] = [VoucherStatus.APPROVED, VoucherStatus.REJECTED]
   if (!allowedStatuses.includes(status)) {
-    throw conflict('Voucher approval status must be APPROVED or REJECTED')
+    throw conflict('Trạng thái duyệt voucher phải là đã duyệt hoặc đã từ chối')
   }
 
   return prisma.$transaction(async (tx) => {
@@ -708,7 +817,7 @@ export async function setAdminVoucherApproval(
       where: { id: voucherId },
       select: { status: true }
     })
-    if (!before) throw notFound('Voucher not found')
+    if (!before) throw notFound('Không tìm thấy voucher')
 
     const voucher = await tx.voucherProduct.update({
       where: { id: voucherId },
@@ -738,7 +847,7 @@ export async function setAdminVoucherStatus(voucherId: string, status: VoucherSt
     VoucherStatus.DISCONTINUED
   ]
   if (!allowedStatuses.includes(status)) {
-    throw conflict('Unsupported voucher status action')
+    throw conflict('Thao tác trạng thái voucher không được hỗ trợ')
   }
 
   return prisma.$transaction(async (tx) => {
@@ -746,7 +855,7 @@ export async function setAdminVoucherStatus(voucherId: string, status: VoucherSt
       where: { id: voucherId },
       select: { status: true }
     })
-    if (!before) throw notFound('Voucher not found')
+    if (!before) throw notFound('Không tìm thấy voucher')
 
     const voucher = await tx.voucherProduct.update({
       where: { id: voucherId },
@@ -907,7 +1016,7 @@ export async function listAdminContent(query: ContentQuery) {
 export async function createAdminContent(input: ContentInput, actorEmail?: string) {
   const data = normalizeContentInput(input)
   const actorUserId = await resolveAdminActorId(actorEmail)
-  if (!actorUserId) throw conflict('Admin actor not found. Seed admin@voucherhub.com first.')
+  if (!actorUserId) throw conflict('Không tìm thấy tài khoản quản trị. Vui lòng tạo admin@voucherhub.com trước.')
 
   return prisma.$transaction(async (tx) => {
     const item = await tx.contentItem.create({
@@ -938,14 +1047,14 @@ export async function createAdminContent(input: ContentInput, actorEmail?: strin
 
 export async function updateAdminContent(contentId: string, input: ContentInput, actorEmail?: string) {
   const data = normalizeContentInput(input, true)
-  if (!Object.keys(data).length) throw badRequest('No content fields to update')
+  if (!Object.keys(data).length) throw badRequest('Không có trường nội dung nào để cập nhật')
 
   return prisma.$transaction(async (tx) => {
     const before = await tx.contentItem.findUnique({
       where: { id: contentId },
       select: { status: true, title: true, type: true }
     })
-    if (!before) throw notFound('Content item not found')
+    if (!before) throw notFound('Không tìm thấy nội dung')
 
     const item = await tx.contentItem.update({
       where: { id: contentId },
@@ -977,7 +1086,7 @@ export async function archiveAdminContent(contentId: string, actorEmail?: string
       where: { id: contentId },
       select: { status: true, title: true, type: true }
     })
-    if (!before) throw notFound('Content item not found')
+    if (!before) throw notFound('Không tìm thấy nội dung')
 
     const item = await tx.contentItem.update({
       where: { id: contentId },

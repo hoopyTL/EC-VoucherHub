@@ -1,6 +1,6 @@
 import { Request, Response } from 'express'
 import { asyncHandler } from '../../middleware/async-handler'
-import { successResponse, noContentResponse } from '../../utils/response'
+import { successResponse } from '../../utils/response'
 import * as cartService from './cart.service'
 
 /**

@@ -33,7 +33,7 @@ const VARIANT_COLORS: Record<BadgeVariant, VariantColors> = {
   neutral: { background: colors.surfaceMuted, color: colors.slate, border: colors.hairline },
   info: { background: colors.surface, color: colors.ink, border: colors.ink },
   success: { background: colors.ink, color: colors.onInk, border: colors.ink },
-  warning: { background: colors.surfaceMuted, color: colors.inkSoft, border: colors.hairlineStrong },
+  warning: { background: colors.accentSurface, color: colors.accentHover, border: colors.accent },
   danger: {
     background: colors.dangerSurface,
     color: colors.onDangerSurface,

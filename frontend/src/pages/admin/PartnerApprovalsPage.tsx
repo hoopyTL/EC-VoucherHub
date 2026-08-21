@@ -57,10 +57,10 @@ export function PartnerApprovalsPage() {
     onSuccess: async (_result, partner) => {
       await invalidate()
       setDetail(null)
-      toast.success(`${partner.legalName} has been approved.`)
+      toast.success(`Đã duyệt đối tác ${partner.legalName}.`)
     },
     onError: (err) => {
-      toast.error(getAdminApiError(err, 'Could not approve the partner. Please try again.'))
+      toast.error(getAdminApiError(err, 'Không thể duyệt đối tác. Vui lòng thử lại.'))
     }
   })
 
@@ -70,10 +70,10 @@ export function PartnerApprovalsPage() {
       await invalidate()
       closeReject()
       setDetail(null)
-      toast.success(`${vars.partner.legalName} has been rejected.`)
+      toast.success(`Đã từ chối đối tác ${vars.partner.legalName}.`)
     },
     onError: (err) => {
-      setReasonError(getAdminApiError(err, 'Could not reject the partner. Please try again.'))
+      setReasonError(getAdminApiError(err, 'Không thể từ chối đối tác. Vui lòng thử lại.'))
     }
   })
 
@@ -97,7 +97,7 @@ export function PartnerApprovalsPage() {
     event.preventDefault()
     const trimmed = reason.trim()
     if (!trimmed) {
-      setReasonError('A rejection reason is required.')
+      setReasonError('Vui lòng nhập lý do từ chối.')
       return
     }
     if (rejecting) {
@@ -108,31 +108,31 @@ export function PartnerApprovalsPage() {
   return (
     <section style={pageStyle}>
       <header>
-        <p style={eyebrowStyle}>● Approvals</p>
-        <h1 style={titleStyle}>Partner approvals</h1>
+        <p style={eyebrowStyle}>● Kiểm duyệt đối tác</p>
+        <h1 style={titleStyle}>Hồ sơ đối tác chờ duyệt</h1>
         <p style={subtitleStyle}>
-          Review business registrations and approve or reject partners applying to sell on the platform.
+          Kiểm tra thông tin doanh nghiệp trước khi cho phép kinh doanh trên VoucherHub.
         </p>
       </header>
 
       {isLoading && (
         <div style={{ padding: 48 }}>
-          <LoadingSpinner label='Loading pending partners' />
+          <LoadingSpinner label='Đang tải hồ sơ đối tác' />
         </div>
       )}
 
       {!isLoading && isError && (
         <div role='alert' style={alertStyle}>
-          We couldn&apos;t load pending partners.{' '}
+          Không thể tải danh sách đối tác chờ duyệt.{' '}
           <button type='button' style={linkButtonStyle} onClick={() => refetch()}>
-            Retry
+            Thử lại
           </button>
         </div>
       )}
 
       {!isLoading && !isError && data && partners.length === 0 && (
         <div style={emptyStyle}>
-          <p style={{ margin: 0 }}>No pending partners</p>
+          <p style={{ margin: 0 }}>Không có đối tác nào đang chờ duyệt.</p>
         </div>
       )}
 
@@ -143,11 +143,7 @@ export function PartnerApprovalsPage() {
               <table style={tableStyle}>
                 <thead>
                   <tr>
-                    <th style={thStyle}>Business</th>
-                    <th style={thStyle}>Tax code</th>
-                    <th style={thStyle}>Representative</th>
-                    <th style={thStyle}>Status</th>
-                    <th style={thActionStyle}>Actions</th>
+                    <th style={thStyle}>Doanh nghiệp</th><th style={thStyle}>Mã số thuế</th><th style={thStyle}>Đại diện</th><th style={thStyle}>Trạng thái</th><th style={thActionStyle}>Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -155,12 +151,12 @@ export function PartnerApprovalsPage() {
                     <tr key={partner.id} data-testid={`partner-${partner.id}`}>
                       <td style={tdStyle}>
                         <div style={{ fontWeight: 600, color: colors.ink }}>{partner.legalName}</div>
-                        <div style={metaStyle}>{partner.owner.email ?? partner.owner.phone ?? 'No contact'}</div>
+                        <div style={metaStyle}>{partner.owner.email ?? partner.owner.phone ?? 'Chưa có thông tin liên hệ'}</div>
                       </td>
                       <td style={tdStyle}>{partner.taxCode}</td>
                       <td style={tdStyle}>
                         <div>{partner.representative}</div>
-                        <div style={metaStyle}>{partner.branches.length} branch(es)</div>
+                        <div style={metaStyle}>{partner.branches.length} chi nhánh</div>
                       </td>
                       <td style={tdStyle}>
                         <Badge variant={variantForStatus(partner.approvalStatus)}>
@@ -173,26 +169,26 @@ export function PartnerApprovalsPage() {
                             size='sm'
                             variant='secondary'
                             onClick={() => setDetail(partner)}
-                            aria-label={`View ${partner.legalName}`}
+                            aria-label={`Xem ${partner.legalName}`}
                           >
-                            View
+                            Chi tiết
                           </Button>
                           <Button
                             size='sm'
                             variant='primary'
                             isLoading={approveMutation.isPending && approveMutation.variables?.id === partner.id}
                             onClick={() => approveMutation.mutate(partner)}
-                            aria-label={`Approve ${partner.legalName}`}
+                            aria-label={`Duyệt ${partner.legalName}`}
                           >
-                            Approve
+                            Duyệt
                           </Button>
                           <Button
                             size='sm'
                             variant='danger'
                             onClick={() => openReject(partner)}
-                            aria-label={`Reject ${partner.legalName}`}
+                            aria-label={`Từ chối ${partner.legalName}`}
                           >
-                            Reject
+                            Từ chối
                           </Button>
                         </div>
                       </td>
@@ -221,14 +217,14 @@ export function PartnerApprovalsPage() {
           detail && (
             <>
               <Button variant='danger' onClick={() => detail && openReject(detail)}>
-                Reject
+                Từ chối
               </Button>
               <Button
                 variant='primary'
                 isLoading={approveMutation.isPending}
                 onClick={() => detail && approveMutation.mutate(detail)}
               >
-                Approve
+                Duyệt
               </Button>
             </>
           )
@@ -236,13 +232,13 @@ export function PartnerApprovalsPage() {
       >
         {detail && (
           <dl style={detailListStyle}>
-            <DetailRow label='Legal business name' value={detail.legalName} />
-            <DetailRow label='Tax code' value={detail.taxCode} />
+            <DetailRow label='Tên pháp lý doanh nghiệp' value={detail.legalName} />
+            <DetailRow label='Mã số thuế' value={detail.taxCode} />
             <DetailRow label='Email' value={detail.owner.email ?? '—'} />
-            <DetailRow label='Phone' value={detail.owner.phone ?? '—'} />
-            <DetailRow label='Representative' value={detail.representative} />
-            <DetailRow label='Branches' value={detail.branches.map((branch) => branch.name).join(', ')} />
-            <DetailRow label='Submitted' value={formatDateTime(detail.createdAt) || '—'} />
+            <DetailRow label='Số điện thoại' value={detail.owner.phone ?? '—'} />
+            <DetailRow label='Người đại diện' value={detail.representative} />
+            <DetailRow label='Chi nhánh' value={detail.branches.map((branch) => branch.name).join(', ')} />
+            <DetailRow label='Ngày gửi hồ sơ' value={formatDateTime(detail.createdAt) || '—'} />
           </dl>
         )}
       </Modal>
@@ -251,15 +247,15 @@ export function PartnerApprovalsPage() {
       <Modal
         isOpen={rejecting !== null}
         onClose={closeReject}
-        title='Reject partner'
+        title='Từ chối đối tác'
         size='sm'
         footer={
           <>
             <Button variant='secondary' onClick={closeReject}>
-              Cancel
+              Quay lại
             </Button>
             <Button variant='danger' type='submit' form='reject-partner-form' isLoading={rejectMutation.isPending}>
-              Reject partner
+              Xác nhận từ chối
             </Button>
           </>
         }
@@ -267,12 +263,11 @@ export function PartnerApprovalsPage() {
         <form id='reject-partner-form' onSubmit={handleRejectSubmit}>
           {rejecting && (
             <p style={{ margin: '0 0 12px', color: colors.slate }}>
-              Provide a reason for rejecting <strong style={{ color: colors.ink }}>{rejecting.legalName}</strong>. This
-              is shared with the partner.
+              Nhập lý do từ chối <strong style={{ color: colors.ink }}>{rejecting.legalName}</strong>. Nội dung này sẽ được gửi cho đối tác.
             </p>
           )}
           <label htmlFor='partner-reject-reason' style={labelStyle}>
-            Rejection reason
+            Lý do từ chối
             <span aria-hidden='true' style={{ color: colors.danger, marginLeft: 2 }}>
               *
             </span>
@@ -285,7 +280,7 @@ export function PartnerApprovalsPage() {
               if (reasonError) setReasonError(null)
             }}
             rows={4}
-            placeholder='Explain why this registration is being rejected…'
+            placeholder='Giải thích lý do hồ sơ chưa được chấp thuận…'
             aria-invalid={reasonError ? true : undefined}
             aria-describedby={reasonError ? 'partner-reject-error' : undefined}
             style={{

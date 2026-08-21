@@ -6,6 +6,8 @@ import {
   archiveAdminContent,
   createAdminContent,
   getAdminDashboard,
+  getAdminDashboardStats,
+  getAdminAnalytics,
   getAdminOrder,
   listAdminAuditLogs,
   listAdminContent,
@@ -35,6 +37,20 @@ function actorEmail(req: Request) {
   const value = req.headers['x-admin-email']
   return Array.isArray(value) ? value[0] : value
 }
+
+router.get(
+  '/dashboard/stats',
+  asyncHandler(async (_req, res) => {
+    res.status(200).json({ success: true, data: await getAdminDashboardStats() })
+  })
+)
+
+router.get(
+  '/analytics',
+  asyncHandler(async (req, res) => {
+    res.status(200).json({ success: true, data: await getAdminAnalytics(Number(req.query.days)) })
+  })
+)
 
 router.get(
   '/dashboard',
@@ -75,7 +91,7 @@ router.patch(
   asyncHandler(async (req, res) => {
     const status = String(req.body?.status ?? '').toUpperCase()
     if (!Object.values(UserStatus).includes(status as UserStatus)) {
-      throw badRequest('Invalid user status')
+      throw badRequest('Trạng thái người dùng không hợp lệ')
     }
     const user = await setAdminUserStatus(singleParam(req.params.id) ?? '', status as UserStatus, actorEmail(req))
     res.status(200).json({ success: true, data: user })
@@ -99,7 +115,7 @@ router.patch(
   asyncHandler(async (req, res) => {
     const status = String(req.body?.approvalStatus ?? '').toUpperCase()
     if (!Object.values(ApprovalStatus).includes(status as ApprovalStatus)) {
-      throw badRequest('Invalid partner approval status')
+      throw badRequest('Trạng thái duyệt đối tác không hợp lệ')
     }
     const partner = await setAdminPartnerApproval(
       singleParam(req.params.id) ?? '',
@@ -116,7 +132,7 @@ router.patch(
   asyncHandler(async (req, res) => {
     const status = String(req.body?.operatingStatus ?? '').toUpperCase()
     if (!Object.values(OperatingStatus).includes(status as OperatingStatus)) {
-      throw badRequest('Invalid partner operating status')
+      throw badRequest('Trạng thái hoạt động của đối tác không hợp lệ')
     }
     const partner = await setAdminPartnerOperatingStatus(
       singleParam(req.params.id) ?? '',
@@ -145,7 +161,7 @@ router.patch(
     const status = String(req.body?.status ?? '').toUpperCase()
     const allowedStatuses: readonly VoucherStatus[] = [VoucherStatus.APPROVED, VoucherStatus.REJECTED]
     if (!allowedStatuses.includes(status as VoucherStatus)) {
-      throw badRequest('Invalid voucher approval status')
+      throw badRequest('Trạng thái duyệt voucher không hợp lệ')
     }
     const voucher = await setAdminVoucherApproval(
       singleParam(req.params.id) ?? '',
@@ -167,7 +183,7 @@ router.patch(
       VoucherStatus.DISCONTINUED
     ]
     if (!allowedStatuses.includes(status as VoucherStatus)) {
-      throw badRequest('Invalid voucher status')
+      throw badRequest('Trạng thái voucher không hợp lệ')
     }
     const voucher = await setAdminVoucherStatus(
       singleParam(req.params.id) ?? '',

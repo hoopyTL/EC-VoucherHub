@@ -1,21 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import request from 'supertest'
 import express from 'express'
+import { Prisma } from '@prisma/client'
 
 import cartRoutes from '../cart/cart.routes'
 import orderRoutes from './order.routes'
 
 // Hoisting mock for auth
-vi.mock('../../middleware/auth', () => ({
-  requireAuth: (req: any, res: any, next: any) => {
-    req.user = { id: 'cust-1', role: 'KHACH_HANG' }
+vi.mock('../../middlewares/authenticate', () => ({
+  authenticate: (req: any, _res: any, next: any) => {
+    req.user = { sub: 'cust-1', role: 'CUSTOMER' }
     next()
-  },
-  requireRole: (role: string) => (req: any, res: any, next: any) => {
-    if (req.user?.role === role) next()
-    else res.status(403).json({ error: 'FORBIDDEN' })
   }
 }))
+vi.mock('../../middlewares/authorize', () => ({ authorize: () => (_req: any, _res: any, next: any) => next() }))
 
 // Hoisting mock for Prisma
 vi.mock('../../configs/prisma', () => {
@@ -23,9 +21,9 @@ vi.mock('../../configs/prisma', () => {
     default: {
       cart: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
       cartItem: { create: vi.fn(), deleteMany: vi.fn() },
-      order: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
-      voucherProduct: { findUnique: vi.fn(), update: vi.fn() },
-      issuedVoucherCode: { findUnique: vi.fn(), create: vi.fn() },
+      order: { findUnique: vi.fn(), findMany: vi.fn(), create: vi.fn(), update: vi.fn() },
+      voucherProduct: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
+      issuedVoucherCode: { findUnique: vi.fn(), create: vi.fn(), createManyAndReturn: vi.fn() },
       $transaction: vi.fn((cb) => cb(prismaMock)),
     }
   }
@@ -57,17 +55,14 @@ describe('FLOW-003 Checkpoint: Cart -> Order -> Payment', () => {
       cartItems: [
         {
           id: 1, voucherProductId: 'vp-1', quantity: 2,
-          voucherProduct: { id: 'vp-1', name: 'Buffet', salePrice: { mul: (q: number) => ({ add: (v: any) => v }) }, status: 'ON_SALE', remainingQuantity: 10 }
+          voucherProduct: { id: 'vp-1', name: 'Buffet', salePrice: new Prisma.Decimal(200000), status: 'ON_SALE', remainingQuantity: 10 }
         }
       ]
     }
     
-    // We override Decimal logic just roughly to avoid Prisma Decimal errors in mock
-    import('@prisma/client/runtime/library').then(({ Decimal }) => {
-      mockCart.cartItems[0].voucherProduct.salePrice = new Decimal(200000) as any;
-    }).catch(() => {})
-
     prismaMock.cart.findUnique.mockResolvedValueOnce(mockCart)
+    prismaMock.order.findMany.mockResolvedValue([])
+    prismaMock.voucherProduct.updateMany.mockResolvedValue({ count: 1 })
     prismaMock.order.create.mockResolvedValueOnce({
       id: 'order-1',
       customerId: 'cust-1',
@@ -108,9 +103,14 @@ describe('FLOW-003 Checkpoint: Cart -> Order -> Payment', () => {
     prismaMock.issuedVoucherCode.findUnique.mockResolvedValue(null)
     
     // Auto return what was meant to be created
-    prismaMock.issuedVoucherCode.create.mockImplementation(({ data }: any) => Promise.resolve({
-      code: data.code, voucherProductId: data.voucherProductId, status: data.status, expiresAt: data.expiresAt
-    }))
+    prismaMock.issuedVoucherCode.createManyAndReturn.mockImplementation(({ data }: any) =>
+      Promise.resolve(data.map((code: any) => ({
+        code: code.code,
+        voucherProductId: code.voucherProductId,
+        status: code.status,
+        expiresAt: code.expiresAt
+      })))
+    )
 
     const paymentRes = await request(app)
       .post('/api/orders/order-1/payment')
@@ -120,10 +120,7 @@ describe('FLOW-003 Checkpoint: Cart -> Order -> Payment', () => {
     expect(paymentRes.body.data.status).toBe('PAID')
     expect(paymentRes.body.data.codes).toHaveLength(2)
 
-    // Verify inventory deducted
-    expect(prismaMock.voucherProduct.update).toHaveBeenCalledWith(expect.objectContaining({
-      where: { id: 'vp-1' },
-      data: { remainingQuantity: { decrement: 2 } }
-    }))
+    // Inventory was reserved atomically during order creation, not deducted twice at payment.
+    expect(prismaMock.voucherProduct.updateMany).toHaveBeenCalled()
   })
 })

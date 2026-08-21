@@ -14,9 +14,13 @@ import type { OrderStatus, VoucherCodeStatus } from '@ui-contracts'
 
 /** A single line item within an order (GET /orders, /orders/:id). */
 export interface OrderItem {
-  id: number
+  id: number | string
+  orderId?: string
   voucherProductId: string
   voucherProductName: string
+  voucherId?: string
+  subtotal?: string
+  voucher?: { id: string; title: string }
   quantity: number
   /** Decimal serialised as a string. */
   unitPrice: string
@@ -25,17 +29,22 @@ export interface OrderItem {
 /** An order with its line items, as returned to the owning customer. */
 export interface Order {
   id: string
-  customerId: string
+  customerId?: string
+  userId?: string
   /** Decimal serialised as a string. */
   totalAmount: string
   status: OrderStatus
   paymentMethod: string
   giftRecipient: { name?: string; phone?: string; email?: string } | null
+  recipientName?: string | null
+  recipientEmail?: string | null
+  recipientPhone?: string | null
   /** ISO date string. */
   createdAt: string
   /** ISO date string. */
   updatedAt: string
-  items: OrderItem[]
+  items?: OrderItem[]
+  orderItems?: OrderItem[]
   paidAt: string | null
   codes?: Array<{
     code: string
@@ -43,6 +52,7 @@ export interface Order {
     status: string
     expiresAt: string
   }>
+  voucherCodes?: VoucherCode[]
 }
 
 /** Voucher details embedded in a voucher-code response. */

@@ -56,3 +56,8 @@ export async function setupE2eDatabase(): Promise<void> {
 export async function disconnectE2eDatabase(): Promise<void> {
   await prisma.$disconnect()
 }
+
+export default async function globalSetup(): Promise<void> {
+  await setupE2eDatabase()
+  await disconnectE2eDatabase()
+}

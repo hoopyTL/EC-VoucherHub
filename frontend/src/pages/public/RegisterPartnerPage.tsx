@@ -102,19 +102,19 @@ export function RegisterPartnerPage() {
   function validate(): FieldErrors {
     const errors: FieldErrors = {}
 
-    if (!email.trim()) errors.email = 'Email is required.'
+    if (!email.trim()) errors.email = 'Vui lòng nhập email.'
     if (password.length < MIN_PASSWORD_LENGTH) {
-      errors.password = `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`
+      errors.password = `Mật khẩu phải có ít nhất ${MIN_PASSWORD_LENGTH} ký tự.`
     }
-    if (!legalName.trim()) errors.legalName = 'Legal name is required.'
-    if (!taxCode.trim()) errors.taxCode = 'Tax code is required.'
-    if (!representative.trim()) errors.representative = 'Representative name is required.'
+    if (!legalName.trim()) errors.legalName = 'Vui lòng nhập tên pháp lý của doanh nghiệp.'
+    if (!taxCode.trim()) errors.taxCode = 'Vui lòng nhập mã số thuế.'
+    if (!representative.trim()) errors.representative = 'Vui lòng nhập tên người đại diện.'
 
     const branchErrors = branches.map((branch) => {
       const be: BranchFieldErrors = {}
-      if (!branch.name.trim()) be.name = 'Branch name is required.'
-      if (!branch.address.trim()) be.address = 'Address is required.'
-      if (!branch.region.trim()) be.region = 'Region is required.'
+      if (!branch.name.trim()) be.name = 'Vui lòng nhập tên chi nhánh.'
+      if (!branch.address.trim()) be.address = 'Vui lòng nhập địa chỉ.'
+      if (!branch.region.trim()) be.region = 'Vui lòng nhập khu vực.'
       return be
     })
     if (branchErrors.some((be) => Object.keys(be).length > 0)) {
@@ -157,9 +157,9 @@ export function RegisterPartnerPage() {
         state: { registered: true, role: 'PARTNER', pendingApproval: true }
       })
     } catch (err) {
-      const { status, message } = describeApiError(err, 'Registration failed. Please try again.')
+      const { status, message } = describeApiError(err, 'Đăng ký thất bại. Vui lòng thử lại.')
       // 409 = duplicate email/phone (Requirement 3.3).
-      setFormError(status === 409 ? message || 'An account with this email or phone number already exists.' : message)
+      setFormError(status === 409 ? message || 'Email hoặc số điện thoại này đã được sử dụng.' : message)
     } finally {
       setIsSubmitting(false)
     }
@@ -167,10 +167,10 @@ export function RegisterPartnerPage() {
 
   return (
     <section style={sectionStyle}>
-      <p style={eyebrowStyle}>● Partner</p>
-      <h1 style={headingStyle}>Register your business</h1>
+      <p style={eyebrowStyle}>● Đăng ký đối tác</p>
+      <h1 style={headingStyle}>Đưa doanh nghiệp lên VoucherHub</h1>
       <p style={{ color: colors.slate, marginTop: 0, marginBottom: 24, fontSize: 16 }}>
-        Submit your business details for review. Your account becomes active once an admin approves it.
+        Gửi hồ sơ doanh nghiệp để kiểm duyệt. Tài khoản sẽ hoạt động sau khi quản trị viên phê duyệt.
       </p>
 
       {formError && (
@@ -181,7 +181,7 @@ export function RegisterPartnerPage() {
 
       <form onSubmit={handleSubmit} noValidate>
         <fieldset style={fieldsetStyle}>
-          <legend style={legendStyle}>Account credentials</legend>
+          <legend style={legendStyle}>Thông tin đăng nhập</legend>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <Input
               label='Email'
@@ -193,19 +193,19 @@ export function RegisterPartnerPage() {
               autoComplete='email'
             />
             <Input
-              label='Phone'
+              label='Số điện thoại'
               type='tel'
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               autoComplete='tel'
             />
             <Input
-              label='Password'
+              label='Mật khẩu'
               type='password'
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               error={fieldErrors.password}
-              hint={`At least ${MIN_PASSWORD_LENGTH} characters.`}
+              hint={`Ít nhất ${MIN_PASSWORD_LENGTH} ký tự.`}
               required
               autoComplete='new-password'
             />
@@ -213,17 +213,17 @@ export function RegisterPartnerPage() {
         </fieldset>
 
         <fieldset style={fieldsetStyle}>
-          <legend style={legendStyle}>Business information</legend>
+          <legend style={legendStyle}>Thông tin doanh nghiệp</legend>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <Input
-              label='Legal business name'
+              label='Tên pháp lý doanh nghiệp'
               value={legalName}
               onChange={(e) => setLegalName(e.target.value)}
               error={fieldErrors.legalName}
               required
             />
             <Input
-              label='Tax code'
+              label='Mã số thuế'
               value={taxCode}
               onChange={(e) => setTaxCode(e.target.value)}
               error={fieldErrors.taxCode}
@@ -233,10 +233,10 @@ export function RegisterPartnerPage() {
         </fieldset>
 
         <fieldset style={fieldsetStyle}>
-          <legend style={legendStyle}>Representative</legend>
+          <legend style={legendStyle}>Người đại diện</legend>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <Input
-              label='Representative name'
+              label='Họ tên người đại diện'
               value={representative}
               onChange={(e) => setRepresentative(e.target.value)}
               error={fieldErrors.representative}
@@ -246,7 +246,7 @@ export function RegisterPartnerPage() {
         </fieldset>
 
         <fieldset style={fieldsetStyle}>
-          <legend style={legendStyle}>Branches</legend>
+          <legend style={legendStyle}>Danh sách chi nhánh</legend>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
             {branches.map((branch, index) => {
               const be = fieldErrors.branches?.[index] ?? {}
@@ -269,7 +269,7 @@ export function RegisterPartnerPage() {
                     }}
                   >
                     <strong style={{ fontSize: 14, fontFamily: fonts.display, color: colors.ink }}>
-                      Branch {index + 1}
+                      Chi nhánh {index + 1}
                     </strong>
                     {branches.length > 1 && (
                       <Button
@@ -277,29 +277,29 @@ export function RegisterPartnerPage() {
                         variant='ghost'
                         size='sm'
                         onClick={() => removeBranch(index)}
-                        aria-label={`Remove branch ${index + 1}`}
+                        aria-label={`Xóa chi nhánh ${index + 1}`}
                       >
-                        Remove
+                        Xóa
                       </Button>
                     )}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <Input
-                      label='Branch name'
+                      label='Tên chi nhánh'
                       value={branch.name}
                       onChange={(e) => updateBranch(index, { name: e.target.value })}
                       error={be.name}
                       required
                     />
                     <Input
-                      label='Address'
+                      label='Địa chỉ'
                       value={branch.address}
                       onChange={(e) => updateBranch(index, { address: e.target.value })}
                       error={be.address}
                       required
                     />
                     <Input
-                      label='Region'
+                      label='Khu vực'
                       value={branch.region}
                       onChange={(e) => updateBranch(index, { region: e.target.value })}
                       error={be.region}
@@ -311,27 +311,27 @@ export function RegisterPartnerPage() {
             })}
             <div>
               <Button type='button' variant='secondary' size='sm' onClick={addBranch}>
-                + Add branch
+                + Thêm chi nhánh
               </Button>
             </div>
           </div>
         </fieldset>
 
         <Button type='submit' isLoading={isSubmitting} fullWidth>
-          Submit registration
+          Gửi hồ sơ đăng ký
         </Button>
       </form>
 
       <p style={{ marginTop: 24, fontSize: 14, color: colors.slate }}>
-        Already have an account?{' '}
+        Đã có tài khoản?{' '}
         <Link to='/login' style={linkStyle}>
-          Log in
+          Đăng nhập
         </Link>
       </p>
       <p style={{ marginTop: 4, fontSize: 14, color: colors.slate }}>
-        Registering as a customer?{' '}
+        Bạn muốn mua voucher?{' '}
         <Link to='/register/customer' style={linkStyle}>
-          Customer sign up
+          Đăng ký khách hàng
         </Link>
       </p>
     </section>

@@ -32,10 +32,9 @@ import { HomePage } from './pages/public/HomePage'
 import { RegisterChooserPage } from './pages/public/RegisterChooserPage'
 import { VoucherBrowsePage } from './pages/public/VoucherBrowsePage'
 import { VoucherDetailPage } from './pages/public/VoucherDetailPage'
-import { OrdersPage } from './pages/customer/OrdersPage'
 import { OrderDetailPage } from './pages/customer/OrderDetailPage'
 import { CheckoutPage } from './pages/customer/CheckoutPage'
-import { CartPage } from './pages/customer/CartPage'
+import { CustomerCartHubPage } from './pages/customer/CustomerCartHubPage'
 import { PaymentResultPage } from './pages/customer/PaymentResultPage'
 import { VouchersPage as PartnerVouchersPage } from './pages/partner/VouchersPage'
 import { CreateVoucherPage as PartnerCreateVoucherPage } from './pages/partner/CreateVoucherPage'
@@ -58,7 +57,7 @@ import { ToastProvider } from './components/ui'
 /** Public/customer layout: header, routed content, footer. */
 function PublicLayout() {
   return (
-    <div id='top' style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <div id='top' data-theme='customer' style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Header />
       <main className='public-main' style={{ flex: 1, padding: '40px 24px', width: '100%' }}>
         <Outlet />
@@ -71,11 +70,11 @@ function PublicLayout() {
 /** Workspace layout for admin/partner: header, sidebar + content, footer. */
 function WorkspaceLayout({ variant }: { variant: SidebarVariant }) {
   return (
-    <div id='top' style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <div id='top' data-theme={variant} style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Header />
       <div className='workspace-shell' style={{ display: 'flex', flex: 1 }}>
         <Sidebar variant={variant} />
-        <main className='workspace-main' style={{ flex: 1, padding: '1.25rem', minWidth: 0 }}>
+        <main className={`workspace-main workspace-main--${variant}`} style={{ flex: 1, padding: '2rem', minWidth: 0, background: variant === 'admin' ? 'linear-gradient(135deg,#f6f4ff 0%,#fff8f3 100%)' : 'linear-gradient(135deg,#f2fbf8 0%,#fff9f2 100%)' }}>
           <Outlet />
         </main>
       </div>
@@ -127,9 +126,9 @@ export function AppRoutes() {
 
         {/* Customer-only routes */}
         <Route element={<ProtectedRoute allowedRoles={['CUSTOMER']} />}>
-          <Route path='cart' element={<CartPage />} />
+          <Route path='cart' element={<CustomerCartHubPage />} />
           <Route path='checkout' element={<CheckoutPage />} />
-          <Route path='orders' element={<OrdersPage />} />
+          <Route path='orders' element={<Navigate to='/cart?tab=orders' replace />} />
           <Route path='orders/:id' element={<OrderDetailPage />} />
         </Route>
 
@@ -189,7 +188,7 @@ export default function App() {
   return (
     <AuthProvider>
       <ToastProvider>
-        <BrowserRouter>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <AppRoutes />
         </BrowserRouter>
       </ToastProvider>

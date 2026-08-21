@@ -30,6 +30,7 @@ export interface CartItemResponse {
   id: string
   voucherId: string
   title: string
+  imageUrl?: string | null
   unitPrice: number
   quantity: number
   subtotal: number
@@ -55,14 +56,19 @@ export interface OrderItemResponse {
 /** An order with its line items, as returned by the order/payment endpoints. */
 export interface OrderResponse {
   id: string
-  customerId: string
+  customerId?: string
+  userId?: string
   totalAmount: string | number
   status: OrderStatus
-  paymentMethod: string
-  giftRecipient: { name?: string; phone?: string; email?: string } | null
+  paymentMethod?: string
+  giftRecipient?: { name?: string; phone?: string; email?: string } | null
+  recipientName?: string | null
+  recipientEmail?: string | null
+  recipientPhone?: string | null
   createdAt: string
   updatedAt: string
-  items: OrderItemResponse[]
+  items?: OrderItemResponse[]
+  orderItems?: OrderItemResponse[]
   codes?: Array<{
     code: string
     voucherProductId: string
@@ -89,6 +95,7 @@ export function mapCartData(apiCart: any): CartResponse {
       id: String(item.id),
       voucherId: item.voucherProductId || item.voucherId,
       title: item.voucherProductName || item.title,
+      imageUrl: item.imageUrl ?? null,
       unitPrice: Number(item.salePrice ?? item.unitPrice),
       quantity: Number(item.quantity),
       subtotal: Number(item.itemTotal ?? item.subtotal)
@@ -117,7 +124,11 @@ export async function addToCart(voucherId: string, quantity: number): Promise<Ca
 
 /** Create an order from the customer's cart, with optional gift recipient. */
 export async function createOrder(body: CreateOrderRequest): Promise<OrderResponse> {
-  const { data } = await api.post<{ data: OrderResponse }>('/orders', body)
+  const giftRecipient =
+    body.recipientName || body.recipientPhone
+      ? { name: body.recipientName ?? '', phone: body.recipientPhone ?? '', email: body.recipientEmail }
+      : undefined
+  const { data } = await api.post<{ data: OrderResponse }>('/orders', { giftRecipient })
   return (data as any).data || data
 }
 
@@ -184,7 +195,7 @@ export function getApiErrorMessage(err: unknown, fallback: string): string {
   const response = (err as { response?: { status?: number; data?: ApiErrorBody } })?.response
 
   if (!response) {
-    return 'Unable to reach the server. Please check your connection and try again.'
+    return 'Không thể kết nối máy chủ. Vui lòng kiểm tra kết nối và thử lại.'
   }
 
   return response.data?.error?.message ?? fallback

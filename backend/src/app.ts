@@ -4,38 +4,48 @@ import express from 'express'
 import helmet from 'helmet'
 import morgan from 'morgan'
 import cors from 'cors'
+import { ApiResponse } from './utils/api-response'
 
 import { env } from '~/configs/env'
 import adminRoutes from './routes/admin.routes'
-import { errorHandler } from './middleware/error-handler'
+import apiRouter from './modules'
 import cartRoutes from './modules/cart/cart.routes'
 import orderRoutes from './modules/order/order.routes'
 import searchRoutes from './modules/search/search.routes'
-import { notFoundHandler } from '~/middlewares/not-found'
-import { ApiResponse } from '~/utils/api-response'
-import apiRouter from '~/modules'
-import partnerRoutes from '~/modules/partners/partner.routes'
-import { devAuth } from '~/middlewares/dev-auth'
-import voucherRoutes from '~/modules/vouchers/voucher.routes'
-import categoryRoutes from '~/modules/categories/category.routes'
+import { partnerRoutes } from './modules/partner/partner.routes'
+import { categoryRoutes } from './modules/category/category.routes'
+import { voucherRoutes } from './modules/voucher/voucher.routes'
+import { errorHandler } from './middlewares/error-handler'
+import { notFoundHandler } from './middlewares/not-found'
 
 const app = express()
 
 // Security
 app.use(helmet())
+// allow multiple local dev origins during development (vite default 5173/5174)
+if (env.NODE_ENV !== 'production') {
+  app.use(
+    cors({
+      origin: (origin, callback) => {
+        // allow non-browser tools (curl) with no origin
+        if (!origin) return callback(null, true)
+        const allowed = [env.CORS_ORIGIN, 'http://localhost:5174', 'http://127.0.0.1:5174']
+        if (allowed.includes(origin) || origin.startsWith('http://localhost')) return callback(null, true)
+        return callback(new Error('Not allowed by CORS'))
+      },
+      credentials: true
+    })
+  )
+} else {
+  app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }))
+}
 
-// Cors
-app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }))
-
-// Webhook của Stripe bắt buộc phải là Raw Body để kiểm tra chữ ký (Signature) an toàn
+// Stripe signature verification requires the unparsed request body.
 app.use('/api/orders/webhook/stripe', express.raw({ type: 'application/json' }))
-
-// Body parsing cho tất cả các API bình thường khác
 app.use(express.json({ limit: '1mb' }))
 app.use(express.urlencoded({ extended: true }))
 app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')))
 
-// Logging
 if (env.NODE_ENV !== 'test') {
   app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'))
 }
@@ -49,14 +59,23 @@ app.get('/', (_req, res) => {
   ApiResponse.success(res, { message: 'Welcome VoucherHub' })
 })
 
-app.use('/api/admin', adminRoutes)
+// API router (auth + user)
 app.use('/api', apiRouter)
+
+// Additional modules mounted under /api
 app.use('/api/cart', cartRoutes)
 app.use('/api/orders', orderRoutes)
+// Public catalogue routes expose GET /api/vouchers and GET /api/vouchers/:id.
+// Mounting this router at /api made `/api/vouchers` hit the `/:id` detail
+// handler with the literal id "vouchers" instead of the list handler.
 app.use('/api/vouchers', searchRoutes)
-app.use('/api', devAuth, partnerRoutes)
+
+// Partner, category and voucher routes enforce authentication internally.
+app.use('/api', partnerRoutes)
 app.use('/api', categoryRoutes)
-app.use('/api', devAuth, voucherRoutes)
+app.use('/api', voucherRoutes)
+
+app.use('/api/admin', adminRoutes)
 
 // handling error
 app.use(notFoundHandler)

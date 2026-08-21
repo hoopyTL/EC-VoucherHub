@@ -14,15 +14,15 @@ async function getApprovedPartnerByOwner(userId: string) {
   })
 
   if (!partner) {
-    throw AppError.notFound('Partner not found')
+    throw AppError.notFound('Không tìm thấy đối tác')
   }
 
   if (partner.approvalStatus !== ApprovalStatus.APPROVED) {
-    throw AppError.forbidden('Partner has not been approved')
+    throw AppError.forbidden('Đối tác chưa được phê duyệt')
   }
 
   if (partner.operatingStatus !== OperatingStatus.ACTIVE) {
-    throw AppError.forbidden('Partner is not active')
+    throw AppError.forbidden('Đối tác hiện không hoạt động')
   }
 
   return partner
@@ -45,11 +45,11 @@ async function getOwnedVoucher(userId: string, voucherId: string) {
   })
 
   if (!voucher) {
-    throw AppError.notFound('Voucher not found')
+    throw AppError.notFound('Không tìm thấy voucher')
   }
 
   if (voucher.partnerId !== partner.id) {
-    throw AppError.forbidden('Voucher does not belong to this partner')
+    throw AppError.forbidden('Voucher không thuộc đối tác này')
   }
 
   return {
@@ -70,7 +70,7 @@ async function validateCategory(categoryId?: number | null) {
   })
 
   if (!category) {
-    throw AppError.validation('Category not found')
+    throw AppError.validation('Không tìm thấy danh mục')
   }
 }
 
@@ -92,7 +92,7 @@ async function validateBranches(partnerId: string, branchIds?: number[]) {
   })
 
   if (branches.length !== branchIds.length) {
-    throw AppError.validation('One or more branches are invalid')
+    throw AppError.validation('Một hoặc nhiều chi nhánh không hợp lệ')
   }
 }
 
@@ -110,23 +110,23 @@ function validateVoucherValues(input: {
   usesPerCode?: number | null
 }) {
   if (input.salePrice >= input.originalPrice) {
-    throw AppError.unprocessable('Sale price must be lower than original price')
+    throw AppError.unprocessable('Giá bán phải thấp hơn giá gốc')
   }
 
   if (new Date(input.saleStart) >= new Date(input.saleEnd)) {
-    throw AppError.unprocessable('Sale end must be after sale start')
+    throw AppError.unprocessable('Thời gian kết thúc bán phải sau thời gian bắt đầu bán')
   }
 
   if (new Date(input.usageStart) >= new Date(input.usageEnd)) {
-    throw AppError.unprocessable('Usage end must be after usage start')
+    throw AppError.unprocessable('Thời gian kết thúc sử dụng phải sau thời gian bắt đầu sử dụng')
   }
 
   if (input.isMultiUse && !input.usesPerCode) {
-    throw AppError.unprocessable('Uses per code is required for multi-use voucher')
+    throw AppError.unprocessable('Voucher nhiều lượt phải có số lượt sử dụng cho mỗi mã')
   }
 
   if (!input.isMultiUse && input.usesPerCode != null) {
-    throw AppError.unprocessable('Uses per code must be empty for single-use voucher')
+    throw AppError.unprocessable('Voucher một lượt không được đặt số lượt sử dụng cho mỗi mã')
   }
 }
 
@@ -252,7 +252,7 @@ export async function updateVoucher(userId: string, voucherId: string, input: Up
   const { partner, voucher } = await getOwnedVoucher(userId, voucherId)
 
   if (voucher.status !== VoucherStatus.DRAFT) {
-    throw AppError.unprocessable('Only draft voucher can be updated')
+    throw AppError.unprocessable('Chỉ có thể cập nhật voucher ở trạng thái bản nháp')
   }
 
   await validateCategory(input.categoryId)
@@ -404,7 +404,7 @@ export async function reviewVoucher(voucherId: string, action: 'approve' | 'reje
   })
 
   if (!voucher) {
-    throw AppError.notFound('Voucher not found')
+    throw AppError.notFound('Không tìm thấy voucher')
   }
 
   const nextStatus = action === 'approve' ? VoucherStatus.APPROVED : VoucherStatus.REJECTED
@@ -412,7 +412,7 @@ export async function reviewVoucher(voucherId: string, action: 'approve' | 'reje
   assertTransition(voucher.status, nextStatus)
 
   if (action === 'reject' && !reason) {
-    throw AppError.validation('Reject reason is required')
+    throw AppError.validation('Lý do từ chối là bắt buộc')
   }
 
   return prisma.voucherProduct.update({
@@ -436,7 +436,7 @@ export async function changeVoucherStatus(voucherId: string, action: 'publish' |
   })
 
   if (!voucher) {
-    throw AppError.notFound('Voucher not found')
+    throw AppError.notFound('Không tìm thấy voucher')
   }
 
   const nextStatusMap = {

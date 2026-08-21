@@ -1,4 +1,4 @@
-import { ApprovalStatus, OperatingStatus, Prisma, VoucherStatus } from '@prisma/client'
+import { ApprovalStatus, OperatingStatus, Prisma, UsageResult, VoucherCodeStatus, VoucherStatus } from '@prisma/client'
 import { RoleName } from '@voucher/shared'
 
 import prisma from '~/configs/prisma'
@@ -11,6 +11,7 @@ import type {
   OperatingStatusDto,
   PartnerListDto,
   RegisterPartnerDto,
+  RedeemCodeDto,
   UpdateBranchDto,
   UpdatePartnerDto
 } from './partner.validation'
@@ -42,6 +43,35 @@ async function assertBranchOwnership(userId: string, branchId: number) {
 }
 
 export const partnerService = {
+  async redeemCode(userId: string, dto: RedeemCodeDto) {
+    return prisma.$transaction(async (tx) => {
+      const partner = await tx.partner.findUnique({ where: { ownerUserId: userId }, select: { id: true } })
+      if (!partner) throw AppError.notFound('Hồ sơ đối tác')
+      const branch = await tx.branch.findUnique({ where: { id: dto.branchId } })
+      if (!branch || branch.partnerId !== partner.id) throw AppError.forbidden('Chi nhánh không thuộc đối tác của bạn')
+
+      const issued = await tx.issuedVoucherCode.findUnique({
+        where: { code: dto.code },
+        include: { voucherProduct: { select: { partnerId: true } } }
+      })
+      if (!issued || issued.voucherProduct.partnerId !== partner.id) {
+        throw AppError.forbidden('Mã voucher không thuộc đối tác của bạn')
+      }
+      if (issued.status === VoucherCodeStatus.USED) throw AppError.conflict('Mã voucher này đã được sử dụng')
+      if (issued.status !== VoucherCodeStatus.UNUSED) throw AppError.conflict('Mã voucher không còn hiệu lực')
+      if (issued.expiresAt < new Date()) throw AppError.conflict('Mã voucher đã hết hạn')
+
+      const redeemedAt = new Date()
+      const updated = await tx.issuedVoucherCode.update({
+        where: { id: issued.id },
+        data: { status: VoucherCodeStatus.USED, remainingUses: 0 }
+      })
+      await tx.usageLog.create({
+        data: { issuedCodeId: issued.id, branchId: branch.id, actorUserId: userId, usedAt: redeemedAt, result: UsageResult.SUCCESS }
+      })
+      return { id: updated.id, code: updated.code, status: updated.status, redeemedAt: redeemedAt.toISOString(), redemptionBranchId: String(branch.id) }
+    })
+  },
   async register(dto: RegisterPartnerDto) {
     const role = await prisma.role.findFirst({
       where: { name: { in: getCompatibleRoleNames(RoleName.PARTNER) } }

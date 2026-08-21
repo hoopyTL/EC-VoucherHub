@@ -106,6 +106,18 @@ export function BarList({
   )
 }
 
+/** A responsive vertical column chart for discrete totals. */
+export function ColumnChart({ points, ariaLabel, height = 120 }: { points: number[]; ariaLabel: string; height?: number }) {
+  const max = Math.max(1, ...points)
+  return (
+    <div role='img' aria-label={ariaLabel} style={{ height, display: 'flex', alignItems: 'end', gap: 6, borderBottom: `1px solid ${colors.hairline}`, padding: '4px 4px 0' }}>
+      {points.map((value, index) => (
+        <div key={index} title={String(value)} style={{ flex: 1, minWidth: 4, height: `${Math.max(value ? 8 : 2, (value / max) * 100)}%`, borderRadius: '5px 5px 0 0', background: 'linear-gradient(180deg, #ff7043 0%, #e74720 100%)', opacity: value ? 1 : 0.18, transition: 'height 220ms ease' }} />
+      ))}
+    </div>
+  )
+}
+
 const rowHeaderStyle: CSSProperties = {
   display: 'flex',
   justifyContent: 'space-between',
@@ -123,7 +135,7 @@ const trackStyle: CSSProperties = {
 const fillStyle: CSSProperties = {
   height: '100%',
   borderRadius: radius.full,
-  background: colors.ink
+  background: 'linear-gradient(90deg, #ff7043, #e74720)'
 }
 
 /** A compact donut-free funnel/ratio gauge rendered as a labelled bar. */

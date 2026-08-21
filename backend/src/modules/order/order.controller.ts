@@ -5,6 +5,7 @@ import { OrderStatus } from '@voucher/shared'
 import * as orderService from './order.service'
 import prisma from '../../configs/prisma'
 import stripe from '../../utils/stripe'
+import { AppError as ApiError } from '../../utils/app-error'
 
 /**
  * POST /api/orders — Tạo đơn từ giỏ hàng
@@ -28,7 +29,8 @@ export const getMyOrders = asyncHandler(async (req: Request, res: Response) => {
  * GET /api/orders/:id — Chi tiết đơn hàng
  */
 export const getOrderDetail = asyncHandler(async (req: Request, res: Response) => {
-  const order = await orderService.getOrderDetail(req.user!.sub, req.params.id as string)
+  const orderId = String(req.params.id)
+  const order = await orderService.getOrderDetail(req.user!.sub, orderId)
   successResponse(res, order)
 })
 
@@ -45,7 +47,12 @@ import { createVNPayUrl, verifyVNPayReturn } from '../../utils/vnpay'
  * GET /api/orders/:id/vnpay — Khởi tạo URL Thanh toán VNPay
  */
 export const createVNPayPayment = asyncHandler(async (req: Request, res: Response) => {
-  const orderId = req.params.id
+  if (!process.env.VNP_TMNCODE || !process.env.VNP_HASHSECRET) {
+    throw ApiError.badRequest(
+      'VNPay chưa được cấu hình. Hãy thêm VNP_TMNCODE và VNP_HASHSECRET sandbox vào backend/.env.'
+    )
+  }
+  const orderId = String(req.params.id)
   const order = await orderService.getOrderDetail(req.user!.sub, orderId)
   const amount = typeof order.totalAmount === 'number' ? order.totalAmount : Number(order.totalAmount)
 
@@ -66,10 +73,31 @@ export const createVNPayPayment = asyncHandler(async (req: Request, res: Respons
  * GET /api/orders/:id/stripe — Khởi tạo URL Thanh toán Stripe (Quốc tế)
  */
 export const createStripePayment = asyncHandler(async (req: Request, res: Response) => {
-  console.log('[DEBUG] createStripePayment called with req.params.id =', req.params.id)
-  const result = await orderService.createStripeCheckoutSession(req.user!.sub, req.params.id as string)
-  console.log('[DEBUG] createStripePayment returning url', result)
-  successResponse(res, result)
+  const stripeKey = process.env.STRIPE_SECRET_KEY ?? ''
+  const isStripeSandboxKey = /^(sk|rk|rkcs)_test_/.test(stripeKey)
+  if (!isStripeSandboxKey) {
+    throw ApiError.badRequest(
+      'Stripe chưa được cấu hình. Hãy thêm STRIPE_SECRET_KEY sandbox vào backend/.env.'
+    )
+  }
+  if (stripeKey.startsWith('rkcs_test_')) {
+    throw ApiError.badRequest(
+      'Khóa Stripe hiện là claimable sandbox key chưa được kích hoạt. Hãy claim sandbox trên Stripe hoặc dùng STRIPE_SECRET_KEY bắt đầu bằng sk_test_.'
+    )
+  }
+  try {
+    const result = await orderService.createStripeCheckoutSession(req.user!.sub, req.params.id as string)
+    successResponse(res, result)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : ''
+    if (/connection to stripe|econn|eacces|network/i.test(message)) {
+      throw ApiError.badRequest('Không thể kết nối tới Stripe lúc này. Vui lòng kiểm tra Internet hoặc tường lửa rồi thử lại.')
+    }
+    if (/permission|access|api key|claim/i.test(message)) {
+      throw ApiError.badRequest('Stripe từ chối quyền tạo phiên thanh toán. Hãy kiểm tra quyền của khóa sandbox hoặc dùng khóa sk_test_.')
+    }
+    throw error
+  }
 })
 
 /**
@@ -98,12 +126,12 @@ export const vnpayIpn = asyncHandler(async (req: Request, res: Response) => {
     // 2. Tìm đơn hàng tương ứng trong cơ sở dữ liệu
     const order = await prisma.order.findUnique({ where: { id: orderId } })
     if (!order) {
-      return res.status(200).json({ RspCode: '01', Message: 'Order not found' })
+      return res.status(200).json({ RspCode: '01', Message: 'Không tìm thấy đơn hàng' })
     }
 
     // 3. Kiểm tra tiến độ ghi nhận (Chỉ xử lý đơn chưa được thanh toán)
     if (order.status !== OrderStatus.PENDING_PAYMENT) {
-      return res.status(200).json({ RspCode: '02', Message: 'Order already confirmed' })
+      return res.status(200).json({ RspCode: '02', Message: 'Đơn hàng đã được xác nhận' })
     }
 
     // 4. Quyết định cập nhật dựa trên mã VNPay trả về (00 là Thành công tuyệt đối)
@@ -114,10 +142,10 @@ export const vnpayIpn = asyncHandler(async (req: Request, res: Response) => {
     }
 
     // 5. Trả mã chuẩn '00' để báo cho Server VNPay biết là Webhook đã xử lý xong
-    return res.status(200).json({ RspCode: '00', Message: 'Confirm Success' })
+    return res.status(200).json({ RspCode: '00', Message: 'Xác nhận thành công' })
   } catch (err) {
     console.error('[VNPay IPN] LỖI HỆ THỐNG TRONG QUÁ TRÌNH CẬP NHẬT ĐƠN:', err)
-    return res.status(200).json({ RspCode: '99', Message: 'Unknown error' })
+    return res.status(200).json({ RspCode: '99', Message: 'Lỗi không xác định' })
   }
 })
 

@@ -26,7 +26,7 @@ import { colors, fonts, radius, shadows } from '../../theme/tokens'
 
 /** Fallback message shown when the failure cannot be attributed to a specific,
  * user-safe backend message. Intentionally generic (does not reveal the field). */
-const GENERIC_LOGIN_ERROR = 'Invalid email/phone or password.'
+const GENERIC_LOGIN_ERROR = 'Email, số điện thoại hoặc mật khẩu không chính xác.'
 
 /** Shape of the structured error body returned by the backend error handler. */
 interface ApiErrorBody {
@@ -48,13 +48,13 @@ function resolveLoginError(err: unknown): string {
 
   if (!response) {
     // No response → network/timeout error rather than a credential rejection.
-    return 'Unable to reach the server. Please check your connection and try again.'
+    return 'Không thể kết nối máy chủ. Vui lòng kiểm tra kết nối và thử lại.'
   }
 
   const apiError = response.data?.error
 
   if (response.status === 429) {
-    return apiError?.message ?? 'Too many attempts. Please try again later.'
+    return apiError?.message ?? 'Bạn đã thử quá nhiều lần. Vui lòng thử lại sau.'
   }
 
   // 401 covers invalid credentials, locked accounts, and rejected partners.
@@ -104,7 +104,7 @@ export function LoginPage() {
     const trimmed = emailOrPhone.trim()
     if (!trimmed || !password) {
       // Generic prompt — does not single out a specific field as "wrong".
-      setErrorMessage('Please enter your email/phone and password.')
+      setErrorMessage('Vui lòng nhập email hoặc số điện thoại và mật khẩu.')
       return
     }
 

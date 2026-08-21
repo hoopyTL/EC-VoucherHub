@@ -42,7 +42,9 @@ const IS_DESIGN_PREVIEW = import.meta.env.VITE_DESIGN_PREVIEW === 'true'
 let accessToken: string | null = null
 try {
   accessToken = sessionStorage.getItem('v_access_token')
-} catch {}
+} catch {
+  // Storage can be unavailable in privacy-restricted browser contexts.
+}
 
 /** Returns the access token, or `null` when no session is active. */
 export function getAccessToken(): string | null {
@@ -55,7 +57,9 @@ export function setAccessToken(token: string | null): void {
   try {
     if (token) sessionStorage.setItem('v_access_token', token)
     else sessionStorage.removeItem('v_access_token')
-  } catch {}
+  } catch {
+    // Keep the in-memory token when session storage is unavailable.
+  }
 }
 
 /** Clears the access token when the session ends. */
@@ -63,7 +67,9 @@ export function clearAccessToken(): void {
   accessToken = null
   try {
     sessionStorage.removeItem('v_access_token')
-  } catch {}
+  } catch {
+    // The in-memory token has already been cleared.
+  }
 }
 
 // ---------------------------------------------------------------------------

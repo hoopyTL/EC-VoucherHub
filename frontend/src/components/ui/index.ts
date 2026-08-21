@@ -8,6 +8,7 @@ export { Input } from './Input'
 export type { InputProps } from './Input'
 
 export { Modal } from './Modal'
+export { ConfirmDialog } from './ConfirmDialog'
 export type { ModalProps, ModalSize } from './Modal'
 
 export { LoadingSpinner } from './LoadingSpinner'

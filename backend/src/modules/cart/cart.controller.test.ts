@@ -13,16 +13,13 @@ vi.mock('./cart.service', () => ({
 }))
 
 // Mock middleware auth
-vi.mock('../../middleware/auth', () => ({
-  requireAuth: (req: any, res: any, next: any) => {
-    req.user = { id: 'test-user-id', role: 'KHACH_HANG' }
+vi.mock('../../middlewares/authenticate', () => ({
+  authenticate: (req: any, _res: any, next: any) => {
+    req.user = { sub: 'test-user-id', role: 'CUSTOMER' }
     next()
-  },
-  requireRole: (role: string) => (req: any, res: any, next: any) => {
-    if (req.user.role === role) next()
-    else res.status(403).json({ error: 'FORBIDDEN' })
   }
 }))
+vi.mock('../../middlewares/authorize', () => ({ authorize: () => (_req: any, _res: any, next: any) => next() }))
 
 // Cần tạo express app để test bằng supertest
 const app = express()

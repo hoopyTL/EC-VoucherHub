@@ -1190,16 +1190,22 @@ function renderAudit() {
 }
 
 function renderCoverage() {
+  function count(v: unknown) {
+    if (Array.isArray(v)) return v.length
+    if (typeof v === 'number') return v
+    return 0
+  }
+
   const checks = [
-    ['FR-17', t('usersTitle'), users.length, 'users + roles'],
-    ['FR-18', t('partnersTitle'), partners.length, 'partners + branches'],
-    ['FR-19', t('vouchersTitle'), vouchers.length, 'voucher_products'],
-    ['FR-20', t('manageOrders'), orders.length, 'orders + order_items'],
-    ['FR-21', t('contentTitle'), contentItems.length, 'content_items'],
+    ['FR-17', t('usersTitle'), count(users), 'users + roles'],
+    ['FR-18', t('partnersTitle'), count(partners), 'partners + branches'],
+    ['FR-19', t('vouchersTitle'), count(vouchers), 'voucher_products'],
+    ['FR-20', t('manageOrders'), count(orders), 'orders + order_items'],
+    ['FR-21', t('contentTitle'), count(contentItems), 'content_items'],
     ['FR-22', t('navDashboard'), dashboard ? 1 : 0, 'aggregate from DB'],
-    ['FR-23', t('auditTitle'), auditLogs.length, 'audit_logs'],
-    ['BR-04/05', t('voucherCodes'), codes.length, 'issued_voucher_codes'],
-    ['KPI-04', t('paidRevenue'), dashboard?.totals.paidRevenue ?? 0, 'paid revenue']
+    ['FR-23', t('auditTitle'), count(auditLogs), 'audit_logs'],
+    ['BR-04/05', t('voucherCodes'), count(codes), 'issued_voucher_codes'],
+    ['KPI-04', t('paidRevenue'), dashboard?.totals?.paidRevenue ?? 0, 'paid revenue']
   ]
   return `
     <section class="panel integration-hero">

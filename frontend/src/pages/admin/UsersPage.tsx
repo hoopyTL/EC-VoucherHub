@@ -347,9 +347,9 @@ export function UsersPage() {
               disabled={roleMutation.isPending}
               style={selectStyle}
             >
-              <option value={UserRole.CUSTOMER}>Customer</option>
-              <option value={UserRole.PARTNER}>Partner</option>
-              <option value={UserRole.ADMIN}>Administrator</option>
+              <option value={UserRole.CUSTOMER}>Khách hàng</option>
+              <option value={UserRole.PARTNER}>Đối tác</option>
+              <option value={UserRole.ADMIN}>Quản trị viên</option>
             </select>
           </>
         )}

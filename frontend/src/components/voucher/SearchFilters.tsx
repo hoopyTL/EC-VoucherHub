@@ -17,7 +17,6 @@
 import { useEffect, useState, type CSSProperties, type FormEvent } from 'react'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
-import { VOUCHER_CATEGORIES, VOUCHER_REGIONS } from '../../constants/voucher'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
 
 /**
@@ -26,12 +25,12 @@ import { colors, fonts, radius, shadows } from '../../theme/tokens'
  * "Any" (no discount filter applied).
  */
 const MIN_DISCOUNT_OPTIONS: ReadonlyArray<{ label: string; value: string }> = [
-  { label: 'Any discount', value: '' },
-  { label: '10% or more', value: '10' },
-  { label: '20% or more', value: '20' },
-  { label: '30% or more', value: '30' },
-  { label: '40% or more', value: '40' },
-  { label: '50% or more', value: '50' }
+  { label: 'Mọi mức giảm', value: '' },
+  { label: 'Từ 10%', value: '10' },
+  { label: 'Từ 20%', value: '20' },
+  { label: 'Từ 30%', value: '30' },
+  { label: 'Từ 40%', value: '40' },
+  { label: 'Từ 50%', value: '50' }
 ]
 
 /** The set of filters the catalogue understands (mirrors the API params). */
@@ -59,6 +58,8 @@ export interface SearchFiltersProps {
   onChange: (next: VoucherFilterValues) => void
   /** Partner options for the partner dropdown. */
   partnerOptions?: PartnerOption[]
+  categoryOptions?: string[]
+  regionOptions?: string[]
 }
 
 /** An empty filter set — used by the page as the initial/cleared state. */
@@ -103,9 +104,17 @@ const labelStyle: CSSProperties = {
   color: colors.slate
 }
 
-export function SearchFilters({ value, onChange, partnerOptions = [] }: SearchFiltersProps) {
+export function SearchFilters({
+  value,
+  onChange,
+  partnerOptions = [],
+  categoryOptions = [],
+  regionOptions = []
+}: SearchFiltersProps) {
   // Local draft so edits don't fire a request until the user applies them.
   const [draft, setDraft] = useState<VoucherFilterValues>(value)
+  const [validationError, setValidationError] = useState('')
+  const [advancedOpen, setAdvancedOpen] = useState(false)
 
   // Keep the draft in sync when the applied value changes externally
   // (e.g. the page clears filters or restores them from the URL).
@@ -119,11 +128,19 @@ export function SearchFilters({ value, onChange, partnerOptions = [] }: SearchFi
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    const min = Number(draft.minPrice)
+    const max = Number(draft.maxPrice)
+    if (draft.minPrice && draft.maxPrice && min > max) {
+      setValidationError('Giá thấp nhất không được lớn hơn giá cao nhất.')
+      return
+    }
+    setValidationError('')
     onChange({ ...draft, keyword: draft.keyword.trim() })
   }
 
   function handleClear() {
     setDraft(EMPTY_FILTERS)
+    setValidationError('')
     onChange(EMPTY_FILTERS)
   }
 
@@ -142,6 +159,17 @@ export function SearchFilters({ value, onChange, partnerOptions = [] }: SearchFi
         boxShadow: shadows.card
       }}
     >
+      <div className='filter-chip-bar' aria-label='Lọc nhanh voucher'>
+        <button type='button' className={!draft.category ? 'filter-chip active' : 'filter-chip'} onClick={() => { update('category', ''); onChange({ ...draft, category: '' }) }}>
+          Tất cả
+        </button>
+        {categoryOptions.map((category) => (
+          <button key={category} type='button' className={draft.category === category ? 'filter-chip active' : 'filter-chip'} onClick={() => { update('category', category); onChange({ ...draft, category }) }}>
+            {category}
+          </button>
+        ))}
+      </div>
+
       <Input
         label='Tìm kiếm'
         type='search'
@@ -150,6 +178,13 @@ export function SearchFilters({ value, onChange, partnerOptions = [] }: SearchFi
         onChange={(e) => update('keyword', e.target.value)}
       />
 
+      <div className='filter-toolbar-actions'>
+        <button type='button' className='filter-drawer-trigger' onClick={() => setAdvancedOpen((open) => !open)} aria-expanded={advancedOpen}>
+          Bộ lọc {advancedOpen ? '×' : '＋'}
+        </button>
+      </div>
+
+      <div className={advancedOpen ? 'filter-advanced is-open' : 'filter-advanced'}>
       <div style={fieldRowStyle}>
         <div style={{ flex: '1 1 160px' }}>
           <label htmlFor='filter-category' style={labelStyle}>
@@ -162,7 +197,7 @@ export function SearchFilters({ value, onChange, partnerOptions = [] }: SearchFi
             onChange={(e) => update('category', e.target.value)}
           >
             <option value=''>Tất cả danh mục</option>
-            {VOUCHER_CATEGORIES.map((category) => (
+            {categoryOptions.map((category) => (
               <option key={category} value={category}>
                 {category}
               </option>
@@ -181,7 +216,7 @@ export function SearchFilters({ value, onChange, partnerOptions = [] }: SearchFi
             onChange={(e) => update('region', e.target.value)}
           >
             <option value=''>Tất cả khu vực</option>
-            {VOUCHER_REGIONS.map((region) => (
+            {regionOptions.map((region) => (
               <option key={region} value={region}>
                 {region}
               </option>
@@ -259,6 +294,12 @@ export function SearchFilters({ value, onChange, partnerOptions = [] }: SearchFi
         <Button type='button' variant='secondary' onClick={handleClear}>
           Xóa lọc
         </Button>
+      </div>
+      {validationError && (
+        <p role='alert' style={{ margin: 0, color: colors.onDangerSurface, fontSize: 13 }}>
+          {validationError}
+        </p>
+      )}
       </div>
     </form>
   )

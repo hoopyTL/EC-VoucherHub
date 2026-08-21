@@ -90,7 +90,7 @@ export function getPartnerApiError(err: unknown, fallback: string): string {
   const response = (err as { response?: { status?: number; data?: ApiErrorBody } })?.response
 
   if (!response) {
-    return 'Unable to reach the server. Please check your connection and try again.'
+    return 'Không thể kết nối máy chủ. Vui lòng kiểm tra backend đang chạy ở cổng 4000 rồi thử lại.'
   }
 
   return response.data?.error?.message ?? fallback

@@ -15,37 +15,37 @@ import {
 } from './voucher.service'
 
 export const createVoucherHandler = asyncHandler(async (req: Request, res: Response) => {
-  const voucher = await createVoucher(req.user!.id, req.body)
+  const voucher = await createVoucher((req.user as any).id, req.body)
 
   ApiResponse.created(res, voucher)
 })
 
 export const getPartnerVouchersHandler = asyncHandler(async (req: Request, res: Response) => {
-  const vouchers = await getPartnerVouchers(req.user!.id)
+  const vouchers = await getPartnerVouchers((req.user as any).id)
 
   ApiResponse.success(res, vouchers)
 })
 
 export const getPartnerBranchesHandler = asyncHandler(async (req: Request, res: Response) => {
-  const branches = await getPartnerBranches(req.user!.id)
+  const branches = await getPartnerBranches((req.user as any).id)
 
   ApiResponse.success(res, branches)
 })
 
 export const updateVoucherHandler = asyncHandler(async (req: Request, res: Response) => {
-  const voucher = await updateVoucher(req.user!.id, String(req.params.id), req.body)
+  const voucher = await updateVoucher((req.user as any).id, String(req.params.id), req.body)
 
   ApiResponse.success(res, voucher)
 })
 
 export const submitVoucherHandler = asyncHandler(async (req: Request, res: Response) => {
-  const voucher = await submitVoucher(req.user!.id, String(req.params.id))
+  const voucher = await submitVoucher((req.user as any).id, String(req.params.id))
 
   ApiResponse.success(res, voucher)
 })
 
 export const returnVoucherToDraftHandler = asyncHandler(async (req: Request, res: Response) => {
-  const voucher = await returnRejectedVoucherToDraft(req.user!.id, String(req.params.id))
+  const voucher = await returnRejectedVoucherToDraft((req.user as any).id, String(req.params.id))
 
   ApiResponse.success(res, voucher)
 })

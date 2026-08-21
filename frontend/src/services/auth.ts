@@ -89,7 +89,7 @@ export async function changePassword(currentPassword: string, newPassword: strin
     currentPassword,
     newPassword
   })
-  return { message: response.data.changed ? 'Password changed successfully.' : 'Unable to change password.' }
+  return { message: response.data.changed ? 'Đổi mật khẩu thành công.' : 'Không thể đổi mật khẩu.' }
 }
 
 /** Shape of the structured error body returned by the backend error handler. */
@@ -107,7 +107,7 @@ export function getAuthApiError(err: unknown, fallback: string): string {
   const response = (err as { response?: { status?: number; data?: ApiErrorBody } })?.response
 
   if (!response) {
-    return 'Unable to reach the server. Please check your connection and try again.'
+    return 'Không thể kết nối máy chủ. Vui lòng kiểm tra kết nối và thử lại.'
   }
 
   return response.data?.error?.message ?? fallback

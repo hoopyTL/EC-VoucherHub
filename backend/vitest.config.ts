@@ -1,5 +1,8 @@
 import { defineConfig } from 'vitest/config'
 import path from 'path'
+import { fileURLToPath } from 'node:url'
+
+const configDir = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
   test: {
@@ -9,7 +12,7 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     fileParallelism: false,
     env: {
-      DATABASE_URL: 'mysql://test:test@localhost:3306/test',
+      DATABASE_URL: 'postgresql://postgres:postgres@localhost:5433/voucherhub_test',
       JWT_SECRET: 'test-secret',
       JWT_REFRESH_SECRET: 'test-secret'
     },
@@ -28,7 +31,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '~': path.resolve(__dirname, 'src')
+      '~': path.resolve(configDir, 'src')
     }
   }
 })

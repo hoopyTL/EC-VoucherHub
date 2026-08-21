@@ -1,115 +1,38 @@
-import { Badge, Button, Input, variantForStatus } from '../../components/ui'
+import { useQuery } from '@tanstack/react-query'
+import { useState, type CSSProperties } from 'react'
+import { Badge, Button, Input, LoadingSpinner, variantForStatus } from '../../components/ui'
+import { api } from '../../services/api'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
 import { formatCurrency, formatDate, formatStatus } from '../../utils/format'
 
-const ORDERS = [
-  {
-    id: 'VH-2026-0184',
-    customer: 'Nguyễn Minh Anh',
-    total: 1368000,
-    status: 'PAID',
-    createdAt: '2026-08-02T08:00:00.000Z'
-  },
-  {
-    id: 'VH-2026-0183',
-    customer: 'Trần Gia Hân',
-    total: 620000,
-    status: 'PENDING_PAYMENT',
-    createdAt: '2026-08-01T09:30:00.000Z'
-  },
-  {
-    id: 'VH-2026-0182',
-    customer: 'Lê Hoàng Nam',
-    total: 1990000,
-    status: 'CANCELLED',
-    createdAt: '2026-07-31T14:15:00.000Z'
-  }
-] as const
+interface AdminOrder { id:string; totalAmount:number; status:string; paymentMethod:string; createdAt:string; customer:{fullName:string;email?:string|null}; items:Array<{voucherName:string;quantity:number}> }
+async function loadOrders(q:string):Promise<AdminOrder[]> { const response=await api.get('/admin/orders',{params:{q:q||undefined,limit:100}}); return response.data.data.items }
 
 export function OrdersPage() {
-  return (
-    <section style={{ maxWidth: 1040, margin: '0 auto' }}>
-      <p style={eyebrowStyle}>● Vận hành</p>
-      <h1 style={titleStyle}>Quản lý đơn hàng</h1>
-      <p style={subtitleStyle}>Tra cứu trạng thái thanh toán, hủy và hoàn tiền đơn hàng.</p>
-      <div style={toolbarStyle}>
-        <Input label='Tìm đơn hàng' placeholder='Mã đơn hoặc tên khách hàng' containerStyle={{ flex: 1 }} />
-        <Button>Tìm kiếm</Button>
-      </div>
-      <div style={tableCardStyle}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr>
-              <th style={thStyle}>Mã đơn</th>
-              <th style={thStyle}>Khách hàng</th>
-              <th style={thStyle}>Ngày tạo</th>
-              <th style={thStyle}>Tổng tiền</th>
-              <th style={thStyle}>Trạng thái</th>
-              <th style={thStyle}>Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            {ORDERS.map((order) => (
-              <tr key={order.id}>
-                <td style={tdStyle}>
-                  <strong>{order.id}</strong>
-                </td>
-                <td style={tdStyle}>{order.customer}</td>
-                <td style={tdStyle}>{formatDate(order.createdAt)}</td>
-                <td style={tdStyle}>{formatCurrency(order.total)}</td>
-                <td style={tdStyle}>
-                  <Badge variant={variantForStatus(order.status)}>{formatStatus(order.status)}</Badge>
-                </td>
-                <td style={tdStyle}>
-                  <Button size='sm' variant='secondary'>
-                    Xem chi tiết
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  )
+  const [input,setInput]=useState(''); const [query,setQuery]=useState('')
+  const orders=useQuery({queryKey:['admin-orders',query],queryFn:()=>loadOrders(query)})
+  const paid=orders.data?.filter((item)=>item.status==='PAID')??[]
+  return <section style={{maxWidth:1120,margin:'0 auto'}}>
+    <p style={eyebrowStyle}>● Vận hành thương mại</p><h1 style={titleStyle}>Quản lý đơn hàng</h1>
+    <p style={subtitleStyle}>Theo dõi thanh toán và tra cứu toàn bộ đơn hàng từ dữ liệu thực.</p>
+    <div style={summaryStyle}>
+      <Summary value={String(orders.data?.length??0)} label='Đơn đang hiển thị'/><Summary value={String(paid.length)} label='Đã thanh toán'/><Summary value={formatCurrency(paid.reduce((sum,item)=>sum+item.totalAmount,0))} label='Doanh thu hiển thị'/>
+    </div>
+    <form style={toolbarStyle} onSubmit={(event)=>{event.preventDefault();setQuery(input.trim())}}><Input label='Tìm đơn hàng' value={input} onChange={(event)=>setInput(event.target.value)} placeholder='Tên hoặc email khách hàng' containerStyle={{flex:1}}/><Button type='submit'>Tìm kiếm</Button></form>
+    {orders.isLoading?<LoadingSpinner label='Đang tải đơn hàng'/>:orders.isError?<div role='alert' style={{padding:18,color:colors.danger}}>Không thể tải đơn hàng. Vui lòng thử lại.</div>:<div style={tableCardStyle}><table style={{width:'100%',borderCollapse:'collapse'}}><thead><tr>{['Mã đơn','Khách hàng','Voucher','Ngày tạo','Thanh toán','Tổng tiền','Trạng thái'].map(x=><th key={x} style={thStyle}>{x}</th>)}</tr></thead><tbody>{orders.data?.map(order=><tr key={order.id}>
+      <td style={tdStyle}><strong>#{order.id.slice(0,8).toUpperCase()}</strong></td><td style={tdStyle}>{order.customer.fullName}<small style={smallStyle}>{order.customer.email}</small></td><td style={tdStyle}>{order.items[0]?.voucherName??'—'}<small style={smallStyle}>{order.items.reduce((sum,item)=>sum+item.quantity,0)} voucher</small></td><td style={tdStyle}>{formatDate(order.createdAt)}</td><td style={tdStyle}>{order.paymentMethod}</td><td style={tdStyle}><strong>{formatCurrency(order.totalAmount)}</strong></td><td style={tdStyle}><Badge variant={variantForStatus(order.status as never)}>{formatStatus(order.status as never)}</Badge></td>
+    </tr>)}</tbody></table></div>}
+  </section>
 }
-
-const eyebrowStyle = {
-  margin: '0 0 10px',
-  color: colors.slate,
-  fontFamily: fonts.display,
-  fontSize: 12,
-  fontWeight: 600,
-  letterSpacing: '0.08em',
-  textTransform: 'uppercase' as const
-}
-const titleStyle = {
-  margin: 0,
-  color: colors.ink,
-  fontFamily: fonts.display,
-  fontSize: 48,
-  fontWeight: 800,
-  letterSpacing: '-0.03em'
-}
-const subtitleStyle = { color: colors.slate, marginBottom: 24 }
-const toolbarStyle = { display: 'flex', alignItems: 'flex-end', gap: 12, marginBottom: 20 }
-const tableCardStyle = {
-  overflowX: 'auto' as const,
-  padding: 12,
-  borderRadius: radius.xl,
-  border: `1px solid ${colors.hairline}`,
-  background: colors.surface,
-  boxShadow: shadows.card
-}
-const thStyle = {
-  padding: '14px 12px',
-  textAlign: 'left' as const,
-  color: colors.slate,
-  borderBottom: `1px solid ${colors.hairline}`,
-  fontSize: 12,
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.05em'
-}
-const tdStyle = { padding: '16px 12px', borderBottom: `1px solid ${colors.hairline}`, whiteSpace: 'nowrap' as const }
-
+function Summary({value,label}:{value:string;label:string}) { return <div style={summaryCardStyle}><strong style={{fontSize:26}}>{value}</strong><span style={{color:colors.slate,fontSize:13}}>{label}</span></div> }
+const eyebrowStyle:CSSProperties={margin:'0 0 10px',color:'#7057d9',fontFamily:fonts.display,fontSize:12,fontWeight:800,letterSpacing:'.1em',textTransform:'uppercase'}
+const titleStyle:CSSProperties={margin:0,color:colors.ink,fontFamily:fonts.display,fontSize:48,fontWeight:800,letterSpacing:'-.04em'}
+const subtitleStyle:CSSProperties={color:colors.slate,margin:'8px 0 24px'}
+const summaryStyle:CSSProperties={display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:14,marginBottom:22}
+const summaryCardStyle:CSSProperties={display:'flex',flexDirection:'column',gap:4,padding:20,background:'linear-gradient(135deg,#fff,#f6f3ff)',border:'1px solid #ded7ff',borderRadius:radius.xl,boxShadow:shadows.card}
+const toolbarStyle:CSSProperties={display:'flex',alignItems:'flex-end',gap:12,marginBottom:20}
+const tableCardStyle:CSSProperties={overflowX:'auto',padding:12,borderRadius:radius.xl,border:`1px solid ${colors.hairline}`,background:colors.surface,boxShadow:shadows.card}
+const thStyle:CSSProperties={padding:'14px 12px',textAlign:'left',color:colors.slate,borderBottom:`1px solid ${colors.hairline}`,fontSize:12,textTransform:'uppercase',letterSpacing:'.05em'}
+const tdStyle:CSSProperties={padding:'15px 12px',borderBottom:`1px solid ${colors.hairline}`,whiteSpace:'nowrap'}
+const smallStyle:CSSProperties={display:'block',color:colors.slate,marginTop:2}
 export default OrdersPage

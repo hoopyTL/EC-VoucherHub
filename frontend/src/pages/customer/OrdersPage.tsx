@@ -30,7 +30,7 @@ async function fetchOrders(): Promise<Order[]> {
 
 /** Total number of voucher units in an order (sum of line quantities). */
 function itemCount(order: Order): number {
-  return (order.items || []).reduce((sum, item) => sum + item.quantity, 0)
+  return (order.items || order.orderItems || []).reduce((sum, item) => sum + item.quantity, 0)
 }
 
 export function OrdersPage() {
@@ -46,7 +46,7 @@ export function OrdersPage() {
 
   return (
     <section style={{ maxWidth: 820, margin: '0 auto' }}>
-      <h1 style={pageHeadingStyle}>Đơn hàng của tôi</h1>
+      <h1 style={pageHeadingStyle}>Lịch sử mua voucher</h1>
 
       {isLoading && (
         <div style={{ padding: 32 }}>

@@ -1,8 +1,9 @@
 import dotenv from 'dotenv'
+import { z } from 'zod'
 import path from 'node:path'
 
-dotenv.config({ path: path.resolve(process.cwd(), '.env') })
-dotenv.config({ path: path.resolve(process.cwd(), 'backend/.env') })
+dotenv.config({ path: path.resolve(process.cwd(), '.env'), quiet: true })
+dotenv.config({ path: path.resolve(process.cwd(), 'backend/.env'), quiet: true })
 
 const forbiddenProductionSecrets = ['dev-only-secret-change-me', 'dev-only-refresh-secret-change-me']
 

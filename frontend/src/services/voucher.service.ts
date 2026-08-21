@@ -93,6 +93,17 @@ export interface SearchVouchersResponse {
   }
 }
 
+export interface VoucherFilterOptions {
+  categories: string[]
+  regions: string[]
+  partners: Array<{ id: string; name: string }>
+}
+
+export async function getVoucherFilterOptions(): Promise<VoucherFilterOptions> {
+  const { data } = await api.get<{ success: boolean; data: VoucherFilterOptions }>('/vouchers/filters')
+  return data.data
+}
+
 /**
  * Builds the query params object for the search request, omitting empty /
  * undefined values so the backend only applies the filters the customer set.

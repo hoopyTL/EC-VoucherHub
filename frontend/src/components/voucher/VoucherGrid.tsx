@@ -7,8 +7,7 @@
  *
  * _Requirements: 11.1, 23.3_
  */
-import type { CSSProperties } from 'react'
-import { LoadingSpinner } from '../ui/LoadingSpinner'
+import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react'
 import { VoucherCard } from './VoucherCard'
 import type { VoucherListItem } from '../../services/voucher.service'
 
@@ -22,19 +21,48 @@ export interface VoucherGridProps {
 
 const gridStyle: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-  gap: 16
+  gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))',
+  gap: 24
+}
+
+function RevealCard({ index, children }: { index: number; children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const element = ref.current
+    if (!element) return
+    if (!('IntersectionObserver' in window)) {
+      element.classList.add('is-visible')
+      return
+    }
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        element.classList.add('is-visible')
+        observer.unobserve(element)
+      }
+    }, { threshold: 0.12 })
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [])
+
+  return (
+    <div ref={ref} className='voucher-reveal' style={{ '--reveal-delay': `${(index % 4) * 45}ms` } as CSSProperties}>
+      {children}
+    </div>
+  )
 }
 
 export function VoucherGrid({
   vouchers,
   isLoading = false,
-  emptyMessage = 'No vouchers match your search. Try adjusting the filters.'
+  emptyMessage = 'Không tìm thấy voucher phù hợp. Hãy thử điều chỉnh bộ lọc.'
 }: VoucherGridProps) {
   if (isLoading) {
     return (
-      <div style={{ padding: '48px 0' }}>
-        <LoadingSpinner size='lg' label='Đang tải voucher' />
+      <div role='status' style={gridStyle} aria-label='Đang tải voucher' aria-busy='true'>
+        {Array.from({ length: 8 }, (_, index) => (
+          <div key={index} className='voucher-skeleton' style={{ height: 390, borderRadius: 24 }} />
+        ))}
       </div>
     )
   }
@@ -49,8 +77,10 @@ export function VoucherGrid({
 
   return (
     <div style={gridStyle} data-testid='voucher-grid'>
-      {vouchers.map((voucher) => (
-        <VoucherCard key={voucher.id} voucher={voucher} />
+      {vouchers.map((voucher, index) => (
+        <RevealCard key={voucher.id} index={index}>
+          <VoucherCard voucher={voucher} />
+        </RevealCard>
       ))}
     </div>
   )

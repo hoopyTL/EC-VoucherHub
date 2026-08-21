@@ -12,7 +12,7 @@ export class PartnerService {
     })
 
     if (existingPartner) {
-      throw AppError.conflict('User already has a partner profile')
+      throw AppError.conflict('Người dùng đã có hồ sơ đối tác')
     }
 
     const duplicateTaxCode = await prisma.partner.findUnique({
@@ -20,7 +20,7 @@ export class PartnerService {
     })
 
     if (duplicateTaxCode) {
-      throw AppError.conflict('Tax code already exists')
+      throw AppError.conflict('Mã số thuế đã tồn tại')
     }
 
     try {
@@ -34,7 +34,7 @@ export class PartnerService {
       })
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        throw AppError.conflict('Partner profile already exists')
+        throw AppError.conflict('Hồ sơ đối tác đã tồn tại')
       }
 
       throw error
@@ -50,7 +50,7 @@ export class PartnerService {
     })
 
     if (!partner) {
-      throw AppError.notFound('Partner')
+      throw AppError.notFound('Không tìm thấy đối tác')
     }
 
     return partner
@@ -65,7 +65,7 @@ export class PartnerService {
       })
 
       if (duplicateTaxCode) {
-        throw AppError.conflict('Tax code already exists')
+        throw AppError.conflict('Mã số thuế đã tồn tại')
       }
     }
 
@@ -96,11 +96,11 @@ export class PartnerService {
     })
 
     if (!branch) {
-      throw AppError.notFound('Branch')
+      throw AppError.notFound('Không tìm thấy chi nhánh')
     }
 
     if (branch.partnerId !== partner.id) {
-      throw AppError.forbidden('Branch is outside partner scope')
+      throw AppError.forbidden('Chi nhánh không thuộc phạm vi đối tác')
     }
 
     return prisma.branch.update({
@@ -117,11 +117,11 @@ export class PartnerService {
     })
 
     if (!branch) {
-      throw AppError.notFound('Branch')
+      throw AppError.notFound('Không tìm thấy chi nhánh')
     }
 
     if (branch.partnerId !== partner.id) {
-      throw AppError.forbidden('Branch is outside partner scope')
+      throw AppError.forbidden('Chi nhánh không thuộc phạm vi đối tác')
     }
 
     await prisma.branch.delete({
@@ -135,15 +135,15 @@ export class PartnerService {
     })
 
     if (!partner) {
-      throw AppError.notFound('Partner')
+      throw AppError.notFound('Không tìm thấy đối tác')
     }
 
     if (partner.approvalStatus !== ApprovalStatus.PENDING) {
-      throw AppError.conflict('Partner is not pending approval')
+      throw AppError.conflict('Đối tác không ở trạng thái chờ duyệt')
     }
 
     if (action === 'reject' && !reason) {
-      throw AppError.badRequest('Reject reason is required')
+      throw AppError.badRequest('Lý do từ chối là bắt buộc')
     }
 
     return prisma.partner.update({
@@ -161,7 +161,7 @@ export class PartnerService {
     })
 
     if (!partner) {
-      throw AppError.notFound('Partner')
+      throw AppError.notFound('Không tìm thấy đối tác')
     }
 
     return prisma.partner.update({

@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { VNPayMessageMap } from '../../constants/vnpay'
-import { LoadingSpinner } from '../../components/ui'
+import { ConfirmDialog, LoadingSpinner, useToast } from '../../components/ui'
 
 /**
  * Trang nhận kết quả chuyển hướng về từ VNPay (Return URL).
@@ -12,12 +12,28 @@ export function PaymentResultPage() {
   const navigate = useNavigate()
   // Ngăn chặn strict-mode của React 18 gọi useEffect 2 lần liên tiếp
   const hasProcessed = useRef(false)
+  const [cancelledOrderId, setCancelledOrderId] = useState<string | null>(null)
+  const [reopening, setReopening] = useState(false)
+  const toast = useToast()
 
   useEffect(() => {
     if (hasProcessed.current) return
     hasProcessed.current = true
 
     const handleVNPayReturn = async () => {
+      const responseCode = searchParams.get('vnp_ResponseCode')
+      const rawTxnRef = searchParams.get('vnp_TxnRef')
+      const stripeSuccess = searchParams.get('stripe_success')
+      const stripeOrderId = searchParams.get('order_id')
+      const vnpOrderId = rawTxnRef ? rawTxnRef.split('_')[0] : null
+
+      // VNPay code 24 means the customer pressed Cancel at the gateway. Keep
+      // the order pending unless they explicitly confirm leaving payment.
+      if (responseCode === '24' && vnpOrderId) {
+        setCancelledOrderId(vnpOrderId)
+        return
+      }
+
       // ----------------------------------------------------------------------
       // BƯỚC 1: ĐỒNG BỘ IPN CỤC BỘ (Fallback cho Localhost)
       // Do VNPay ngoài Internet không thể chọc API vào localhost, Frontend sẽ
@@ -33,11 +49,6 @@ export function PaymentResultPage() {
       // ----------------------------------------------------------------------
       // BƯỚC 2: BÓC TÁCH DỮ LIỆU
       // ----------------------------------------------------------------------
-      const responseCode = searchParams.get('vnp_ResponseCode')
-      const rawTxnRef = searchParams.get('vnp_TxnRef')
-      const stripeSuccess = searchParams.get('stripe_success')
-      const stripeOrderId = searchParams.get('order_id')
-
       let orderId = null
       let isSuccess = false
 
@@ -49,15 +60,15 @@ export function PaymentResultPage() {
         if (isSuccess) {
           navigate(`/orders/${orderId}`, { replace: true })
         } else {
-          alert('Giao dịch Stripe bị hủy hoặc không thành công.')
+          toast.error('Giao dịch Stripe đã bị hủy hoặc chưa hoàn tất.')
           navigate(`/orders/${orderId}`, { replace: true })
         }
       } else {
         // Luồng của VNPay
         // Lọc bỏ timestamp `_1739xxx` để lấy lại ID đơn hàng thật gốc (mẹo chống trùng lặp)
-        orderId = rawTxnRef ? rawTxnRef.split('_')[0] : null
+        orderId = vnpOrderId
         if (!orderId) {
-          return navigate('/orders', { replace: true })
+          return navigate('/cart?tab=orders', { replace: true })
         }
 
         isSuccess = responseCode === '00'
@@ -70,18 +81,34 @@ export function PaymentResultPage() {
           const errorCode = responseCode || 'DEFAULT'
           const errorMessage = VNPayMessageMap[errorCode] || VNPayMessageMap['DEFAULT'].replace('{code}', errorCode)
 
-          alert(errorMessage)
+          toast.error(errorMessage)
           navigate(`/orders/${orderId}`, { replace: true })
         }
       }
     }
 
     handleVNPayReturn()
-  }, [searchParams, navigate])
+  }, [searchParams, navigate, toast])
 
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
       <LoadingSpinner label='Đang đồng bộ kết quả thanh toán từ Ngân hàng...' />
+      <ConfirmDialog
+        open={Boolean(cancelledOrderId)} title='Bạn muốn dừng thanh toán?'
+        message='Đơn hàng vẫn được giữ ở trạng thái chờ thanh toán để bạn có thể tiếp tục sau.'
+        cancelLabel='Tiếp tục VNPay' confirmLabel='Về đơn hàng' busy={reopening}
+        onConfirm={() => { if (cancelledOrderId) navigate(`/orders/${cancelledOrderId}`, { replace: true }) }}
+        onCancel={async () => {
+          if (!cancelledOrderId) return
+          setReopening(true)
+          try {
+            const { getVNPayUrl } = await import('../../services/orders')
+            window.location.href = await getVNPayUrl(cancelledOrderId)
+          } catch {
+            navigate(`/orders/${cancelledOrderId}`, { replace: true })
+          }
+        }}
+      />
     </div>
   )
 }

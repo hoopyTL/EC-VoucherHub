@@ -6,6 +6,9 @@ const router = Router()
 // Route tìm kiếm (Public cho Khách hàng chưa đăng nhập xem được)
 router.get('/', searchController.searchVouchers)
 
+// Dynamic filter values from the live catalogue (must precede /:id).
+router.get('/filters', searchController.getVoucherFilterOptions)
+
 // Route chi tiết
 router.get('/:id', searchController.getVoucherDetail)
 

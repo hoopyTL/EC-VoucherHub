@@ -32,10 +32,22 @@ const toVoucherResponse = (vp: any): VoucherResponse => {
     status: vp.status,
     createdAt: vp.createdAt.toISOString(),
     updatedAt: vp.updatedAt.toISOString(),
-    partner: { businessName: vp.partner?.legalName || 'Unknown Partner' },
+    partner: { businessName: vp.partner?.legalName || 'Đối tác chưa xác định' },
     category: vp.category?.name || 'Chưa phân loại',
     terms: null,
-    voucherBranches: [] // Hardcode tạm chờ bảng branches
+    voucherBranches: (vp.voucherProductBranches ?? []).map((link: any) => ({
+      id: `${link.voucherProductId}:${link.branchId}`,
+      voucherId: link.voucherProductId,
+      branchId: link.branchId,
+      branch: {
+        id: String(link.branch.id),
+        name: link.branch.name,
+        address: link.branch.address,
+        region: link.branch.region,
+        contact: '',
+        isActive: true
+      }
+    }))
   }
 }
 
@@ -48,7 +60,10 @@ export const searchVouchers = async (query: SearchVoucherQueryDto): Promise<Vouc
 
   // Xây dựng điều kiện lọc (chỉ lấy voucher đang bán)
   const whereConditions: Prisma.VoucherProductWhereInput = {
-    status: 'ON_SALE'
+    status: 'ON_SALE',
+    remainingQuantity: { gt: 0 },
+    saleStart: { lte: new Date() },
+    saleEnd: { gte: new Date() }
   }
 
   // Lọc theo từ khóa
@@ -88,7 +103,7 @@ export const searchVouchers = async (query: SearchVoucherQueryDto): Promise<Vouc
     // Nếu có lọc giảm giá, lấy tất cả để lọc in-memory (do Prisma không hỗ trợ so sánh 2 cột trực tiếp tiện lợi)
     const allVouchers = await prisma.voucherProduct.findMany({
       where: whereConditions,
-      include: { partner: true, category: true },
+      include: { partner: true, category: true, voucherProductBranches: { include: { branch: true } } },
       orderBy: { createdAt: 'desc' }
     })
 
@@ -105,7 +120,7 @@ export const searchVouchers = async (query: SearchVoucherQueryDto): Promise<Vouc
       prisma.voucherProduct.count({ where: whereConditions }),
       prisma.voucherProduct.findMany({
         where: whereConditions,
-        include: { partner: true, category: true },
+        include: { partner: true, category: true, voucherProductBranches: { include: { branch: true } } },
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit
@@ -134,7 +149,7 @@ export const getVoucherDetail = async (id: string): Promise<VoucherResponse> => 
       id,
       status: 'ON_SALE' // Chỉ cho phép xem chi tiết voucher đang bán
     },
-    include: { partner: true, category: true }
+    include: { partner: true, category: true, voucherProductBranches: { include: { branch: true } } }
   })
 
   if (!voucher) {
@@ -142,4 +157,31 @@ export const getVoucherDetail = async (id: string): Promise<VoucherResponse> => 
   }
 
   return toVoucherResponse(voucher)
+}
+
+/** Options are derived from live, sellable catalogue data so filters never
+ * expose values that can only return an empty result. */
+export const getVoucherFilterOptions = async () => {
+  const vouchers = await prisma.voucherProduct.findMany({
+    where: {
+      status: 'ON_SALE',
+      remainingQuantity: { gt: 0 },
+      saleStart: { lte: new Date() },
+      saleEnd: { gte: new Date() }
+    },
+    select: {
+      category: { select: { name: true } },
+      partner: { select: { id: true, legalName: true } },
+      voucherProductBranches: { select: { branch: { select: { region: true } } } }
+    }
+  })
+
+  return {
+    categories: [...new Set(vouchers.flatMap((voucher) => (voucher.category ? [voucher.category.name] : [])))].sort(),
+    regions: [...new Set(vouchers.flatMap((voucher) => voucher.voucherProductBranches.map((link) => link.branch.region)))].sort(),
+    partners: [...new Map(vouchers.map((voucher) => [voucher.partner.id, {
+      id: voucher.partner.id,
+      name: voucher.partner.legalName
+    }])).values()].sort((a, b) => a.name.localeCompare(b.name, 'vi'))
+  }
 }

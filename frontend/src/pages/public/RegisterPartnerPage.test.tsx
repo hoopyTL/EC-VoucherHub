@@ -36,25 +36,25 @@ function fillValidForm() {
   fireEvent.change(screen.getByLabelText(/^email/i), {
     target: { value: 'biz@example.com' }
   })
-  fireEvent.change(screen.getByLabelText(/^password/i), {
+  fireEvent.change(screen.getByLabelText(/^mật khẩu/i), {
     target: { value: 'password123' }
   })
-  fireEvent.change(screen.getByLabelText(/legal business name/i), {
+  fireEvent.change(screen.getByLabelText(/tên pháp lý/i), {
     target: { value: 'Acme Co' }
   })
-  fireEvent.change(screen.getByLabelText(/tax code/i), {
+  fireEvent.change(screen.getByLabelText(/mã số thuế/i), {
     target: { value: 'TAX-999' }
   })
-  fireEvent.change(screen.getByLabelText(/representative name/i), {
+  fireEvent.change(screen.getByLabelText(/người đại diện/i), {
     target: { value: 'Jane Rep' }
   })
-  fireEvent.change(screen.getByLabelText(/branch name/i), {
+  fireEvent.change(screen.getByLabelText(/tên chi nhánh/i), {
     target: { value: 'Downtown' }
   })
-  fireEvent.change(screen.getByLabelText(/^address/i), {
+  fireEvent.change(screen.getByLabelText(/^địa chỉ/i), {
     target: { value: '123 Main St' }
   })
-  fireEvent.change(screen.getByLabelText(/^region/i), {
+  fireEvent.change(screen.getByLabelText(/^khu vực/i), {
     target: { value: 'Hà Nội' }
   })
 }
@@ -70,34 +70,34 @@ describe('RegisterPartnerPage', () => {
 
   it('renders business, representative, and branch fields', () => {
     renderPage()
-    expect(screen.getByLabelText(/legal business name/i)).toBeDefined()
-    expect(screen.getByLabelText(/tax code/i)).toBeDefined()
-    expect(screen.getByLabelText(/representative name/i)).toBeDefined()
-    expect(screen.getByLabelText(/branch name/i)).toBeDefined()
+    expect(screen.getByLabelText(/tên pháp lý/i)).toBeDefined()
+    expect(screen.getByLabelText(/mã số thuế/i)).toBeDefined()
+    expect(screen.getByLabelText(/người đại diện/i)).toBeDefined()
+    expect(screen.getByLabelText(/tên chi nhánh/i)).toBeDefined()
   })
 
   it('starts with one branch and can add and remove branches', () => {
     renderPage()
-    expect(screen.getByText(/branch 1/i)).toBeDefined()
-    expect(screen.queryByText(/branch 2/i)).toBeNull()
+    expect(screen.getByText(/chi nhánh 1/i)).toBeDefined()
+    expect(screen.queryByText(/chi nhánh 2/i)).toBeNull()
 
-    fireEvent.click(screen.getByRole('button', { name: /add branch/i }))
-    expect(screen.getByText(/branch 2/i)).toBeDefined()
+    fireEvent.click(screen.getByRole('button', { name: /thêm chi nhánh/i }))
+    expect(screen.getByText(/chi nhánh 2/i)).toBeDefined()
 
-    fireEvent.click(screen.getByRole('button', { name: /remove branch 2/i }))
-    expect(screen.queryByText(/branch 2/i)).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /xóa chi nhánh 2/i }))
+    expect(screen.queryByText(/chi nhánh 2/i)).toBeNull()
   })
 
   it('rejects a password shorter than 8 characters (Req 1.3)', async () => {
     const postSpy = vi.spyOn(api, 'post')
     renderPage()
     fillValidForm()
-    fireEvent.change(screen.getByLabelText(/^password/i), {
+    fireEvent.change(screen.getByLabelText(/^mật khẩu/i), {
       target: { value: 'short' }
     })
-    fireEvent.click(screen.getByRole('button', { name: /submit registration/i }))
+    fireEvent.click(screen.getByRole('button', { name: /gửi hồ sơ đăng ký/i }))
 
-    expect(await screen.findByText(/at least 8 characters/i)).toBeDefined()
+    expect(await screen.findByText(/ít nhất 8 ký tự/i)).toBeDefined()
     expect(postSpy).not.toHaveBeenCalled()
   })
 
@@ -106,12 +106,12 @@ describe('RegisterPartnerPage', () => {
     renderPage()
     fillValidForm()
     // Clear the branch name to make the branch incomplete.
-    fireEvent.change(screen.getByLabelText(/branch name/i), {
+    fireEvent.change(screen.getByLabelText(/tên chi nhánh/i), {
       target: { value: '' }
     })
-    fireEvent.click(screen.getByRole('button', { name: /submit registration/i }))
+    fireEvent.click(screen.getByRole('button', { name: /gửi hồ sơ đăng ký/i }))
 
-    expect(await screen.findByText(/branch name is required/i)).toBeDefined()
+    expect(await screen.findByText(/vui lòng nhập tên chi nhánh/i)).toBeDefined()
     expect(postSpy).not.toHaveBeenCalled()
   })
 
@@ -119,7 +119,7 @@ describe('RegisterPartnerPage', () => {
     const postSpy = vi.spyOn(api, 'post').mockResolvedValue({ data: {} } as never)
     renderPage()
     fillValidForm()
-    fireEvent.click(screen.getByRole('button', { name: /submit registration/i }))
+    fireEvent.click(screen.getByRole('button', { name: /gửi hồ sơ đăng ký/i }))
 
     await waitFor(() => {
       expect(postSpy).toHaveBeenCalledTimes(1)
@@ -146,7 +146,7 @@ describe('RegisterPartnerPage', () => {
     vi.spyOn(api, 'post').mockRejectedValue(conflictError('An account with this email or phone number already exists'))
     renderPage()
     fillValidForm()
-    fireEvent.click(screen.getByRole('button', { name: /submit registration/i }))
+    fireEvent.click(screen.getByRole('button', { name: /gửi hồ sơ đăng ký/i }))
 
     const alert = await screen.findByRole('alert')
     expect(within(alert).getByText(/already exists/i)).toBeDefined()

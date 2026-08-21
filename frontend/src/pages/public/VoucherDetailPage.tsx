@@ -46,9 +46,9 @@ function resolveAddToCartError(err: unknown): string {
   const message = response?.data?.error?.message
   if (message) return message
   if (!response) {
-    return 'Unable to reach the server. Please check your connection and try again.'
+    return 'Không thể kết nối máy chủ. Vui lòng kiểm tra kết nối và thử lại.'
   }
-  return 'Could not add this voucher to your cart. Please try again.'
+  return 'Không thể thêm voucher vào giỏ hàng. Vui lòng thử lại.'
 }
 
 const sectionTitleStyle: CSSProperties = {
@@ -166,11 +166,11 @@ export function VoucherDetailPage() {
     const notFound = isNotFound(query.error)
     return (
       <section style={{ maxWidth: 560, margin: '0 auto', textAlign: 'center' }}>
-        <h1 style={{ marginTop: 0 }}>{notFound ? 'Voucher not found' : 'Something went wrong'}</h1>
+        <h1 style={{ marginTop: 0 }}>{notFound ? 'Không tìm thấy voucher' : 'Đã xảy ra lỗi'}</h1>
         <p style={{ color: colors.slate }}>
           {notFound
-            ? 'This voucher is no longer available or does not exist.'
-            : 'We couldn\u2019t load this voucher. Please try again.'}
+            ? 'Voucher này không còn được bán hoặc không tồn tại.'
+            : 'Không thể tải thông tin voucher. Vui lòng thử lại.'}
         </p>
         <Link to='/search' style={{ color: colors.ink, fontWeight: 600 }}>
           ← Quay lại tìm kiếm

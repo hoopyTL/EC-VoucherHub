@@ -24,3 +24,8 @@ export const getVoucherDetail = asyncHandler(async (req: Request, res: Response)
   const result = await searchService.getVoucherDetail(req.params.id as string)
   successResponse(res, result)
 })
+
+export const getVoucherFilterOptions = asyncHandler(async (_req: Request, res: Response) => {
+  const result = await searchService.getVoucherFilterOptions()
+  successResponse(res, result)
+})

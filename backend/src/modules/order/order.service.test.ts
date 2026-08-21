@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { processPayment } from './order.service'
 import { NotFoundError, ForbiddenError, ConflictError, ValidationError } from '../../middleware/error-handler'
+import { Prisma } from '@prisma/client'
 
 // Hoisting mock module
 vi.mock('../../configs/prisma', () => {
@@ -77,20 +78,19 @@ describe('Order Service - Payment', () => {
     })
 
     prismaMock.issuedVoucherCode.findUnique.mockResolvedValue(null) // no collision
-    prismaMock.issuedVoucherCode.create.mockImplementation(({ data }: any) => Promise.resolve({
-      code: data.code,
-      voucherProductId: data.voucherProductId,
-      status: data.status,
-      expiresAt: data.expiresAt
-    }))
+    prismaMock.issuedVoucherCode.createManyAndReturn.mockImplementation(({ data }: any) =>
+      Promise.resolve(data.map((code: any) => ({
+        code: code.code,
+        voucherProductId: code.voucherProductId,
+        status: code.status,
+        expiresAt: code.expiresAt
+      })))
+    )
 
     const result = await processPayment(customerId, orderId, { outcome: 'SUCCESS' })
 
-    expect(prismaMock.voucherProduct.update).toHaveBeenCalledWith({
-      where: { id: 'vp-1' },
-      data: { remainingQuantity: { decrement: 2 } }
-    })
-    expect(prismaMock.issuedVoucherCode.create).toHaveBeenCalledTimes(2)
+    expect(prismaMock.voucherProduct.update).not.toHaveBeenCalled()
+    expect(prismaMock.issuedVoucherCode.createManyAndReturn).toHaveBeenCalledTimes(1)
     expect(prismaMock.order.update).toHaveBeenCalledWith({
       where: { id: orderId },
       data: { status: 'PAID', paidAt: expect.any(Date) }
@@ -101,8 +101,7 @@ describe('Order Service - Payment', () => {
     expect(result.codes[0].expiresAt).toBe(usageEnd.toISOString())
   })
 
-  it('Chống oversell (Hết hàng khi thanh toán) -> rollback qua ValidationError', async () => {
-    // Mock inventory is less than requested quantity (2)
+  it('không kiểm tra hoặc trừ tồn kho lần hai sau khi đơn đã giữ hàng', async () => {
     prismaMock.voucherProduct.findUnique.mockResolvedValue({
       id: 'vp-1',
       name: 'Voucher 1',
@@ -110,10 +109,10 @@ describe('Order Service - Payment', () => {
       remainingQuantity: 1 // only 1 left!
     })
 
-    await expect(processPayment(customerId, orderId, { outcome: 'SUCCESS' })).rejects.toThrow(ValidationError)
-
+    const result = await processPayment(customerId, orderId, { outcome: 'SUCCESS' })
+    expect(result.status).toBe('PAID')
     expect(prismaMock.voucherProduct.update).not.toHaveBeenCalled()
-    expect(prismaMock.order.update).not.toHaveBeenCalled()
+    expect(prismaMock.order.update).toHaveBeenCalled()
   })
 })
 
@@ -193,7 +192,7 @@ describe('Order Service - createOrder', () => {
             id: 'vp-1',
             status: 'ON_SALE',
             remainingQuantity: 100,
-            salePrice: { mul: () => ({ toFixed: () => '500' }), toFixed: () => '100' }
+            salePrice: new Prisma.Decimal(100)
           }
         }
       ]

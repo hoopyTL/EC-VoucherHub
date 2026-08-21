@@ -6,7 +6,7 @@ import { asyncHandler } from '~/utils/async-handler'
 import { partnerService } from './partner.service'
 
 export const registerPartner = asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.user!.id
+  const userId = (req.user as any).id
 
   const partner = await partnerService.registerPartner(userId, req.body)
 
@@ -14,7 +14,7 @@ export const registerPartner = asyncHandler(async (req: Request, res: Response) 
 })
 
 export const getMyPartner = asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.user!.id
+  const userId = (req.user as any).id
 
   const partner = await partnerService.getPartnerByOwner(userId)
 
@@ -22,7 +22,7 @@ export const getMyPartner = asyncHandler(async (req: Request, res: Response) => 
 })
 
 export const updateMyPartner = asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.user!.id
+  const userId = (req.user as any).id
 
   const partner = await partnerService.updatePartner(userId, req.body)
 
@@ -30,7 +30,7 @@ export const updateMyPartner = asyncHandler(async (req: Request, res: Response) 
 })
 
 export const createBranch = asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.user!.id
+  const userId = (req.user as any).id
 
   const branch = await partnerService.addBranch(userId, req.body)
 
@@ -38,7 +38,7 @@ export const createBranch = asyncHandler(async (req: Request, res: Response) => 
 })
 
 export const updateBranch = asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.user!.id
+  const userId = (req.user as any).id
   const branchId = Number.parseInt(String(req.params.id), 10)
 
   const branch = await partnerService.updateBranch(userId, branchId, req.body)
@@ -47,7 +47,7 @@ export const updateBranch = asyncHandler(async (req: Request, res: Response) => 
 })
 
 export const deleteBranch = asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.user!.id
+  const userId = (req.user as any).id
   const branchId = Number.parseInt(String(req.params.id), 10)
 
   await partnerService.deleteBranch(userId, branchId)

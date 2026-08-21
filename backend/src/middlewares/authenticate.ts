@@ -23,6 +23,8 @@ const assertPartnerCanAccess = (
 }
 
 export async function authenticate(req: Request, _res: Response, next: NextFunction) {
+  // Short-circuit when a previous middleware (e.g. devAuth) already set req.user
+  if ((req as any).user) return next()
   const authHeader = req.headers.authorization
 
   if (!authHeader?.startsWith('Bearer ')) {

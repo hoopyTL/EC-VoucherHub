@@ -27,6 +27,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../services/api'
 import { Button } from '../../components/ui/Button'
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner'
+import { CheckoutProgress } from '../../components/customer/CheckoutProgress'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
 
 /** Maximum quantity of a single voucher allowed per order (mirrors backend). */
@@ -40,6 +41,7 @@ export interface CartItemView {
   id: string
   voucherId: string
   title: string
+  imageUrl?: string | null
   unitPrice: number
   quantity: number
   subtotal: number
@@ -119,9 +121,9 @@ export function resolveCartError(err: unknown): string {
   const message = response?.data?.error?.message
   if (message) return message
   if (!response) {
-    return 'Unable to reach the server. Please check your connection and try again.'
+    return 'Không thể kết nối máy chủ. Vui lòng kiểm tra kết nối và thử lại.'
   }
-  return 'Something went wrong updating your cart. Please try again.'
+  return 'Không thể cập nhật giỏ hàng. Vui lòng thử lại.'
 }
 
 /* -------------------------------------------------------------------------- */
@@ -264,6 +266,7 @@ export function CartPage() {
 
   return (
     <section style={sectionStyle}>
+      <CheckoutProgress current='cart' />
       <h1 style={headingStyle}>Giỏ hàng</h1>
 
       <ul style={listStyle}>
@@ -275,6 +278,19 @@ export function CartPage() {
 
           return (
             <li key={item.id} style={rowStyle} data-testid={`cart-item-${item.id}`}>
+              <div style={thumbnailStyle}>
+                <span>VH</span>
+                {item.imageUrl && (
+                  <img
+                    src={item.imageUrl}
+                    alt=''
+                    style={thumbnailImageStyle}
+                    onError={(event) => {
+                      event.currentTarget.style.display = 'none'
+                    }}
+                  />
+                )}
+              </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={titleStyle}>{item.title}</p>
                 <p style={metaStyle}>
@@ -396,6 +412,29 @@ const rowStyle: CSSProperties = {
   borderRadius: radius.xl,
   background: colors.surface,
   boxShadow: shadows.card
+}
+
+const thumbnailStyle: CSSProperties = {
+  position: 'relative',
+  width: 88,
+  height: 66,
+  flexShrink: 0,
+  display: 'grid',
+  placeItems: 'center',
+  overflow: 'hidden',
+  borderRadius: radius.lg,
+  background: colors.ink,
+  color: colors.onInk,
+  fontFamily: fonts.display,
+  fontWeight: 800
+}
+
+const thumbnailImageStyle: CSSProperties = {
+  position: 'absolute',
+  inset: 0,
+  width: '100%',
+  height: '100%',
+  objectFit: 'cover'
 }
 
 const titleStyle: CSSProperties = {

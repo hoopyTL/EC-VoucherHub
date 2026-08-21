@@ -23,6 +23,7 @@ import type { CreateOrderRequest } from '@ui-contracts'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner'
+import { CheckoutProgress } from '../../components/customer/CheckoutProgress'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
 import {
   createOrder,
@@ -74,12 +75,10 @@ export function CheckoutPage() {
     const phone = emptyToUndefined(recipientPhone)
     const email = emptyToUndefined(recipientEmail)
 
-    // Match backend CreateOrderDto which expects giftRecipient: { name, phone }
-    // If we only have flat fields locally, map them into the nested object
-    const giftRecipient = name || phone ? { name: name || '', phone: phone || '' } : undefined
-
-    const body: any = {
-      giftRecipient
+    const body: CreateOrderRequest = {
+      recipientName: name,
+      recipientEmail: email,
+      recipientPhone: phone
     }
 
     createOrderMutation.mutate(body)
@@ -109,6 +108,7 @@ export function CheckoutPage() {
 
   return (
     <section style={sectionStyle}>
+      <CheckoutProgress current='checkout' />
       <h1 style={pageHeadingStyle}>Thanh toán</h1>
       <p style={{ marginTop: 0, marginBottom: 24, color: colors.slate, fontSize: 16 }}>
         Kiểm tra đơn hàng và thêm thông tin người nhận quà nếu cần trước khi thanh toán.

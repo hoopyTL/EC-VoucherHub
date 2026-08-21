@@ -87,7 +87,7 @@ describe('PartnerApprovalsPage', () => {
     } as never)
     renderPage()
 
-    expect(await screen.findByText(/no pending partners/i)).toBeDefined()
+    expect(await screen.findByText(/không có đối tác nào đang chờ duyệt/i)).toBeDefined()
   })
 
   it('approves a partner and refreshes the list (Req 6.2)', async () => {
@@ -102,13 +102,13 @@ describe('PartnerApprovalsPage', () => {
     renderPage()
     await screen.findByText('Saigon Food')
 
-    fireEvent.click(screen.getByRole('button', { name: /approve saigon food/i }))
+    fireEvent.click(screen.getByRole('button', { name: /duyệt saigon food/i }))
 
     await waitFor(() => {
       expect(patchSpy).toHaveBeenCalledWith('/admin/partners/p-1/approval', { action: 'approve' })
     })
     await waitFor(() => expect(getSpy).toHaveBeenCalledTimes(2))
-    expect(await screen.findByText(/saigon food has been approved/i)).toBeDefined()
+    expect(await screen.findByText(/đã duyệt đối tác saigon food/i)).toBeDefined()
   })
 
   it('requires a reason before rejecting (Req 6.3)', async () => {
@@ -118,12 +118,12 @@ describe('PartnerApprovalsPage', () => {
     renderPage()
     await screen.findByText('Saigon Food')
 
-    fireEvent.click(screen.getByRole('button', { name: /reject saigon food/i }))
+    fireEvent.click(screen.getByRole('button', { name: /từ chối saigon food/i }))
     const dialog = screen.getByRole('dialog')
     // Submit without a reason → validation blocks the API call.
-    fireEvent.click(within(dialog).getByRole('button', { name: /reject partner/i }))
+    fireEvent.click(within(dialog).getByRole('button', { name: /xác nhận từ chối/i }))
 
-    expect(await within(dialog).findByText(/a rejection reason is required/i)).toBeDefined()
+    expect(await within(dialog).findByText(/vui lòng nhập lý do từ chối/i)).toBeDefined()
     expect(patchSpy).not.toHaveBeenCalled()
   })
 
@@ -136,12 +136,12 @@ describe('PartnerApprovalsPage', () => {
     renderPage()
     await screen.findByText('Saigon Food')
 
-    fireEvent.click(screen.getByRole('button', { name: /reject saigon food/i }))
+    fireEvent.click(screen.getByRole('button', { name: /từ chối saigon food/i }))
     const dialog = screen.getByRole('dialog')
-    fireEvent.change(within(dialog).getByLabelText(/rejection reason/i), {
+    fireEvent.change(within(dialog).getByLabelText(/lý do từ chối/i), {
       target: { value: 'Invalid tax id' }
     })
-    fireEvent.click(within(dialog).getByRole('button', { name: /reject partner/i }))
+    fireEvent.click(within(dialog).getByRole('button', { name: /xác nhận từ chối/i }))
 
     await waitFor(() => {
       expect(patchSpy).toHaveBeenCalledWith('/admin/partners/p-1/approval', {
@@ -149,7 +149,7 @@ describe('PartnerApprovalsPage', () => {
         reason: 'Invalid tax id'
       })
     })
-    expect(await screen.findByText(/saigon food has been rejected/i)).toBeDefined()
+    expect(await screen.findByText(/đã từ chối đối tác saigon food/i)).toBeDefined()
   })
 
   it('shows an error alert when the list request fails', async () => {

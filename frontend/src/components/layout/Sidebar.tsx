@@ -1,93 +1,27 @@
-/**
- * Sidebar — contextual navigation for the admin and partner workspaces.
- *
- * Renders a vertical navigation menu whose items depend on the active
- * workspace ("admin" or "partner"). Used by the admin/partner layout shells
- * alongside the global Header/Footer.
- */
 import { NavLink } from 'react-router-dom'
 import type { CSSProperties } from 'react'
 
 export type SidebarVariant = 'admin' | 'partner'
-
-interface SidebarItem {
-  to: string
-  label: string
-}
-
+interface SidebarItem { to: string; label: string; icon: string }
 const ADMIN_ITEMS: SidebarItem[] = [
-  { to: '/admin', label: 'Tổng quan' },
-  { to: '/admin/users', label: 'Người dùng' },
-  { to: '/admin/partners', label: 'Duyệt đối tác' },
-  { to: '/admin/vouchers', label: 'Duyệt voucher' },
-  { to: '/admin/orders', label: 'Đơn hàng' }
+  { to: '/admin', label: 'Tổng quan', icon: '◫' }, { to: '/admin/users', label: 'Người dùng', icon: '◎' },
+  { to: '/admin/partners', label: 'Duyệt đối tác', icon: '◇' }, { to: '/admin/vouchers', label: 'Duyệt voucher', icon: '▣' },
+  { to: '/admin/orders', label: 'Đơn hàng', icon: '≡' }
 ]
-
 const PARTNER_ITEMS: SidebarItem[] = [
-  { to: '/partner', label: 'Tổng quan' },
-  { to: '/partner/profile', label: 'Hồ sơ' },
-  { to: '/partner/branches', label: 'Chi nhánh' },
-  { to: '/partner/vouchers', label: 'Voucher' },
-  { to: '/partner/redeem', label: 'Xác nhận sử dụng' },
-  { to: '/partner/reports', label: 'Báo cáo' }
+  { to: '/partner', label: 'Tổng quan', icon: '◫' }, { to: '/partner/profile', label: 'Hồ sơ doanh nghiệp', icon: '◎' },
+  { to: '/partner/branches', label: 'Chi nhánh', icon: '⌖' }, { to: '/partner/vouchers', label: 'Kho voucher', icon: '▣' },
+  { to: '/partner/redeem', label: 'Xác nhận sử dụng', icon: '✓' }, { to: '/partner/reports', label: 'Báo cáo', icon: '↗' }
 ]
-
-const itemBaseStyle: CSSProperties = {
-  display: 'block',
-  textDecoration: 'none',
-  color: 'inherit',
-  padding: '0.6rem 0.85rem',
-  borderRadius: 6,
-  fontSize: '0.95rem'
-}
-
-export interface SidebarProps {
-  variant: SidebarVariant
-}
-
+export interface SidebarProps { variant: SidebarVariant }
 export function Sidebar({ variant }: SidebarProps) {
   const items = variant === 'admin' ? ADMIN_ITEMS : PARTNER_ITEMS
-  const heading = variant === 'admin' ? 'Quản trị hệ thống' : 'Không gian đối tác'
-
-  return (
-    <aside
-      className='workspace-sidebar'
-      style={{
-        width: 220,
-        flexShrink: 0,
-        borderRight: '1px solid rgba(0, 0, 0, 0.1)',
-        padding: '1rem 0.75rem'
-      }}
-    >
-      <h2
-        style={{
-          fontSize: '0.8rem',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          color: 'rgba(0, 0, 0, 0.55)',
-          margin: '0 0 0.75rem 0.85rem'
-        }}
-      >
-        {heading}
-      </h2>
-      <nav aria-label={`${variant} navigation`} style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-        {items.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.to === `/${variant}`}
-            style={({ isActive }) => ({
-              ...itemBaseStyle,
-              fontWeight: isActive ? 700 : 500,
-              background: isActive ? 'rgba(26, 115, 232, 0.12)' : 'transparent'
-            })}
-          >
-            {item.label}
-          </NavLink>
-        ))}
-      </nav>
-    </aside>
-  )
+  const accent = variant === 'admin' ? '#7457ff' : '#12a786'
+  return <aside className='workspace-sidebar' style={{ width: 248, flexShrink: 0, padding: '22px 14px', color: '#fff', background: variant === 'admin' ? 'linear-gradient(180deg,#17162b 0%,#26213d 100%)' : 'linear-gradient(180deg,#073d35 0%,#0b5548 100%)', boxShadow: '12px 0 35px rgba(24,20,42,.08)' }}>
+    <div style={{ margin: '0 10px 22px' }}><span style={{ display: 'block', fontSize: 16, fontWeight: 800 }}>{variant === 'admin' ? 'Trung tâm vận hành' : 'Không gian đối tác'}</span><span style={{ display: 'block', color: 'rgba(255,255,255,.58)', fontSize: 11, marginTop: 5, letterSpacing: '.08em', textTransform: 'uppercase' }}>{variant === 'admin' ? 'VoucherHub Admin' : 'Merchant Studio'}</span></div>
+    <nav aria-label={`${variant} navigation`} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>{items.map((item) => <NavLink key={item.to} to={item.to} end={item.to === `/${variant}`} style={({ isActive }) => ({ ...itemStyle, color: isActive ? '#fff' : 'rgba(255,255,255,.72)', background: isActive ? accent : 'transparent', boxShadow: isActive ? `0 8px 22px ${accent}44` : 'none' })}><span aria-hidden='true' style={{ width: 28, fontSize: 19, textAlign: 'center' }}>{item.icon}</span><span>{item.label}</span></NavLink>)}</nav>
+    <div style={{ margin: '28px 10px 0', padding: 14, borderRadius: 14, background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.09)' }}><span style={{ fontSize: 11, color: 'rgba(255,255,255,.55)' }}>HỆ THỐNG</span><div style={{ marginTop: 7, fontSize: 13 }}><span style={{ color: '#49e0b6' }}>●</span> Dữ liệu trực tuyến</div></div>
+  </aside>
 }
-
+const itemStyle: CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', padding: '11px 12px', borderRadius: 12, fontSize: 14, fontWeight: 650, transition: 'background 160ms ease, transform 160ms ease, color 160ms ease' }
 export default Sidebar

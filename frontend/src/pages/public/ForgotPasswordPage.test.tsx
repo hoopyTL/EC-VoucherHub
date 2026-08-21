@@ -23,10 +23,10 @@ function renderPage() {
 }
 
 function submitWith(value: string) {
-  fireEvent.change(screen.getByLabelText(/email or phone/i), {
+  fireEvent.change(screen.getByLabelText(/email hoặc số điện thoại/i), {
     target: { value }
   })
-  fireEvent.click(screen.getByRole('button', { name: /request reset/i }))
+  fireEvent.click(screen.getByRole('button', { name: /gửi yêu cầu khôi phục/i }))
 }
 
 describe('ForgotPasswordPage', () => {
@@ -40,8 +40,8 @@ describe('ForgotPasswordPage', () => {
 
   it('renders the email/phone field and a submit button', () => {
     renderPage()
-    expect(screen.getByLabelText(/email or phone/i)).toBeDefined()
-    expect(screen.getByRole('button', { name: /request reset/i })).toBeDefined()
+    expect(screen.getByLabelText(/email hoặc số điện thoại/i)).toBeDefined()
+    expect(screen.getByRole('button', { name: /gửi yêu cầu khôi phục/i })).toBeDefined()
   })
 
   it('calls the API and shows the generic message on submit (Req 2.4)', async () => {
@@ -70,7 +70,7 @@ describe('ForgotPasswordPage', () => {
   it('validates a required identifier without calling the API', async () => {
     renderPage()
 
-    fireEvent.click(screen.getByRole('button', { name: /request reset/i }))
+    fireEvent.click(screen.getByRole('button', { name: /gửi yêu cầu khôi phục/i }))
 
     expect(await screen.findByRole('alert')).toBeDefined()
     expect(forgotPasswordMock).not.toHaveBeenCalled()

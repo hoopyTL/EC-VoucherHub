@@ -64,6 +64,10 @@ export const approvalSchema = z
     path: ['reason']
   })
 export const operatingStatusSchema = z.object({ action: z.enum(['lock', 'unlock']) })
+export const redeemCodeSchema = z.object({
+  code: z.string().trim().min(1, 'Mã voucher không được để trống').max(32),
+  branchId: z.coerce.number().int().positive('Chi nhánh không hợp lệ')
+})
 
 export type RegisterPartnerDto = z.infer<typeof registerPartnerSchema>
 export type UpdatePartnerDto = z.infer<typeof updatePartnerSchema>
@@ -72,3 +76,4 @@ export type UpdateBranchDto = z.infer<typeof updateBranchSchema>
 export type PartnerListDto = z.infer<typeof partnerListSchema>
 export type ApprovalDto = z.infer<typeof approvalSchema>
 export type OperatingStatusDto = z.infer<typeof operatingStatusSchema>
+export type RedeemCodeDto = z.infer<typeof redeemCodeSchema>

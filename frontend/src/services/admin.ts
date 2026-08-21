@@ -67,8 +67,8 @@ function toAdminAccount(user: BackendUserView): AdminAccount {
 
 /** Fetch platform-wide dashboard statistics for the admin overview. */
 export async function getDashboardStats(): Promise<DashboardStats> {
-  const { data } = await api.get<DashboardStats>('/admin/dashboard/stats')
-  return data
+  const { data } = await api.get<ApiEnvelope<DashboardStats> | DashboardStats>('/admin/dashboard/stats')
+  return 'data' in data ? data.data : data
 }
 
 /**
@@ -77,10 +77,10 @@ export async function getDashboardStats(): Promise<DashboardStats> {
  * series (clamped server-side; defaults to 30).
  */
 export async function getAnalytics(days?: number): Promise<AnalyticsOverview> {
-  const { data } = await api.get<AnalyticsOverview>('/admin/analytics', {
+  const { data } = await api.get<ApiEnvelope<AnalyticsOverview> | AnalyticsOverview>('/admin/analytics', {
     params: { days }
   })
-  return data
+  return 'data' in data ? data.data : data
 }
 
 /**
@@ -235,7 +235,7 @@ export function getAdminApiError(err: unknown, fallback: string): string {
   const response = (err as { response?: { status?: number; data?: ApiErrorBody } })?.response
 
   if (!response) {
-    return 'Unable to reach the server. Please check your connection and try again.'
+    return 'Không thể kết nối máy chủ. Vui lòng kiểm tra kết nối và thử lại.'
   }
 
   return response.data?.error?.message ?? fallback

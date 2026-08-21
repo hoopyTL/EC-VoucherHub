@@ -1,3 +1,5 @@
+@import './theme/design-tokens.css';
+
 /**
  * Global baseline for the VoucherHub design system.
  * Tokens live in src/theme/tokens.ts; this file sets the document-level
@@ -5,19 +7,14 @@
  */
 
 :root {
-  --vh-canvas: #e8e7e4;
-  --vh-surface: #ffffff;
-  --vh-ink: #0b0b0b;
-  --vh-slate: #6b6b6b;
-  --vh-hairline: #e2e2e2;
+  --vh-canvas: var(--paper);
+  --vh-surface: var(--surface);
+  --vh-ink: var(--ink);
+  --vh-slate: var(--muted-ink);
+  --vh-hairline: var(--line);
 
   font-family:
-    'Inter',
-    system-ui,
-    -apple-system,
-    Helvetica,
-    Arial,
-    sans-serif;
+    var(--font-sans);
   line-height: 1.6;
   font-weight: 400;
   color: var(--vh-ink);
@@ -29,6 +26,21 @@
 
 * {
   box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  border: 0 !important;
+  border-top: 0 !important;
+  outline: 0;
+}
+
+html::before,
+body::before,
+#root::before {
+  content: none !important;
+  display: none !important;
 }
 
 body {
@@ -43,7 +55,8 @@ h1,
 h2,
 h3,
 h4 {
-  font-family: 'Hanken Grotesk', system-ui, sans-serif;
+  font-family: var(--font-sans);
+  font-weight: 800;
   margin: 0;
 }
 
@@ -77,7 +90,230 @@ a {
   outline-offset: 2px;
 }
 
+.voucher-skeleton {
+  background: linear-gradient(100deg, #deddda 20%, #f5f4f2 38%, #deddda 56%);
+  background-size: 220% 100%;
+  animation: voucher-shimmer 1.25s ease-in-out infinite;
+}
+
+@keyframes voucher-shimmer {
+  to { background-position-x: -220%; }
+}
+
+/* Signature “vé xé”: chỉ voucher và hero dùng chi tiết nhận diện này. */
+.voucher-ticket {
+  position: relative;
+  overflow: visible !important;
+  transition: transform 280ms ease, box-shadow 280ms ease !important;
+}
+.voucher-ticket::before,
+.voucher-ticket::after {
+  content: '';
+  position: absolute;
+  z-index: 3;
+  top: calc(62.5% - 10px);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 1px solid var(--line);
+}
+.voucher-ticket::before { left: -11px; }
+.voucher-ticket::after { right: -11px; }
+.voucher-ticket__tear {
+  position: relative;
+  height: 1px;
+  margin: 0 16px;
+  border-top: 2px dashed var(--line);
+}
+.voucher-ticket__stamp {
+  position: absolute;
+  right: 4px;
+  top: -28px;
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  border: 2px dashed var(--orange);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--orange-deep);
+  font: 700 13px/1 var(--font-mono);
+  transform: rotate(-9deg);
+  transition: transform 280ms ease;
+}
+.voucher-ticket:hover .voucher-ticket__stamp { transform: rotate(-5deg); }
+
+/* Workspace: KPI mang hình thái cuống vé, bảng dữ liệu vẫn giữ cấu trúc chuẩn. */
+.workspace-kpi-ticket {
+  position: relative;
+  overflow: hidden;
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--line)) !important;
+  background:
+    radial-gradient(circle at 100% 0, var(--accent-soft), transparent 46%),
+    var(--surface) !important;
+}
+.workspace-kpi-ticket::before,
+.workspace-kpi-ticket::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  transform: translateY(-50%);
+}
+.workspace-kpi-ticket::before { left: -10px; }
+.workspace-kpi-ticket::after { right: -10px; }
+.kpi-count-up {
+  font-family: var(--font-mono) !important;
+  font-variant-numeric: tabular-nums;
+  animation: kpi-rise 720ms cubic-bezier(.2,.7,.2,1) both;
+}
+.kpi-trend {
+  width: fit-content;
+  padding: 4px 9px;
+  border-radius: var(--radius-pill);
+  background: var(--success-soft);
+  color: var(--success);
+  font: 700 11px/1.3 var(--font-mono);
+}
+.kpi-trend small { color: var(--muted-ink); font: 500 10px/1.3 var(--font-sans); }
+
+.workspace-main table tbody tr {
+  transition: background-color 160ms ease;
+}
+.workspace-main table tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--accent) 3%, transparent);
+}
+.workspace-main table tbody tr:hover {
+  background: color-mix(in srgb, var(--accent) 9%, var(--surface));
+}
+.workspace-main table td:last-child,
+.workspace-main table th:last-child {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Một nhịp chuyển động dàn dựng duy nhất cho hero. */
+.ticket-hero > div:last-child > * {
+  opacity: 0;
+  animation: hero-ticket-in 400ms cubic-bezier(.2,.7,.2,1) forwards;
+}
+.ticket-hero > div:last-child > *:nth-child(1) { animation-delay: 40ms; }
+.ticket-hero > div:last-child > *:nth-child(2) { animation-delay: 110ms; }
+.ticket-hero > div:last-child > *:nth-child(3) { animation-delay: 180ms; }
+.ticket-hero > div:last-child > *:nth-child(4) { animation-delay: 250ms; }
+.ticket-hero > div:last-child > *:nth-child(5) { animation-delay: 320ms; }
+
+.voucher-reveal {
+  height: 100%;
+  opacity: 0;
+  transform: translateY(12px);
+}
+.voucher-reveal.is-visible {
+  animation: voucher-reveal-in 350ms cubic-bezier(.2,.7,.2,1) var(--reveal-delay, 0ms) both;
+}
+.voucher-ticket:hover {
+  transform: translateY(-6px) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+.toast-motion { animation: toast-enter 260ms cubic-bezier(.2,.7,.2,1) both; }
+
+@keyframes hero-ticket-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes voucher-reveal-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes toast-enter {
+  from { opacity: 0; transform: translate(18px, -12px) scale(.97); }
+  to { opacity: 1; transform: translate(0, 0) scale(1); }
+}
+@keyframes kpi-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.filter-chip-bar {
+  position: sticky;
+  top: 88px;
+  z-index: 5;
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  padding-block: var(--space-2);
+  background: var(--surface);
+}
+.filter-chip {
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 700;
+}
+.filter-chip.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+.filter-toolbar-actions { display: none; }
+.filter-advanced { display: contents; }
+.ticket-hero::after {
+  content: '';
+  position: absolute;
+  top: 20px;
+  bottom: 20px;
+  right: -10px;
+  width: 20px;
+  background: radial-gradient(circle at center, var(--paper) 0 8px, transparent 8.5px) center top / 20px 28px repeat-y;
+  pointer-events: none;
+}
+
+/* The document shell itself must never receive the control focus ring. */
+html:focus-visible,
+body:focus-visible,
+#root:focus-visible {
+  outline: 0;
+}
+
 @media (max-width: 720px) {
+  .filter-toolbar-actions { display: flex; justify-content: flex-end; }
+  .filter-drawer-trigger {
+    padding: 0 18px;
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-pill);
+    background: var(--accent-soft);
+    color: var(--accent-deep);
+    font-weight: 700;
+  }
+  .filter-advanced {
+    position: fixed;
+    z-index: 1200;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-height: 78vh;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 24px 18px max(24px, env(safe-area-inset-bottom));
+    overflow-y: auto;
+    border-radius: 24px 24px 0 0;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    box-shadow: var(--shadow-lg);
+    transform: translateY(105%);
+    visibility: hidden;
+    transition: transform 240ms ease, visibility 240ms;
+  }
+  .filter-advanced.is-open { transform: translateY(0); visibility: visible; }
   .public-main,
   .workspace-main {
     padding: 24px 16px !important;
@@ -101,5 +337,19 @@ a {
 
   table {
     min-width: 680px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+  .ticket-hero > div:last-child > *,
+  .voucher-reveal {
+    opacity: 1;
+    transform: none;
   }
 }

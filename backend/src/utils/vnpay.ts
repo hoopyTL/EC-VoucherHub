@@ -37,8 +37,8 @@ export function createVNPayUrl(ipAddr: string, orderId: string, amount: number, 
   return url
 }
 
-export function verifyVNPayReturn(vnp_Params: any): boolean {
-  const secureHash = vnp_Params['vnp_SecureHash']
+export function verifyVNPayReturn(vnp_Params: Record<string, unknown>): boolean {
+  const secureHash = String(vnp_Params['vnp_SecureHash'] ?? '')
   let vnp_Params_Clone = { ...vnp_Params }
 
   delete vnp_Params_Clone['vnp_SecureHash']
@@ -53,18 +53,11 @@ export function verifyVNPayReturn(vnp_Params: any): boolean {
   return secureHash === signed
 }
 
-function sortObject(obj: any) {
-  const sorted: any = {}
-  const str = []
-  let key
-  for (key in obj) {
-    if (obj.hasOwnProperty(key)) {
-      str.push(encodeURIComponent(key))
-    }
-  }
-  str.sort()
-  for (key = 0; key < str.length; key++) {
-    sorted[str[key]] = encodeURIComponent(obj[str[key]]).replace(/%20/g, '+')
+function sortObject(obj: Record<string, unknown>): Record<string, string> {
+  const sorted: Record<string, string> = {}
+  const keys = Object.keys(obj).sort()
+  for (const key of keys) {
+    sorted[encodeURIComponent(key)] = encodeURIComponent(String(obj[key])).replace(/%20/g, '+')
   }
   return sorted
 }

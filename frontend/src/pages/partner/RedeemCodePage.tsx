@@ -33,7 +33,7 @@ export interface PartnerBranch {
   address: string
   region: string
   contact: string
-  isActive: boolean
+  isActive?: boolean
 }
 
 /** Successful redemption payload (`POST /partner/redeem-code`). */
@@ -51,17 +51,22 @@ interface ApiErrorBody {
   error?: { code?: string; message?: string }
 }
 
+interface ApiEnvelope<T> {
+  success: true
+  data: T
+}
+
 async function fetchBranches(): Promise<PartnerBranch[]> {
-  const { data } = await api.get<PartnerBranch[]>('/partner/branches')
-  return data
+  const { data } = await api.get<ApiEnvelope<PartnerBranch[]> | PartnerBranch[]>('/partner/branches')
+  return 'data' in data ? data.data : data
 }
 
 async function redeemCode(code: string, branchId: string): Promise<RedemptionResult> {
-  const { data } = await api.post<RedemptionResult>('/partner/redeem-code', {
+  const { data } = await api.post<ApiEnvelope<RedemptionResult> | RedemptionResult>('/partner/redeem-code', {
     code,
     branchId
   })
-  return data
+  return 'data' in data ? data.data : data
 }
 
 /**
@@ -103,7 +108,9 @@ export function RedeemCodePage() {
     queryFn: fetchBranches
   })
 
-  const activeBranches = useMemo(() => (branches ?? []).filter((branch) => branch.isActive), [branches])
+  // Older database rows do not carry an `isActive` column; they are active by
+  // default. Only an explicit false value hides a branch.
+  const activeBranches = useMemo(() => (branches ?? []).filter((branch) => branch.isActive !== false), [branches])
 
   const mutation = useMutation({
     mutationFn: ({ code: c, branchId: b }: { code: string; branchId: string }) => redeemCode(c, b)
@@ -120,7 +127,7 @@ export function RedeemCodePage() {
 
   const result = mutation.data
   const errorMessage = mutation.isError ? resolveRedeemError(mutation.error) : null
-  const redeemedBranch = result ? activeBranches.find((b) => b.id === result.redemptionBranchId) : undefined
+  const redeemedBranch = result ? activeBranches.find((b) => String(b.id) === String(result.redemptionBranchId)) : undefined
 
   return (
     <section style={{ maxWidth: 620, margin: '0 auto' }}>

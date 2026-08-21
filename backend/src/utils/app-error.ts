@@ -57,7 +57,7 @@ export class AppError extends Error {
     return new AppError(message, ErrorHttpStatus[ErrorCode.DUPLICATE_ENTRY], ErrorCode.DUPLICATE_ENTRY, details)
   }
 
-  static rateLimit(message = 'Too many requests'): AppError {
+  static rateLimit(message = 'Bạn đã gửi quá nhiều yêu cầu'): AppError {
     return new AppError(message, ErrorHttpStatus[ErrorCode.RATE_LIMIT_EXCEEDED], ErrorCode.RATE_LIMIT_EXCEEDED)
   }
 
