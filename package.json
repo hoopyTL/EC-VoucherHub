@@ -65,5 +65,8 @@
     "tsx": "^4.22.4",
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.61.0"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "^4.62.4"
   }
 }
