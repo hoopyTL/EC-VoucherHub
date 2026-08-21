@@ -62,7 +62,7 @@ export function verifyVNPayReturn(vnp_Params: Record<string, unknown>): boolean 
 
 function sortObject(obj: Record<string, string | number>): Record<string, string> {
   const sorted: Record<string, string> = {}
-  const keys = Object.keys(obj).sort()
+  const keys = Object.keys(obj).sort((left, right) => left.localeCompare(right))
   for (const key of keys) {
     sorted[encodeURIComponent(key)] = encodeURIComponent(String(obj[key])).replace(/%20/g, '+')
   }
