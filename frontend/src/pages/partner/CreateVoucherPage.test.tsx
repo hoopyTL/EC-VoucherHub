@@ -181,4 +181,11 @@ describe('validateVoucherForm', () => {
     expect(validateVoucherForm({ ...base, salePeriodEnd: base.salePeriodStart }, ['1']).salePeriodEnd).toBeDefined()
     expect(validateVoucherForm({ ...base, usagePeriodEnd: base.usagePeriodStart }, ['1']).usagePeriodEnd).toBeDefined()
   })
+
+  it('accepts only internally uploaded voucher images', () => {
+    expect(
+      validateVoucherForm({ ...base, imageUrl: '/uploads/vouchers/partner-image.png' }, ['1']).imageUrl
+    ).toBeUndefined()
+    expect(validateVoucherForm({ ...base, imageUrl: 'https://example.com/image.png' }, ['1']).imageUrl).toBeDefined()
+  })
 })

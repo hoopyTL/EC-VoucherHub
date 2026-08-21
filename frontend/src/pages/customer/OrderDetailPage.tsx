@@ -14,10 +14,10 @@
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
-import { useState, type CSSProperties } from 'react'
+import type { CSSProperties } from 'react'
 import { api } from '../../services/api'
 import type { Order } from '../../types/customer'
-import { Badge, variantForStatus, LoadingSpinner, Button, ConfirmDialog } from '../../components/ui'
+import { Badge, variantForStatus, LoadingSpinner, Button } from '../../components/ui'
 import { formatCurrency, formatDateTime, formatStatus } from '../../utils/format'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
 
@@ -33,19 +33,6 @@ function isNotFound(error: unknown): boolean {
 
 export function OrderDetailPage() {
   const { id = '' } = useParams<{ id: string }>()
-  const [paymentError, setPaymentError] = useState('')
-  const [startingGateway, setStartingGateway] = useState<'vnpay' | 'stripe' | null>(null)
-  const [cancelOpen, setCancelOpen] = useState(false)
-  const [actionMessage, setActionMessage] = useState<{type:'success'|'error';text:string}|null>(null)
-
-  function paymentErrorMessage(error: any): string {
-    return (
-      error?.response?.data?.error?.message ||
-      error?.response?.data?.error ||
-      error?.message ||
-      'Không thể khởi tạo cổng thanh toán. Vui lòng thử lại.'
-    )
-  }
 
   const {
     data: order,
@@ -66,27 +53,15 @@ export function OrderDetailPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['order', id] })
-      setCancelOpen(false)
-      setActionMessage({type:'success',text:'Đã hủy đơn hàng và hoàn voucher về kho.'})
+      alert('Đã hủy đơn hàng thành công, số lượng voucher đã được hoàn lại kho.')
     },
     onError: (err: any) => {
-      setCancelOpen(false)
-      setActionMessage({type:'error',text:err?.response?.data?.message || err?.message || 'Không thể hủy đơn hàng.'})
+      alert('Lỗi hủy đơn: ' + (err?.response?.data?.message || err?.message || 'Không xác định'))
     }
   })
 
   const isPaid = order?.status === 'PAID'
-  const codesQuery = useQuery({
-    queryKey: ['my-codes', id],
-    queryFn: async () => {
-      const { data } = await api.get<any>('/my-codes')
-      const payload = (data as any).data || data
-      const codes = payload.items || payload || []
-      return codes.filter((code: { orderId?: string; order?: { id?: string } }) => (code.orderId || code.order?.id) === id)
-    },
-    enabled: isPaid && !(order?.codes?.length || order?.voucherCodes?.length)
-  })
-  const orderCodes = order?.codes || order?.voucherCodes || codesQuery.data || []
+  const orderCodes = order?.codes || []
 
   if (isLoading) {
     return (
@@ -101,7 +76,7 @@ export function OrderDetailPage() {
       <section style={wrapperStyle}>
         <h1 style={pageHeadingStyle}>Không tìm thấy đơn hàng</h1>
         <p style={{ color: colors.slate }}>Đơn hàng không tồn tại hoặc không thuộc tài khoản của bạn.</p>
-        <Link to='/cart?tab=orders' style={linkStyle}>
+        <Link to='/orders' style={linkStyle}>
           ← Quay lại đơn hàng
         </Link>
       </section>
@@ -115,7 +90,7 @@ export function OrderDetailPage() {
           Không thể tải đơn hàng này. Vui lòng thử lại sau.
         </div>
         <p style={{ marginTop: 16 }}>
-          <Link to='/cart?tab=orders' style={linkStyle}>
+          <Link to='/orders' style={linkStyle}>
             ← Quay lại đơn hàng
           </Link>
         </p>
@@ -125,9 +100,8 @@ export function OrderDetailPage() {
 
   return (
     <section style={wrapperStyle}>
-      {actionMessage && <div role={actionMessage.type==='error'?'alert':'status'} style={{...alertStyle,background:actionMessage.type==='success'?'#dcfce7':undefined,color:actionMessage.type==='success'?'#166534':undefined,marginBottom:16}}>{actionMessage.text}</div>}
       <p style={{ marginTop: 0, marginBottom: 8 }}>
-        <Link to='/cart?tab=orders' style={linkStyle}>
+        <Link to='/orders' style={linkStyle}>
           ← Quay lại đơn hàng
         </Link>
       </p>
@@ -165,9 +139,9 @@ export function OrderDetailPage() {
             </tr>
           </thead>
           <tbody>
-            {(order.items || order.orderItems || []).map((item) => (
+            {(order.items || []).map((item) => (
               <tr key={item.id}>
-                <td style={tdStyle}>{item.voucherProductName || item.voucher?.title}</td>
+                <td style={tdStyle}>{item.voucherProductName}</td>
                 <td style={{ ...tdStyle, textAlign: 'center' }}>{item.quantity}</td>
                 <td style={{ ...tdStyle, textAlign: 'right' }}>{formatCurrency(item.unitPrice)}</td>
                 <td style={{ ...tdStyle, textAlign: 'right' }}>
@@ -190,28 +164,17 @@ export function OrderDetailPage() {
       {order.status === 'PENDING_PAYMENT' && (
         <div style={cardStyle}>
           <p style={{ margin: 0, color: colors.ink }}>Đơn hàng đang chờ hoàn tất thanh toán.</p>
-          {paymentError && (
-            <div role='alert' style={{ ...alertStyle, marginTop: 16 }}>
-              <strong>Chưa thể mở cổng thanh toán.</strong>
-              <div style={{ marginTop: 4 }}>{paymentError}</div>
-            </div>
-          )}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 16 }}>
+          <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
             <Button
               variant='primary'
               style={{ backgroundColor: '#005baa' }}
-              disabled={startingGateway !== null}
-              isLoading={startingGateway === 'vnpay'}
               onClick={async () => {
-                setPaymentError('')
-                setStartingGateway('vnpay')
                 try {
                   const { getVNPayUrl } = await import('../../services/orders')
                   const url = await getVNPayUrl(order.id)
                   window.location.href = url
                 } catch (e) {
-                  setPaymentError(paymentErrorMessage(e))
-                  setStartingGateway(null)
+                  alert('Khởi tạo VNPay thất bại, vui lòng thử lại!')
                 }
               }}
             >
@@ -219,38 +182,20 @@ export function OrderDetailPage() {
             </Button>
 
             <Button
-              variant='primary'
-              style={{ backgroundColor: '#635BFF' }}
-              disabled={startingGateway !== null}
-              isLoading={startingGateway === 'stripe'}
-              onClick={async () => {
-                setPaymentError('')
-                setStartingGateway('stripe')
-                try {
-                  const { getStripeUrl } = await import('../../services/orders')
-                  const url = await getStripeUrl(order.id)
-                  window.location.href = url
-                } catch (e) {
-                  setPaymentError(paymentErrorMessage(e))
-                  setStartingGateway(null)
-                }
-              }}
-            >
-              Thanh toán qua thẻ quốc tế (Stripe)
-            </Button>
-
-            <Button
               variant='danger'
               disabled={cancelMutation.isPending}
               isLoading={cancelMutation.isPending}
-              onClick={() => setCancelOpen(true)}
+              onClick={() => {
+                if (window.confirm('Bạn có chắc muốn hủy đơn hàng này không? Voucher sẽ được trả lại kho.')) {
+                  cancelMutation.mutate()
+                }
+              }}
             >
               Hủy đơn
             </Button>
           </div>
         </div>
       )}
-      <ConfirmDialog open={cancelOpen} title='Xác nhận hủy đơn' message='Voucher trong đơn sẽ được hoàn lại kho. Bạn có chắc muốn hủy đơn hàng này?' cancelLabel='Tiếp tục thanh toán' confirmLabel='Hủy đơn' danger busy={cancelMutation.isPending} onCancel={()=>setCancelOpen(false)} onConfirm={()=>cancelMutation.mutate()} />
 
       {isPaid && (
         <div style={cardStyle}>
@@ -259,7 +204,7 @@ export function OrderDetailPage() {
             <p style={lineStyle}>Đơn hàng chưa có mã voucher.</p>
           ) : (
             <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-              {orderCodes.map((code: { code: string; status: string }) => (
+              {orderCodes.map((code) => (
                 <li key={code.code} style={codeRowStyle}>
                   <strong style={{ fontFamily: 'monospace', color: colors.ink, fontSize: 16 }}>{code.code}</strong>
                   <Badge variant={variantForStatus(code.status as any)}>{formatStatus(code.status as any)}</Badge>

@@ -38,22 +38,29 @@ export function createVNPayUrl(ipAddr: string, orderId: string, amount: number, 
 }
 
 export function verifyVNPayReturn(vnp_Params: Record<string, unknown>): boolean {
-  const secureHash = String(vnp_Params['vnp_SecureHash'] ?? '')
-  let vnp_Params_Clone = { ...vnp_Params }
+  const secureHash = typeof vnp_Params['vnp_SecureHash'] === 'string' ? vnp_Params['vnp_SecureHash'] : ''
+  const vnp_Params_Clone: Record<string, string | number> = {}
 
-  delete vnp_Params_Clone['vnp_SecureHash']
-  delete vnp_Params_Clone['vnp_SecureHashType']
+  for (const [key, value] of Object.entries(vnp_Params)) {
+    if (
+      key !== 'vnp_SecureHash' &&
+      key !== 'vnp_SecureHashType' &&
+      (typeof value === 'string' || typeof value === 'number')
+    ) {
+      vnp_Params_Clone[key] = value
+    }
+  }
 
-  vnp_Params_Clone = sortObject(vnp_Params_Clone)
+  const sortedParams = sortObject(vnp_Params_Clone)
 
-  const signData = qs.stringify(vnp_Params_Clone, { encode: false })
+  const signData = qs.stringify(sortedParams, { encode: false })
   const hmac = crypto.createHmac('sha512', VNP_HASHSECRET)
   const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex')
 
   return secureHash === signed
 }
 
-function sortObject(obj: Record<string, unknown>): Record<string, string> {
+function sortObject(obj: Record<string, string | number>): Record<string, string> {
   const sorted: Record<string, string> = {}
   const keys = Object.keys(obj).sort()
   for (const key of keys) {

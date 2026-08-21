@@ -1,7 +1,0 @@
-backend/src/app.ts
-backend/src/types/express.d.ts
-backend/tsconfig.json
-backend/vitest.config.ts
-package-lock.json
-package.json
-shared/package.json

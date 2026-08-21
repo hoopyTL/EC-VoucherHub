@@ -8,6 +8,7 @@ vi.mock('../../configs/prisma', () => {
       cart: { findUnique: vi.fn(), create: vi.fn() },
       cartItem: { findUnique: vi.fn(), update: vi.fn(), create: vi.fn(), delete: vi.fn() },
       voucherProduct: { findUnique: vi.fn() },
+      $disconnect: vi.fn()
     }
   }
 })
@@ -45,7 +46,7 @@ describe('Cart Service', () => {
             updatedAt: mockDate,
             voucherProduct: {
               name: 'Voucher 1',
-              salePrice: new Decimal(100),
+              salePrice: new Decimal(100)
             }
           }
         ]
@@ -66,20 +67,20 @@ describe('Cart Service', () => {
     it('ném lỗi NotFoundError nếu voucher không tồn tại', async () => {
       prismaMock.voucherProduct.findUnique.mockResolvedValue(null)
 
-      await expect(cartService.addItem(customerId, { voucherProductId: 'vp-1', quantity: 1 }))
-        .rejects
-        .toThrow(NotFoundError)
+      await expect(cartService.addItem(customerId, { voucherProductId: 'vp-1', quantity: 1 })).rejects.toThrow(
+        NotFoundError
+      )
     })
 
     it('ném lỗi ValidationError nếu voucher không đang bán', async () => {
       prismaMock.voucherProduct.findUnique.mockResolvedValue({
         id: 'vp-1',
-        status: 'PAUSED',
+        status: 'PAUSED'
       } as any)
 
-      await expect(cartService.addItem(customerId, { voucherProductId: 'vp-1', quantity: 1 }))
-        .rejects
-        .toThrow(ValidationError)
+      await expect(cartService.addItem(customerId, { voucherProductId: 'vp-1', quantity: 1 })).rejects.toThrow(
+        ValidationError
+      )
     })
 
     it('ném lỗi ValidationError nếu vượt giới hạn chống đầu cơ (MAX_QUANTITY = 10)', async () => {
@@ -100,9 +101,9 @@ describe('Cart Service', () => {
       })
 
       // Thêm 6 cái nữa -> Tống cộng 11 -> Vượt 10 -> Cần văng lỗi
-      await expect(cartService.addItem(customerId, { voucherProductId: 'vp-1', quantity: 6 }))
-        .rejects
-        .toThrow(ValidationError)
+      await expect(cartService.addItem(customerId, { voucherProductId: 'vp-1', quantity: 6 })).rejects.toThrow(
+        ValidationError
+      )
     })
   })
 })

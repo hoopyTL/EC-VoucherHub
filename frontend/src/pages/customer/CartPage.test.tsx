@@ -65,9 +65,9 @@ afterEach(() => {
 
 describe('CartPage helpers', () => {
   it('formatPrice renders a currency string', () => {
-    expect(formatPrice(0)).toMatch(/0.*₫/)
-    expect(formatPrice(130)).toMatch(/130.*₫/)
-    expect(formatPrice(12.5)).toMatch(/13.*₫/)
+    expect(formatPrice(0)).toContain('₫')
+    expect(formatPrice(130)).toContain('130')
+    expect(formatPrice(12.5)).toContain('13')
   })
 
   it('resolveCartError surfaces the backend message when present', () => {
@@ -97,10 +97,10 @@ describe('CartPage', () => {
     expect(await screen.findByText('Spa Day Pass')).toBeDefined()
     expect(screen.getByText('Dinner for Two')).toBeDefined()
 
-    expect(screen.getByTestId('unit-price-ci-1').textContent).toMatch(/50.*₫/)
+    expect(screen.getByTestId('unit-price-ci-1').textContent).toBe(formatPrice(50))
     expect(screen.getByTestId('quantity-ci-1').textContent).toBe('2')
-    expect(screen.getByTestId('subtotal-ci-1').textContent).toMatch(/100.*₫/)
-    expect(screen.getByTestId('cart-total').textContent).toMatch(/130.*₫/)
+    expect(screen.getByTestId('subtotal-ci-1').textContent).toBe(formatPrice(100))
+    expect(screen.getByTestId('cart-total').textContent).toBe(formatPrice(130))
   })
 
   it('shows an empty-cart message when there are no items', async () => {
@@ -125,7 +125,7 @@ describe('CartPage', () => {
     // Defer the server response so we can observe the optimistic state while
     // the request is still in flight.
     let resolvePut!: (value: unknown) => void
-    const putSpy = vi.spyOn(api, 'patch').mockReturnValue(
+    const patchSpy = vi.spyOn(api, 'patch').mockReturnValue(
       new Promise((resolve) => {
         resolvePut = resolve
       }) as never
@@ -140,13 +140,13 @@ describe('CartPage', () => {
     await waitFor(() => {
       expect(screen.getByTestId('quantity-ci-1').textContent).toBe('3')
     })
-    expect(screen.getByTestId('subtotal-ci-1').textContent).toMatch(/150.*₫/)
-    expect(putSpy).toHaveBeenCalledWith('/cart/items/ci-1', { quantity: 3 })
+    expect(screen.getByTestId('subtotal-ci-1').textContent).toBe(formatPrice(150))
+    expect(patchSpy).toHaveBeenCalledWith('/cart/items/ci-1', { quantity: 3 })
 
     // Resolve with the authoritative cart; the cache reconciles to it.
     resolvePut({ data: updated })
     await waitFor(() => {
-      expect(screen.getByTestId('cart-total').textContent).toMatch(/180.*₫/)
+      expect(screen.getByTestId('cart-total').textContent).toBe(formatPrice(180))
     })
   })
 
@@ -177,7 +177,7 @@ describe('CartPage', () => {
     await waitFor(() => {
       expect(screen.getByTestId('quantity-ci-1').textContent).toBe('2')
     })
-    expect(screen.getByTestId('cart-total').textContent).toMatch(/130.*₫/)
+    expect(screen.getByTestId('cart-total').textContent).toBe(formatPrice(130))
   })
 
   it('optimistically removes an item and recalculates the total', async () => {
@@ -197,7 +197,7 @@ describe('CartPage', () => {
       expect(screen.queryByText('Spa Day Pass')).toBeNull()
     })
     expect(deleteSpy).toHaveBeenCalledWith('/cart/items/ci-1')
-    expect(screen.getByTestId('cart-total').textContent).toMatch(/30.*₫/)
+    expect(screen.getByTestId('cart-total').textContent).toBe(formatPrice(30))
   })
 
   it('does not exceed the maximum quantity per item', async () => {
@@ -206,7 +206,7 @@ describe('CartPage', () => {
       total: 500
     }
     vi.spyOn(api, 'get').mockResolvedValue({ data: maxedCart } as never)
-    const putSpy = vi.spyOn(api, 'patch')
+    const patchSpy = vi.spyOn(api, 'patch')
 
     renderCart()
 
@@ -215,7 +215,7 @@ describe('CartPage', () => {
     expect(increase).toHaveProperty('disabled', true)
 
     fireEvent.click(increase)
-    expect(putSpy).not.toHaveBeenCalled()
+    expect(patchSpy).not.toHaveBeenCalled()
   })
 
   it('renders an error state with a retry when the cart fails to load', async () => {

@@ -11,11 +11,6 @@ export default defineConfig({
     include: ['src/**/*.test.ts'],
     setupFiles: ['./src/test/setup.ts'],
     fileParallelism: false,
-    env: {
-      DATABASE_URL: 'postgresql://postgres:postgres@localhost:5433/voucherhub_test',
-      JWT_SECRET: 'test-secret',
-      JWT_REFRESH_SECRET: 'test-secret'
-    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],

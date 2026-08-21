@@ -4,48 +4,30 @@ import express from 'express'
 import helmet from 'helmet'
 import morgan from 'morgan'
 import cors from 'cors'
-import { ApiResponse } from './utils/api-response'
 
 import { env } from '~/configs/env'
-import adminRoutes from './routes/admin.routes'
-import apiRouter from './modules'
-import cartRoutes from './modules/cart/cart.routes'
-import orderRoutes from './modules/order/order.routes'
-import searchRoutes from './modules/search/search.routes'
-import { partnerRoutes } from './modules/partner/partner.routes'
-import { categoryRoutes } from './modules/category/category.routes'
-import { voucherRoutes } from './modules/voucher/voucher.routes'
-import { errorHandler } from './middlewares/error-handler'
-import { notFoundHandler } from './middlewares/not-found'
+import { notFoundHandler } from '~/middlewares/not-found'
+import { errorHandler } from '~/middlewares/error-handler'
+import { ApiResponse } from '~/utils/api-response'
+import apiRouter from '~/modules'
+import cartRoutes from '~/modules/cart/cart.routes'
+import orderRoutes from '~/modules/order/order.routes'
 
 const app = express()
 
 // Security
 app.use(helmet())
-// allow multiple local dev origins during development (vite default 5173/5174)
-if (env.NODE_ENV !== 'production') {
-  app.use(
-    cors({
-      origin: (origin, callback) => {
-        // allow non-browser tools (curl) with no origin
-        if (!origin) return callback(null, true)
-        const allowed = [env.CORS_ORIGIN, 'http://localhost:5174', 'http://127.0.0.1:5174']
-        if (allowed.includes(origin) || origin.startsWith('http://localhost')) return callback(null, true)
-        return callback(new Error('Not allowed by CORS'))
-      },
-      credentials: true
-    })
-  )
-} else {
-  app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }))
-}
 
-// Stripe signature verification requires the unparsed request body.
+// Cors
+app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }))
+
+// Body parsing
 app.use('/api/orders/webhook/stripe', express.raw({ type: 'application/json' }))
 app.use(express.json({ limit: '1mb' }))
 app.use(express.urlencoded({ extended: true }))
 app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')))
 
+// Logging
 if (env.NODE_ENV !== 'test') {
   app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'))
 }
@@ -59,25 +41,12 @@ app.get('/', (_req, res) => {
   ApiResponse.success(res, { message: 'Welcome VoucherHub' })
 })
 
-// API router (auth + user)
+// API routes
 app.use('/api', apiRouter)
-
-// Additional modules mounted under /api
 app.use('/api/cart', cartRoutes)
 app.use('/api/orders', orderRoutes)
-// Public catalogue routes expose GET /api/vouchers and GET /api/vouchers/:id.
-// Mounting this router at /api made `/api/vouchers` hit the `/:id` detail
-// handler with the literal id "vouchers" instead of the list handler.
-app.use('/api/vouchers', searchRoutes)
 
-// Partner, category and voucher routes enforce authentication internally.
-app.use('/api', partnerRoutes)
-app.use('/api', categoryRoutes)
-app.use('/api', voucherRoutes)
-
-app.use('/api/admin', adminRoutes)
-
-// handling error
+// Error handling must remain after all routes.
 app.use(notFoundHandler)
 app.use(errorHandler)
 

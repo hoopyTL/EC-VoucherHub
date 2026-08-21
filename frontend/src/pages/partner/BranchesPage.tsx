@@ -21,7 +21,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createBranch, deleteBranch, getPartnerApiError, listBranches, updateBranch } from '../../services/partner'
 import type { Branch, BranchFormValues } from '../../types/partner'
 import { VOUCHER_REGIONS } from '../../constants/voucher'
-import { Badge, Button, Input, LoadingSpinner, Modal } from '../../components/ui'
+import { Button, Input, LoadingSpinner, Modal } from '../../components/ui'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
 
 /** Query key for the partner branches list. */
@@ -40,9 +40,9 @@ type FormErrors = Partial<Record<keyof BranchFormValues, string>>
 /** Validate the branch form client-side (all fields required, Req 7.1). */
 export function validateBranchForm(values: BranchFormValues): FormErrors {
   const errors: FormErrors = {}
-  if (!values.name.trim()) errors.name = 'Tên chi nhánh là bắt buộc'
-  if (!values.address.trim()) errors.address = 'Địa chỉ là bắt buộc'
-  if (!values.region.trim()) errors.region = 'Khu vực là bắt buộc'
+  if (!values.name.trim()) errors.name = 'Name is required'
+  if (!values.address.trim()) errors.address = 'Address is required'
+  if (!values.region.trim()) errors.region = 'Region is required'
   return errors
 }
 
@@ -80,11 +80,11 @@ export function BranchesPage() {
     mutationFn: (values: BranchFormValues) => (editing ? updateBranch(editing.id, values) : createBranch(values)),
     onSuccess: async () => {
       await invalidate()
-      setNotice(editing ? 'Đã cập nhật chi nhánh.' : 'Đã thêm chi nhánh.')
+      setNotice(editing ? 'Branch updated.' : 'Branch added.')
       closeForm()
     },
     onError: (err) => {
-      setFormError(getPartnerApiError(err, 'Không thể lưu chi nhánh. Vui lòng thử lại.'))
+      setFormError(getPartnerApiError(err, 'Could not save the branch. Please try again.'))
     }
   })
 
@@ -92,11 +92,11 @@ export function BranchesPage() {
     mutationFn: (branch: Branch) => deleteBranch(branch.id),
     onSuccess: async () => {
       await invalidate()
-      setNotice('Đã xóa chi nhánh.')
+      setNotice('Branch deleted.')
       setRemoving(null)
     },
     onError: (err) => {
-      setRemoveError(getPartnerApiError(err, 'Không thể xóa chi nhánh. Vui lòng thử lại.'))
+      setRemoveError(getPartnerApiError(err, 'Could not delete the branch. Please try again.'))
     }
   })
 
@@ -151,8 +151,8 @@ export function BranchesPage() {
   return (
     <section style={{ maxWidth: 900, margin: '0 auto' }}>
       <div style={headerRowStyle}>
-        <h1 style={titleStyle}>Quản lý chi nhánh</h1>
-        <Button onClick={openAdd}>Thêm chi nhánh</Button>
+        <h1 style={titleStyle}>Branches</h1>
+        <Button onClick={openAdd}>Add branch</Button>
       </div>
 
       {notice && (
@@ -163,23 +163,23 @@ export function BranchesPage() {
 
       {isLoading && (
         <div style={{ padding: 32 }}>
-          <LoadingSpinner label='Đang tải chi nhánh' />
+          <LoadingSpinner label='Loading branches' />
         </div>
       )}
 
       {!isLoading && isError && (
         <div role='alert' style={alertStyle}>
-          Không thể tải danh sách chi nhánh.{' '}
+          We couldn&apos;t load your branches.{' '}
           <button type='button' style={linkButtonStyle} onClick={() => refetch()}>
-            Thử lại
+            Retry
           </button>
         </div>
       )}
 
       {!isLoading && !isError && branches && branches.length === 0 && (
         <div style={emptyStyle}>
-          <p style={{ margin: 0 }}>Doanh nghiệp chưa có chi nhánh.</p>
-          <Button onClick={openAdd}>Thêm chi nhánh đầu tiên</Button>
+          <p style={{ margin: 0 }}>You haven&apos;t added any branches yet.</p>
+          <Button onClick={openAdd}>Add your first branch</Button>
         </div>
       )}
 
@@ -190,7 +190,6 @@ export function BranchesPage() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontWeight: 600 }}>{branch.name}</span>
-                  <Badge variant='success'>Hoạt động</Badge>
                 </div>
                 <p style={metaStyle}>{branch.address}</p>
                 <p style={metaStyle}>{branch.region}</p>
@@ -200,9 +199,9 @@ export function BranchesPage() {
                   size='sm'
                   variant='secondary'
                   onClick={() => openEdit(branch)}
-                  aria-label={`Sửa ${branch.name}`}
+                  aria-label={`Edit ${branch.name}`}
                 >
-                  Sửa
+                  Edit
                 </Button>
                 <Button
                   size='sm'
@@ -212,9 +211,9 @@ export function BranchesPage() {
                     setNotice(null)
                     setRemoving(branch)
                   }}
-                  aria-label={`Xóa ${branch.name}`}
+                  aria-label={`Delete ${branch.name}`}
                 >
-                  Xóa
+                  Delete
                 </Button>
               </div>
             </li>
@@ -226,14 +225,14 @@ export function BranchesPage() {
       <Modal
         isOpen={formOpen}
         onClose={closeForm}
-        title={editing ? 'Sửa chi nhánh' : 'Thêm chi nhánh'}
+        title={editing ? 'Edit branch' : 'Add branch'}
         footer={
           <>
             <Button variant='secondary' onClick={closeForm} type='button'>
-              Hủy
+              Cancel
             </Button>
             <Button type='submit' form='branch-form' isLoading={saveMutation.isPending}>
-              {editing ? 'Lưu thay đổi' : 'Thêm chi nhánh'}
+              {editing ? 'Save changes' : 'Add branch'}
             </Button>
           </>
         }
@@ -246,14 +245,14 @@ export function BranchesPage() {
           )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <Input
-              label='Tên chi nhánh'
+              label='Branch name'
               required
               value={form.name}
               error={formErrors.name}
               onChange={(e) => handleField('name', e.target.value)}
             />
             <Input
-              label='Địa chỉ'
+              label='Address'
               required
               value={form.address}
               error={formErrors.address}
@@ -261,7 +260,7 @@ export function BranchesPage() {
             />
             <div>
               <label htmlFor='branch-region' style={selectLabelStyle}>
-                Khu vực
+                Region
                 <span aria-hidden='true' style={{ color: colors.danger, marginLeft: 2 }}>
                   *
                 </span>
@@ -294,19 +293,19 @@ export function BranchesPage() {
       <Modal
         isOpen={removing !== null}
         onClose={() => setRemoving(null)}
-        title='Xóa chi nhánh'
+        title='Delete branch'
         size='sm'
         footer={
           <>
             <Button variant='secondary' onClick={() => setRemoving(null)} type='button'>
-              Hủy
+              Cancel
             </Button>
             <Button
               variant='danger'
               isLoading={removeMutation.isPending}
               onClick={() => removing && removeMutation.mutate(removing)}
             >
-              Xóa
+              Delete
             </Button>
           </>
         }
@@ -317,8 +316,8 @@ export function BranchesPage() {
           </div>
         )}
         <p style={{ margin: 0 }}>
-          Xóa <strong>{removing?.name}</strong>? Thao tác này không thể hoàn tác. Chi nhánh đang được voucher hoặc lịch
-          sử sử dụng tham chiếu sẽ không thể xóa.
+          Delete <strong>{removing?.name}</strong>? This action is permanent. Branches referenced by vouchers or usage
+          history cannot be deleted.
         </p>
       </Modal>
     </section>

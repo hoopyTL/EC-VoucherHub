@@ -169,6 +169,7 @@ export interface VoucherApprovalView {
   id: string
   title: string
   description: string
+  imageUrl: string | null
   category: string
   /** Decimal serialised as a string. */
   originalPrice: string

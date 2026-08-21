@@ -7,8 +7,7 @@
  * machine. Actions call the partner endpoints and refresh the list on success:
  *   - submit  → PENDING_APPROVAL (Req 9.1)
  *   - pause   → PAUSED           (Req 10.1)
- *   - resume  → APPROVED         (Req 10.2)
- *   - cancel  → CANCELLED        (Req 10.3, behind a confirmation modal)
+ *   - resume  → ON_SALE          (FR-19)
  *
  * The "Create voucher" button links to {@link CreateVoucherPage}. Rejected
  * vouchers surface their rejection reason inline so the partner can correct and
@@ -139,6 +138,13 @@ export function VouchersPage() {
               const actions = availableActions(voucher.status)
               return (
                 <li key={voucher.id} style={rowStyle} data-testid={`voucher-row-${voucher.id}`}>
+                  <div style={voucherImageWrapStyle}>
+                    {voucher.imageUrl ? (
+                      <img src={voucher.imageUrl} alt={`Ảnh ${voucher.title}`} style={voucherImageStyle} />
+                    ) : (
+                      <span style={voucherImageFallbackStyle}>VoucherHub</span>
+                    )}
+                  </div>
                   <div style={{ flex: 1, minWidth: 220 }}>
                     <div style={titleRowStyle}>
                       <span style={{ fontWeight: 600 }}>{voucher.title}</span>
@@ -154,6 +160,10 @@ export function VouchersPage() {
                     <p style={metaStyle}>
                       Mở bán: {formatDateRange(voucher.salePeriodStart, voucher.salePeriodEnd)} · {remaining(voucher)}/
                       {voucher.totalQuantity} còn lại
+                    </p>
+                    <p style={metaStyle}>
+                      Mã phát hành: {voucher.issuedCodeCount} · Đã dùng: {voucher.usedCodeCount} · Hết hạn:{' '}
+                      {voucher.expiredCodeCount}
                     </p>
                     {voucher.status === 'REJECTED' && voucher.rejectionReason && (
                       <p style={rejectionStyle} role='note'>
@@ -238,6 +248,33 @@ const rowStyle: CSSProperties = {
   borderRadius: radius.xl,
   background: colors.surface,
   boxShadow: shadows.card
+}
+
+const voucherImageWrapStyle: CSSProperties = {
+  width: 150,
+  aspectRatio: '16 / 10',
+  flex: '0 0 auto',
+  overflow: 'hidden',
+  borderRadius: radius.lg,
+  background: colors.surfaceMuted
+}
+
+const voucherImageStyle: CSSProperties = {
+  width: '100%',
+  height: '100%',
+  display: 'block',
+  objectFit: 'cover'
+}
+
+const voucherImageFallbackStyle: CSSProperties = {
+  display: 'grid',
+  placeItems: 'center',
+  width: '100%',
+  height: '100%',
+  color: colors.slateMuted,
+  fontFamily: fonts.display,
+  fontSize: 12,
+  fontWeight: 700
 }
 
 const titleRowStyle: CSSProperties = {

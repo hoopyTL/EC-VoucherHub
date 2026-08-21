@@ -2,16 +2,15 @@ import { z } from 'zod'
 
 // ─── Order DTOs ─────────────────────────────────────────────────────
 
-export const giftRecipientSchema = z.object({
-  name: z
-    .string({ error: 'tên người nhận là bắt buộc' })
-    .min(1, 'tên người nhận không được rỗng')
-    .max(255, 'tên người nhận quá dài'),
-  phone: z
-    .string({ error: 'số điện thoại người nhận là bắt buộc' })
-    .min(1, 'số điện thoại không được rỗng')
-    .max(20, 'số điện thoại quá dài')
-})
+export const giftRecipientSchema = z
+  .object({
+    name: z.string().trim().min(1, 'tên người nhận không được rỗng').max(255, 'tên người nhận quá dài').optional(),
+    email: z.string().trim().email('email người nhận không hợp lệ').max(255).optional(),
+    phone: z.string().trim().min(1, 'số điện thoại không được rỗng').max(20, 'số điện thoại quá dài').optional()
+  })
+  .refine((recipient) => recipient.name || recipient.email || recipient.phone, {
+    message: 'cần ít nhất một thông tin người nhận'
+  })
 export type GiftRecipient = z.infer<typeof giftRecipientSchema>
 
 export const createOrderSchema = z.object({

@@ -15,23 +15,21 @@ vi.mock('react-router-dom', async () => {
 function makeOrder(overrides: Partial<Order> = {}): Order {
   return {
     id: 'order-12345678-abcd',
-    userId: 'user-1',
+    customerId: 'user-1',
     totalAmount: '250000',
     status: 'PAID',
-    recipientName: null,
-    recipientEmail: null,
-    recipientPhone: null,
+    paymentMethod: 'VNPAY',
+    giftRecipient: null,
+    paidAt: '2025-01-05T10:01:00.000Z',
     createdAt: '2025-01-05T10:00:00.000Z',
     updatedAt: '2025-01-05T10:00:00.000Z',
-    orderItems: [
+    items: [
       {
-        id: 'item-1',
-        orderId: 'order-12345678-abcd',
-        voucherId: 'v-1',
+        id: 1,
+        voucherProductId: 'v-1',
+        voucherProductName: 'Spa Day',
         quantity: 2,
-        unitPrice: '125000',
-        subtotal: '250000',
-        voucher: { id: 'v-1', title: 'Spa Day' }
+        unitPrice: '125000'
       }
     ],
     ...overrides

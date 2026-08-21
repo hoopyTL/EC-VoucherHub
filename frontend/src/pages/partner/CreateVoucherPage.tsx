@@ -145,17 +145,8 @@ export function validateVoucherForm(form: FormState, selectedBranchIds: string[]
     errors.branchIds = 'Chọn ít nhất một chi nhánh.'
   }
 
-  // Optional image URL — if provided, must be a valid http(s) URL.
-  if (form.imageUrl.trim()) {
-    try {
-      const value = form.imageUrl.trim()
-      const parsed = value.startsWith('/uploads/vouchers/') ? null : new URL(value)
-      if (parsed && parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-        errors.imageUrl = 'Nhập URL ảnh http(s) hợp lệ.'
-      }
-    } catch {
-      errors.imageUrl = 'Nhập URL ảnh http(s) hợp lệ.'
-    }
+  if (form.imageUrl.trim() && !form.imageUrl.trim().startsWith('/uploads/vouchers/')) {
+    errors.imageUrl = 'Ảnh voucher phải được tải lên từ máy.'
   }
 
   return errors
@@ -488,18 +479,13 @@ export function CreateVoucherPage() {
             </p>
           )}
           <p style={{ margin: '6px 0 0', fontSize: 12, color: colors.slate }}>
-            JPEG, PNG hoặc WEBP tối đa 2&nbsp;MB. Hoặc dán URL ảnh bên dưới.
+            JPEG, PNG hoặc WEBP tối đa 2&nbsp;MB. Ảnh được lưu nội bộ trên hệ thống.
           </p>
-          <Input
-            label='URL ảnh (không bắt buộc)'
-            type='url'
-            inputMode='url'
-            placeholder='https://…'
-            value={form.imageUrl}
-            error={errors.imageUrl}
-            hint='Liên kết tới ảnh hiển thị của voucher.'
-            onChange={(e) => setField('imageUrl', e.target.value)}
-          />
+          {errors.imageUrl && (
+            <p role='alert' style={fieldErrorStyle}>
+              {errors.imageUrl}
+            </p>
+          )}
         </div>
 
         {/* Branch selection (Req 8.5) */}

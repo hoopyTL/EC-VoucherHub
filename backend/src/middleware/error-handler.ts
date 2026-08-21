@@ -1,16 +1,35 @@
 import { Request, Response, NextFunction } from 'express'
+import { AppError as CoreAppError } from '~/utils/app-error'
+import { ErrorCode } from '~/utils/error-codes'
+import type { ErrorCodeValue } from '~/utils/error-codes'
+
+function codeForStatus(statusCode: number): ErrorCodeValue {
+  switch (statusCode) {
+    case 400:
+      return ErrorCode.BAD_REQUEST
+    case 401:
+      return ErrorCode.UNAUTHORIZED
+    case 403:
+      return ErrorCode.FORBIDDEN
+    case 404:
+      return ErrorCode.RESOURCE_NOT_FOUND
+    case 409:
+      return ErrorCode.CONFLICT
+    case 422:
+      return ErrorCode.UNPROCESSABLE_ENTITY
+    default:
+      return ErrorCode.INTERNAL_ERROR
+  }
+}
 
 // ─── Typed Error Classes ────────────────────────────────────────────
 
-export class AppError extends Error {
-  public readonly statusCode: number
-  public readonly details?: Array<{ field: string; message: string }>
+export class AppError extends CoreAppError {
+  declare readonly details?: Array<{ field: string; message: string }>
 
   constructor(message: string, statusCode: number, details?: Array<{ field: string; message: string }>) {
-    super(message)
-    this.name = 'AppError'
-    this.statusCode = statusCode
-    this.details = details
+    super(message, statusCode, codeForStatus(statusCode), details)
+    Object.setPrototypeOf(this, new.target.prototype)
   }
 }
 
@@ -76,8 +95,6 @@ export const errorHandler = (err: Error, _req: Request, res: Response, _next: Ne
   console.error('[ERROR]', err)
   res.status(500).json({
     success: false,
-    error: 'lỗi hệ thống',
-    debugMessage: err.message,
-    debugStack: err.stack
+    error: 'lỗi hệ thống'
   })
 }

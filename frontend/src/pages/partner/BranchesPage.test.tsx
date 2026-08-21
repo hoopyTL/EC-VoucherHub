@@ -31,9 +31,9 @@ function renderPage() {
 describe('validateBranchForm', () => {
   it('flags every empty field', () => {
     expect(validateBranchForm({ name: '', address: '', region: '' })).toEqual({
-      name: 'Tên chi nhánh là bắt buộc',
-      address: 'Địa chỉ là bắt buộc',
-      region: 'Khu vực là bắt buộc'
+      name: 'Name is required',
+      address: 'Address is required',
+      region: 'Region is required'
     })
   })
 
@@ -62,28 +62,31 @@ describe('BranchesPage', () => {
 
     expect(await screen.findByText('Downtown')).toBeDefined()
     const airportRow = screen.getByTestId('branch-2')
-    expect(within(airportRow).getByText('Hoạt động')).toBeDefined()
+    expect(within(airportRow).getByText('Airport')).toBeDefined()
+    expect(within(airportRow).getByText('1 Main St')).toBeDefined()
+    expect(within(airportRow).getByRole('button', { name: 'Edit Airport' })).toBeDefined()
+    expect(within(airportRow).getByRole('button', { name: 'Delete Airport' })).toBeDefined()
   })
 
   it('shows the empty state when there are no branches', async () => {
     vi.spyOn(api, 'get').mockResolvedValue({ data: { success: true, data: [] } } as never)
     renderPage()
 
-    expect(await screen.findByText(/chưa có chi nhánh/i)).toBeDefined()
+    expect(await screen.findByText(/haven't added any branches yet/i)).toBeDefined()
   })
 
   it('validates the add form before submitting (Req 7.1)', async () => {
     const getSpy = vi.spyOn(api, 'get').mockResolvedValue({ data: { success: true, data: [] } } as never)
     const postSpy = vi.spyOn(api, 'post')
     renderPage()
-    await screen.findByText(/chưa có chi nhánh/i)
+    await screen.findByText(/haven't added any branches yet/i)
 
-    fireEvent.click(screen.getByRole('button', { name: /thêm chi nhánh đầu tiên/i }))
+    fireEvent.click(screen.getByRole('button', { name: /add your first branch/i }))
     // Submit with empty fields -> validation errors, no network call.
     const dialog = screen.getByRole('dialog')
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Thêm chi nhánh' }))
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Add branch' }))
 
-    expect(await screen.findByText('Tên chi nhánh là bắt buộc')).toBeDefined()
+    expect(await screen.findByText('Name is required')).toBeDefined()
     expect(postSpy).not.toHaveBeenCalled()
     expect(getSpy).toHaveBeenCalled()
   })
@@ -98,19 +101,19 @@ describe('BranchesPage', () => {
       .mockResolvedValue({ data: { success: true, data: makeBranch({ name: 'New Branch' }) } } as never)
 
     renderPage()
-    await screen.findByText(/chưa có chi nhánh/i)
+    await screen.findByText(/haven't added any branches yet/i)
 
-    fireEvent.click(screen.getByRole('button', { name: /thêm chi nhánh đầu tiên/i }))
-    fireEvent.change(screen.getByLabelText(/tên chi nhánh/i), {
+    fireEvent.click(screen.getByRole('button', { name: /add your first branch/i }))
+    fireEvent.change(screen.getByLabelText(/branch name/i), {
       target: { value: 'New Branch' }
     })
-    fireEvent.change(screen.getByLabelText(/địa chỉ/i), {
+    fireEvent.change(screen.getByLabelText(/address/i), {
       target: { value: '99 New St' }
     })
-    fireEvent.change(screen.getByLabelText(/khu vực/i), {
+    fireEvent.change(screen.getByLabelText(/region/i), {
       target: { value: 'Đà Nẵng' }
     })
-    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Thêm chi nhánh' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Add branch' }))
 
     await waitFor(() => {
       expect(postSpy).toHaveBeenCalledWith('/partner/branches', {
@@ -121,7 +124,7 @@ describe('BranchesPage', () => {
     })
     // List refetched after the mutation.
     await waitFor(() => expect(getSpy).toHaveBeenCalledTimes(2))
-    expect(await screen.findByText('Đã thêm chi nhánh.')).toBeDefined()
+    expect(await screen.findByText('Branch added.')).toBeDefined()
   })
 
   it('edits an existing branch (Req 7.2)', async () => {
@@ -135,11 +138,11 @@ describe('BranchesPage', () => {
     renderPage()
     await screen.findByText('Downtown')
 
-    fireEvent.click(screen.getByRole('button', { name: /sửa downtown/i }))
-    const nameInput = screen.getByLabelText(/tên chi nhánh/i) as HTMLInputElement
+    fireEvent.click(screen.getByRole('button', { name: /edit downtown/i }))
+    const nameInput = screen.getByLabelText(/branch name/i) as HTMLInputElement
     expect(nameInput.value).toBe('Downtown')
     fireEvent.change(nameInput, { target: { value: 'Uptown' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Lưu thay đổi' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
 
     await waitFor(() => {
       expect(patchSpy).toHaveBeenCalledWith('/partner/branches/1', {
@@ -159,15 +162,15 @@ describe('BranchesPage', () => {
     renderPage()
     await screen.findByText('Downtown')
 
-    fireEvent.click(screen.getByRole('button', { name: /xóa downtown/i }))
+    fireEvent.click(screen.getByRole('button', { name: /delete downtown/i }))
     // Confirm in the modal (the modal's primary action button).
     const dialog = screen.getByRole('dialog')
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Xóa' }))
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }))
 
     await waitFor(() => {
       expect(deleteSpy).toHaveBeenCalledWith('/partner/branches/1')
     })
-    expect(await screen.findByText('Đã xóa chi nhánh.')).toBeDefined()
+    expect(await screen.findByText('Branch deleted.')).toBeDefined()
   })
 
   it('surfaces a server error when saving fails', async () => {
@@ -177,19 +180,19 @@ describe('BranchesPage', () => {
     })
 
     renderPage()
-    await screen.findByText(/chưa có chi nhánh/i)
+    await screen.findByText(/haven't added any branches yet/i)
 
-    fireEvent.click(screen.getByRole('button', { name: /thêm chi nhánh đầu tiên/i }))
-    fireEvent.change(screen.getByLabelText(/tên chi nhánh/i), {
+    fireEvent.click(screen.getByRole('button', { name: /add your first branch/i }))
+    fireEvent.change(screen.getByLabelText(/branch name/i), {
       target: { value: 'Dup' }
     })
-    fireEvent.change(screen.getByLabelText(/địa chỉ/i), {
+    fireEvent.change(screen.getByLabelText(/address/i), {
       target: { value: 'Addr' }
     })
-    fireEvent.change(screen.getByLabelText(/khu vực/i), {
+    fireEvent.change(screen.getByLabelText(/region/i), {
       target: { value: 'Hà Nội' }
     })
-    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Thêm chi nhánh' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Add branch' }))
 
     expect(await screen.findByText('Branch name taken')).toBeDefined()
   })

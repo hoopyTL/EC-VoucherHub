@@ -24,6 +24,7 @@ import type { VoucherApprovalView } from '../../types/admin'
 import { Badge, Button, LoadingSpinner, Modal, Pagination, useToast, variantForStatus } from '../../components/ui'
 import { discountPercent, formatCurrency, formatDateRange, formatDateTime, formatStatus } from '../../utils/format'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
+import { VoucherManagementSection } from './VoucherManagementSection'
 
 /** Page size for the pending-vouchers listing. */
 const PAGE_LIMIT = 20
@@ -48,7 +49,11 @@ export function VoucherApprovalsPage() {
     queryFn: () => listPendingVouchers({ page, limit: PAGE_LIMIT })
   })
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: [PENDING_VOUCHERS_QUERY_KEY] })
+  const invalidate = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: [PENDING_VOUCHERS_QUERY_KEY] }),
+      queryClient.invalidateQueries({ queryKey: ['admin-vouchers-all'] })
+    ])
 
   const approveMutation = useMutation({
     mutationFn: (voucher: VoucherApprovalView) => approveVoucher(voucher.id),
@@ -80,6 +85,7 @@ export function VoucherApprovalsPage() {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_LIMIT))
 
   function openReject(voucher: VoucherApprovalView) {
+    setDetail(null)
     setReason('')
     setReasonError(null)
     setRejecting(voucher)
@@ -151,7 +157,16 @@ export function VoucherApprovalsPage() {
                     return (
                       <tr key={voucher.id} data-testid={`voucher-${voucher.id}`}>
                         <td style={tdStyle}>
-                          <div style={{ fontWeight: 600, color: colors.ink }}>{voucher.title}</div>
+                          <div style={voucherCellStyle}>
+                            <div style={thumbnailWrapStyle}>
+                              {voucher.imageUrl ? (
+                                <img src={voucher.imageUrl} alt='' style={thumbnailStyle} />
+                              ) : (
+                                <span style={thumbnailFallbackStyle}>VH</span>
+                              )}
+                            </div>
+                            <div style={{ fontWeight: 600, color: colors.ink }}>{voucher.title}</div>
+                          </div>
                         </td>
                         <td style={tdStyle}>{voucher.partner.businessName}</td>
                         <td style={tdStyle}>{formatStatus(voucher.category)}</td>
@@ -209,6 +224,8 @@ export function VoucherApprovalsPage() {
         </>
       )}
 
+      <VoucherManagementSection />
+
       {/* Voucher detail modal */}
       <Modal
         isOpen={detail !== null}
@@ -234,6 +251,7 @@ export function VoucherApprovalsPage() {
       >
         {detail && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {detail.imageUrl && <img src={detail.imageUrl} alt={`Ảnh ${detail.title}`} style={detailImageStyle} />}
             <div style={detailBadgeRowStyle}>
               <Badge variant={variantForStatus(detail.status)}>{formatStatus(detail.status)}</Badge>
               <Badge variant='neutral'>{formatStatus(detail.category)}</Badge>
@@ -386,6 +404,43 @@ const cardStyle: CSSProperties = {
 
 const tableWrapperStyle: CSSProperties = {
   overflowX: 'auto'
+}
+
+const voucherCellStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 12,
+  minWidth: 220
+}
+
+const thumbnailWrapStyle: CSSProperties = {
+  width: 72,
+  aspectRatio: '16 / 10',
+  flex: '0 0 auto',
+  overflow: 'hidden',
+  borderRadius: radius.md,
+  background: colors.surfaceMuted
+}
+
+const thumbnailStyle: CSSProperties = { width: '100%', height: '100%', display: 'block', objectFit: 'cover' }
+const thumbnailFallbackStyle: CSSProperties = {
+  display: 'grid',
+  placeItems: 'center',
+  width: '100%',
+  height: '100%',
+  color: colors.slateMuted,
+  fontFamily: fonts.display,
+  fontSize: 11,
+  fontWeight: 700
+}
+
+const detailImageStyle: CSSProperties = {
+  display: 'block',
+  width: '100%',
+  maxHeight: 360,
+  objectFit: 'cover',
+  borderRadius: radius.lg,
+  background: colors.surfaceMuted
 }
 
 const tableStyle: CSSProperties = {

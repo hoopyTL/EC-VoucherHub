@@ -15,7 +15,7 @@ const voucherFields = {
     .string()
     .trim()
     .max(512)
-    .refine((value) => value.startsWith('/uploads/vouchers/') || /^https?:\/\//i.test(value), 'URL ảnh không hợp lệ')
+    .refine((value) => value.startsWith('/uploads/vouchers/'), 'Ảnh voucher phải được tải lên hệ thống')
     .nullable()
     .optional(),
   originalPrice: money,

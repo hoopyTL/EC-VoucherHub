@@ -43,7 +43,7 @@ let accessToken: string | null = null
 try {
   accessToken = sessionStorage.getItem('v_access_token')
 } catch {
-  // Storage can be unavailable in privacy-restricted browser contexts.
+  // Storage can be unavailable in SSR, privacy mode, or restricted browsers.
 }
 
 /** Returns the access token, or `null` when no session is active. */
@@ -58,7 +58,7 @@ export function setAccessToken(token: string | null): void {
     if (token) sessionStorage.setItem('v_access_token', token)
     else sessionStorage.removeItem('v_access_token')
   } catch {
-    // Keep the in-memory token when session storage is unavailable.
+    // The in-memory token remains authoritative when storage is unavailable.
   }
 }
 

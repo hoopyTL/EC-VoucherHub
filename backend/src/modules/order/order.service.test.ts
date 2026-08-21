@@ -1,38 +1,34 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { processPayment } from './order.service'
-import { NotFoundError, ForbiddenError, ConflictError, ValidationError } from '../../middleware/error-handler'
-import { Prisma } from '@prisma/client'
-
-// Hoisting mock module
-vi.mock('../../configs/prisma', () => {
-  return {
-    default: {
-      order: { findUnique: vi.fn(), update: vi.fn(), findMany: vi.fn() },
-      voucherProduct: { findUnique: vi.fn(), update: vi.fn() },
-      issuedVoucherCode: { findUnique: vi.fn(), create: vi.fn(), createManyAndReturn: vi.fn() },
-      cart: { findUnique: vi.fn() },
-      $transaction: vi.fn((cb) => cb(prismaMock)),
-    }
-  }
-})
-
+import { Decimal } from '@prisma/client/runtime/library'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import prisma from '../../configs/prisma'
+import { ConflictError, ForbiddenError, ValidationError } from '../../middleware/error-handler'
+import { createOrder, getOrderDetail, processPayment } from './order.service'
+
+vi.mock('../../configs/prisma', () => ({
+  default: {
+    order: { findUnique: vi.fn(), update: vi.fn(), findMany: vi.fn(), create: vi.fn() },
+    voucherProduct: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
+    issuedVoucherCode: { findUnique: vi.fn(), createManyAndReturn: vi.fn() },
+    cart: { findUnique: vi.fn() },
+    cartItem: { deleteMany: vi.fn() },
+    $disconnect: vi.fn(),
+    $transaction: vi.fn((callback) => callback(prismaMock))
+  }
+}))
 const prismaMock = prisma as any
 
 describe('Order Service - Payment', () => {
   const customerId = 'cust-1'
   const orderId = 'order-1'
-  const dateStr = '2026-12-31T23:59:59.000Z'
-  const usageEnd = new Date(dateStr)
-
+  const usageEnd = new Date('2026-12-31T23:59:59.000Z')
   beforeEach(() => {
     vi.clearAllMocks()
-
-    // Default valid mock for findUnique order
+    prismaMock.$transaction.mockImplementation((callback: any) => callback(prismaMock))
     prismaMock.order.findUnique.mockResolvedValue({
       id: orderId,
       customerId,
       status: 'PENDING_PAYMENT',
+      expiresAt: new Date(Date.now() + 60_000),
       orderItems: [
         {
           id: 1,
@@ -41,7 +37,7 @@ describe('Order Service - Payment', () => {
             id: 'vp-1',
             name: 'Voucher 1',
             status: 'ON_SALE',
-            remainingQuantity: 10,
+            remainingQuantity: 8,
             usageEnd,
             isMultiUse: false,
             usesPerCode: 1
@@ -50,200 +46,137 @@ describe('Order Service - Payment', () => {
       ]
     })
   })
-
-  it('Thanh toán thất bại (FAILURE) -> không phát hành mã, giữ status', async () => {
-    const result = await processPayment(customerId, orderId, { outcome: 'FAILURE' })
-    expect(result.status).toBe('PENDING_PAYMENT')
-    expect(result.codes).toHaveLength(0)
+  it('does not issue codes when payment fails', async () => {
+    expect(await processPayment(customerId, orderId, { outcome: 'FAILURE' })).toEqual({
+      orderId,
+      status: 'PENDING_PAYMENT',
+      codes: []
+    })
     expect(prismaMock.$transaction).not.toHaveBeenCalled()
   })
-
-  it('Từ chối nếu đơn hàng không thuộc về customer', async () => {
-    prismaMock.order.findUnique.mockResolvedValue({ customerId: 'other-cust', status: 'PENDING_PAYMENT' })
+  it('rejects an order owned by another customer', async () => {
+    prismaMock.order.findUnique.mockResolvedValue({ customerId: 'other', status: 'PENDING_PAYMENT' })
     await expect(processPayment(customerId, orderId, { outcome: 'SUCCESS' })).rejects.toThrow(ForbiddenError)
   })
-
-  it('Từ chối nếu đơn hàng không phải PENDING_PAYMENT', async () => {
+  it('rejects an order that is not pending payment', async () => {
     prismaMock.order.findUnique.mockResolvedValue({ customerId, status: 'PAID' })
     await expect(processPayment(customerId, orderId, { outcome: 'SUCCESS' })).rejects.toThrow(ConflictError)
   })
-
-  it('Thành công (SUCCESS) -> giao dịch nguyên tử sinh mã và trừ tồn kho', async () => {
-    // Mock the fresh fetch of voucher inside transaction
-    prismaMock.voucherProduct.findUnique.mockResolvedValue({
-      id: 'vp-1',
-      name: 'Voucher 1',
-      status: 'ON_SALE',
-      remainingQuantity: 10
+  it('rejects an expired pending order', async () => {
+    prismaMock.order.findUnique.mockResolvedValue({
+      customerId,
+      status: 'PENDING_PAYMENT',
+      expiresAt: new Date(Date.now() - 1)
     })
-
-    prismaMock.issuedVoucherCode.findUnique.mockResolvedValue(null) // no collision
+    await expect(processPayment(customerId, orderId, { outcome: 'SUCCESS' })).rejects.toThrow(ConflictError)
+  })
+  it('marks the order paid and bulk issues voucher codes', async () => {
+    prismaMock.issuedVoucherCode.findUnique.mockResolvedValue(null)
     prismaMock.issuedVoucherCode.createManyAndReturn.mockImplementation(({ data }: any) =>
-      Promise.resolve(data.map((code: any) => ({
-        code: code.code,
-        voucherProductId: code.voucherProductId,
-        status: code.status,
-        expiresAt: code.expiresAt
-      })))
+      Promise.resolve(
+        data.map((code: any) => ({
+          code: code.code,
+          voucherProductId: code.voucherProductId,
+          status: code.status,
+          expiresAt: code.expiresAt
+        }))
+      )
     )
-
     const result = await processPayment(customerId, orderId, { outcome: 'SUCCESS' })
-
-    expect(prismaMock.voucherProduct.update).not.toHaveBeenCalled()
-    expect(prismaMock.issuedVoucherCode.createManyAndReturn).toHaveBeenCalledTimes(1)
+    expect(prismaMock.issuedVoucherCode.createManyAndReturn.mock.calls[0][0].data).toHaveLength(2)
     expect(prismaMock.order.update).toHaveBeenCalledWith({
       where: { id: orderId },
       data: { status: 'PAID', paidAt: expect.any(Date) }
     })
-
-    expect(result.status).toBe('PAID')
+    expect(prismaMock.voucherProduct.update).not.toHaveBeenCalled()
     expect(result.codes).toHaveLength(2)
     expect(result.codes[0].expiresAt).toBe(usageEnd.toISOString())
-  })
-
-  it('không kiểm tra hoặc trừ tồn kho lần hai sau khi đơn đã giữ hàng', async () => {
-    prismaMock.voucherProduct.findUnique.mockResolvedValue({
-      id: 'vp-1',
-      name: 'Voucher 1',
-      status: 'ON_SALE',
-      remainingQuantity: 1 // only 1 left!
-    })
-
-    const result = await processPayment(customerId, orderId, { outcome: 'SUCCESS' })
-    expect(result.status).toBe('PAID')
-    expect(prismaMock.voucherProduct.update).not.toHaveBeenCalled()
-    expect(prismaMock.order.update).toHaveBeenCalled()
   })
 })
 
 describe('Order Service - getOrderDetail', () => {
-  const customerId = 'cust-1'
-  const orderId = 'order-1'
-
-  beforeEach(() => {
-    vi.clearAllMocks()
+  beforeEach(() => vi.clearAllMocks())
+  it('rejects an order owned by another customer', async () => {
+    prismaMock.order.findUnique.mockResolvedValue({ id: 'order-1', customerId: 'other' })
+    await expect(getOrderDetail('cust-1', 'order-1')).rejects.toThrow(ForbiddenError)
   })
-
-  it('Trả về lỗi 403 nếu đơn hàng không thuộc về customer', async () => {
-    prismaMock.order.findUnique.mockResolvedValue({ id: orderId, customerId: 'other-cust' })
-    await expect(import('./order.service').then(m => m.getOrderDetail(customerId, orderId))).rejects.toThrow(ForbiddenError)
+  it('hides issued codes before payment', async () => {
+    prismaMock.order.findUnique.mockResolvedValue(orderRecord('PENDING_PAYMENT'))
+    expect((await getOrderDetail('cust-1', 'order-1')).codes).toBeUndefined()
   })
-
-  it('Ẩn mảng codes nếu đơn hàng chưa PAID', async () => {
-    prismaMock.order.findUnique.mockResolvedValue({
-      id: orderId,
-      customerId,
-      status: 'PENDING_PAYMENT',
-      totalAmount: { toFixed: () => '100.00' },
-      paymentMethod: 'SIMULATED',
-      giftRecipient: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      paidAt: null,
-      orderItems: [],
-      issuedVoucherCodes: [{ code: 'SECRET-CODE' }] // Giả lập lọt code
-    })
-    const m = await import('./order.service')
-    const result = await m.getOrderDetail(customerId, orderId)
-    expect(result.codes).toBeUndefined()
-  })
-
-  it('Trả về mảng codes nếu đơn hàng đã PAID', async () => {
-    prismaMock.order.findUnique.mockResolvedValue({
-      id: orderId,
-      customerId,
-      status: 'PAID',
-      totalAmount: { toFixed: () => '200.00' },
-      paymentMethod: 'SIMULATED',
-      giftRecipient: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      paidAt: new Date(),
-      orderItems: [],
-      issuedVoucherCodes: [{ code: 'A1B2C3D4E5F6', voucherProductId: 'vp-1', status: 'UNUSED', expiresAt: new Date() }]
-    })
-    const m = await import('./order.service')
-    const result = await m.getOrderDetail(customerId, orderId)
-    expect(result.codes).toHaveLength(1)
+  it('returns issued codes after payment', async () => {
+    prismaMock.order.findUnique.mockResolvedValue(orderRecord('PAID'))
+    expect((await getOrderDetail('cust-1', 'order-1')).codes).toHaveLength(1)
   })
 })
 
 describe('Order Service - createOrder', () => {
-  const customerId = 'cust-1'
-
   beforeEach(() => {
     vi.clearAllMocks()
+    prismaMock.$transaction.mockImplementation((callback: any) => callback(prismaMock))
   })
-
-  it('Cho phép tạo đơn nếu số lượng giỏ + đang giam < 10', async () => {
-    // Không có đơn nào đang giam
+  it('reserves stock, creates an order and clears purchased cart items', async () => {
     prismaMock.order.findMany.mockResolvedValue([])
-
-    // Giỏ hàng hợp lệ với 5 món
-    prismaMock.cart.findUnique.mockResolvedValue({
-      id: 'cart-1',
-      customerId,
-      cartItems: [
-        {
-          id: 1,
-          quantity: 5,
-          voucherProductId: 'vp-1',
-          voucherProduct: {
-            id: 'vp-1',
-            status: 'ON_SALE',
-            remainingQuantity: 100,
-            salePrice: new Prisma.Decimal(100)
-          }
-        }
-      ]
+    prismaMock.cart.findUnique.mockResolvedValue(cartRecord(5))
+    prismaMock.voucherProduct.updateMany.mockResolvedValue({ count: 1 })
+    prismaMock.order.create.mockResolvedValue(orderRecord('PENDING_PAYMENT', false))
+    const result = await createOrder('cust-1', {})
+    expect(prismaMock.voucherProduct.updateMany).toHaveBeenCalledWith({
+      where: { id: 'vp-1', remainingQuantity: { gte: 5 } },
+      data: { remainingQuantity: { decrement: 5 } }
     })
-
-    // Mock transaction return createOrder success
-    prismaMock.$transaction.mockResolvedValue({
-      id: 'new-order-1',
-      customerId,
-      status: 'PENDING_PAYMENT',
-      totalAmount: { toFixed: () => '500' },
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      orderItems: []
-    })
-
-    const m = await import('./order.service')
-    const result = await m.createOrder(customerId, {})
+    expect(prismaMock.cartItem.deleteMany).toHaveBeenCalledWith({ where: { id: { in: [1] } } })
     expect(result.status).toBe('PENDING_PAYMENT')
   })
-
-  it('Ném lỗi ValidationError nếu Tổng Giỏ + Đang Giam > 10 (Chống đầu cơ)', async () => {
-    // Đang giam 6 món vp-1 trong 1 đơn cũ
-    prismaMock.order.findMany.mockResolvedValue([
-      {
-        orderItems: [
-          { voucherProductId: 'vp-1', quantity: 6 }
-        ]
-      }
-    ])
-
-    // Giỏ hàng muốn mua thêm 5 món vp-1 (Tổng = 11 > 10)
-    prismaMock.cart.findUnique.mockResolvedValue({
-      id: 'cart-1',
-      customerId,
-      cartItems: [
-        {
-          id: 1,
-          quantity: 5,
-          voucherProductId: 'vp-1',
-          voucherProduct: {
-            id: 'vp-1',
-            name: 'Voucher Lõi',
-            status: 'ON_SALE',
-            remainingQuantity: 100
-          }
-        }
-      ]
-    })
-
-    const m = await import('./order.service')
-    await expect(m.createOrder(customerId, {})).rejects.toThrow(ValidationError)
+  it('prevents holding more than ten units of one voucher', async () => {
+    prismaMock.order.findMany.mockResolvedValue([{ orderItems: [{ voucherProductId: 'vp-1', quantity: 6 }] }])
+    prismaMock.cart.findUnique.mockResolvedValue(cartRecord(5))
+    await expect(createOrder('cust-1', {})).rejects.toThrow(ValidationError)
   })
 })
+
+function cartRecord(quantity: number) {
+  return {
+    id: 'cart-1',
+    customerId: 'cust-1',
+    cartItems: [
+      {
+        id: 1,
+        quantity,
+        voucherProductId: 'vp-1',
+        voucherProduct: {
+          id: 'vp-1',
+          name: 'Voucher 1',
+          status: 'ON_SALE',
+          remainingQuantity: 100,
+          salePrice: new Decimal(100)
+        }
+      }
+    ]
+  }
+}
+function orderRecord(status: string, includeCode = true) {
+  return {
+    id: 'order-1',
+    customerId: 'cust-1',
+    status,
+    totalAmount: new Decimal(500),
+    paymentMethod: 'SIMULATED',
+    giftRecipient: null,
+    paidAt: status === 'PAID' ? new Date() : null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    orderItems: [
+      {
+        id: 1,
+        voucherProductId: 'vp-1',
+        quantity: 5,
+        unitPrice: new Decimal(100),
+        voucherProduct: { name: 'Voucher 1' }
+      }
+    ],
+    issuedVoucherCodes: includeCode
+      ? [{ code: 'ABC123', voucherProductId: 'vp-1', status: 'UNUSED', expiresAt: new Date() }]
+      : []
+  }
+}

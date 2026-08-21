@@ -2,10 +2,8 @@ import { expect, test } from '@playwright/test'
 
 import { E2E_PASSWORD, e2eUsers } from './fixtures/task004'
 
-const applicant = {
-  email: 'partner-applicant.e2e@voucherhub.test',
+const applicantBase = {
   legalName: 'E2E Partner Applicant',
-  taxCode: 'E2E-TAX-006',
   representative: 'E2E Representative',
   branchName: 'E2E Registration Branch'
 }
@@ -16,7 +14,18 @@ async function login(page: import('@playwright/test').Page, email: string) {
   await page.getByRole('button', { name: /log in|đăng nhập/i }).click()
 }
 
-test('@FLOW-005 partner registers, gets approved, then manages branches', async ({ page }) => {
+test('@FLOW-005 partner registers, gets approved, then manages branches', async ({ page }, testInfo) => {
+  // A failed attempt can already have created the applicant before Playwright
+  // retries the complete scenario. Give every retry its own unique account so
+  // the next attempt is isolated instead of failing with duplicate email/tax.
+  const attempt = `${testInfo.workerIndex}-${testInfo.retry}`
+  const applicant = {
+    ...applicantBase,
+    legalName: `${applicantBase.legalName} ${attempt}`,
+    email: `partner-applicant-${attempt}.e2e@voucherhub.test`,
+    taxCode: `E2E-TAX-006-${attempt}`
+  }
+
   const pageErrors: string[] = []
   page.on('pageerror', (error) => pageErrors.push(error.message))
 
@@ -34,7 +43,8 @@ test('@FLOW-005 partner registers, gets approved, then manages branches', async 
     (response) => response.url().endsWith('/api/partners') && response.request().method() === 'POST'
   )
   await page.getByRole('button', { name: 'Submit registration' }).click()
-  expect((await registerResponse).status()).toBe(201)
+  const registration = await registerResponse
+  expect(registration.status(), `Partner registration failed: ${await registration.text()}`).toBe(201)
   await expect(page).toHaveURL(/\/login$/)
 
   const pendingLoginResponse = page.waitForResponse((response) => response.url().endsWith('/api/auth/login'))
@@ -46,12 +56,13 @@ test('@FLOW-005 partner registers, gets approved, then manages branches', async 
   await expect(page).toHaveURL(/\/login$/)
   await login(page, e2eUsers.admin.email)
   await expect(page).toHaveURL(/\/admin\/partners$/)
-  await expect(page.getByText(applicant.legalName)).toBeVisible()
+  const applicantRow = page.getByRole('row').filter({ hasText: applicant.email })
+  await expect(applicantRow).toBeVisible()
 
   const approvalResponse = page.waitForResponse(
     (response) => response.url().includes('/api/admin/partners/') && response.url().endsWith('/approval')
   )
-  await page.getByRole('button', { name: `Approve ${applicant.legalName}` }).click()
+  await applicantRow.getByRole('button', { name: `Approve ${applicant.legalName}` }).click()
   expect((await approvalResponse).status()).toBe(200)
   await expect(page.getByText(`${applicant.legalName} has been approved.`)).toBeVisible()
 

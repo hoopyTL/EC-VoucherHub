@@ -75,11 +75,11 @@ const toOrderResponse = (order: {
     codes:
       order.status === 'PAID' && order.issuedVoucherCodes
         ? order.issuedVoucherCodes.map((c) => ({
-          code: c.code,
-          voucherProductId: c.voucherProductId,
-          status: c.status,
-          expiresAt: c.expiresAt.toISOString()
-        }))
+            code: c.code,
+            voucherProductId: c.voucherProductId,
+            status: c.status,
+            expiresAt: c.expiresAt.toISOString()
+          }))
         : undefined
   }
 }
@@ -265,9 +265,9 @@ export const getMyOrders = async (customerId: string, cursor?: string, limit?: n
     take: take + 1, // lấy thêm 1 để xác định nextCursor
     ...(cursor
       ? {
-        cursor: { id: cursor },
-        skip: 1 // skip cursor item
-      }
+          cursor: { id: cursor },
+          skip: 1 // skip cursor item
+        }
       : {})
   })
 
@@ -400,10 +400,6 @@ export const processPayment = async (
           }
         }
 
-        if (!isUnique) {
-          throw new ConflictError('Không thể tạo mã voucher duy nhất lúc này, vui lòng thử lại sau.')
-        }
-
         codesData.push({
           code,
           orderId: order.id,
@@ -486,50 +482,35 @@ export const cancelOrder = async (customerId: string, orderId: string): Promise<
   return { message: 'Hủy đơn hàng và hoàn khóa voucher thành công' }
 }
 
-/**
- * Xử lý tạo cổng thanh toán quốc tế qua Stripe Checkout Hosted Page
- * Dùng tiền VND nộp trực tiếp sang Stripe (zero-decimal currency)
- */
-export const createStripeCheckoutSession = async (customerId: string, orderId: string): Promise<{ url: string }> => {
+export const createStripeCheckoutSession = async (
+  customerId: string,
+  orderId: string
+): Promise<{ url: string }> => {
   const order = await prisma.order.findUnique({
     where: { id: orderId },
-    include: {
-      orderItems: {
-        include: { voucherProduct: true }
-      }
-    }
+    include: { orderItems: { include: { voucherProduct: true } } }
   })
 
   if (!order) throw new NotFoundError('Đơn hàng không tồn tại')
   if (order.customerId !== customerId) throw new ForbiddenError('Đơn hàng không thuộc về bạn')
   if (order.status !== 'PENDING_PAYMENT') throw new ConflictError('Đơn hàng không ở trạng thái chờ thanh toán')
 
-  // Stripe line items (sản phẩm chi tiết)
-  const lineItems = order.orderItems.map(item => ({
-    price_data: {
-      currency: 'vnd', // Stripe hỗ trợ VND (zero-decimal)
-      product_data: {
-        name: item.voucherProduct.name,
-      },
-      // Với zero-decimal, 50,000VND -> unit_amount = 50000
-      unit_amount: Math.round(Number(item.unitPrice)),
-    },
-    quantity: item.quantity,
-  }))
-
-  const successUrl = env.CORS_ORIGIN || 'http://localhost:3000'
-  const cancelUrl = env.CORS_ORIGIN || 'http://localhost:3000'
-
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ['card'],
-    line_items: lineItems,
+    line_items: order.orderItems.map((item) => ({
+      price_data: {
+        currency: 'vnd',
+        product_data: { name: item.voucherProduct.name },
+        unit_amount: Math.round(Number(item.unitPrice))
+      },
+      quantity: item.quantity
+    })),
     mode: 'payment',
-    success_url: `${successUrl}/payment-result?stripe_success=true&order_id=${order.id}`,
-    cancel_url: `${cancelUrl}/payment-result?stripe_success=false&order_id=${order.id}`,
-    metadata: {
-      orderId: order.id, // Đính kèm orderId để lúc Webhook chạy sẽ móc ra xài
-    }
+    success_url: `${env.CORS_ORIGIN}/payment-result?stripe_success=true&order_id=${order.id}`,
+    cancel_url: `${env.CORS_ORIGIN}/payment-result?stripe_success=false&order_id=${order.id}`,
+    metadata: { orderId: order.id }
   })
 
-  return { url: session.url! }
+  if (!session.url) throw new ConflictError('Stripe không trả về đường dẫn thanh toán')
+  return { url: session.url }
 }

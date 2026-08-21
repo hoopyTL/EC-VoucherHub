@@ -50,14 +50,40 @@ export function Modal({
   showCloseButton = true
 }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
+  const onCloseRef = useRef(onClose)
+  const closeOnEscapeRef = useRef(closeOnEscape)
+  onCloseRef.current = onClose
+  closeOnEscapeRef.current = closeOnEscape
 
   // Handle Escape key + lock body scroll while open.
   useEffect(() => {
     if (!isOpen) return
 
+    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null
+
     function handleKeyDown(event: KeyboardEvent) {
-      if (closeOnEscape && event.key === 'Escape') {
-        onClose()
+      if (closeOnEscapeRef.current && event.key === 'Escape') {
+        onCloseRef.current()
+        return
+      }
+      if (event.key === 'Tab' && dialogRef.current) {
+        const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
+        )
+        if (focusable.length === 0) {
+          event.preventDefault()
+          dialogRef.current.focus()
+          return
+        }
+        const first = focusable[0]
+        const last = focusable[focusable.length - 1]
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault()
+          last.focus()
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault()
+          first.focus()
+        }
       }
     }
 
@@ -66,14 +92,20 @@ export function Modal({
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
 
-    // Move focus into the dialog for keyboard users.
-    dialogRef.current?.focus()
+    const frame = requestAnimationFrame(() => {
+      const firstFocusable = dialogRef.current?.querySelector<HTMLElement>(
+        'input:not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [href]'
+      )
+      ;(firstFocusable ?? dialogRef.current)?.focus()
+    })
 
     return () => {
+      cancelAnimationFrame(frame)
       document.removeEventListener('keydown', handleKeyDown)
       document.body.style.overflow = previousOverflow
+      if (previouslyFocused?.isConnected) previouslyFocused.focus()
     }
-  }, [isOpen, closeOnEscape, onClose])
+  }, [isOpen])
 
   if (!isOpen) return null
 
