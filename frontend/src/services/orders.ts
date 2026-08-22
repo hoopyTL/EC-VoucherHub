@@ -7,7 +7,7 @@
  *   - GET  /cart                 → {@link getCart}        (order summary source)
  *   - POST /orders               → {@link createOrder}    (Req 14.1, 14.2)
  *   - GET  /orders/:id           → {@link getOrder}       (payment page summary)
- *   - POST /orders/:id/pay       → {@link payOrder}       (Req 15.1–15.3)
+ *   - POST /orders/:id/payment   → {@link payOrder}       (Req 15.1–15.3)
  *   - POST /orders/:id/cancel    → {@link cancelOrder}    (Req 15.4)
  *
  * Response typing notes:
@@ -72,7 +72,7 @@ export interface OrderResponse {
   }>
 }
 
-/** Result of a successful payment (`POST /orders/:id/pay`). */
+/** Result of a successful payment (`POST /orders/:id/payment`). */
 export interface PaymentResultResponse {
   order: OrderResponse
   /** Number of voucher codes issued for the order (Req 16.1). */
@@ -130,7 +130,7 @@ export async function getOrder(orderId: string): Promise<OrderResponse> {
 
 /** Submit a simulated payment for an order (success/failure). */
 export async function payOrder(orderId: string, body: PaymentRequest): Promise<PaymentResultResponse> {
-  const { data } = await api.post<PaymentResultResponse>(`/orders/${orderId}/pay`, body)
+  const { data } = await api.post<PaymentResultResponse>(`/orders/${orderId}/payment`, body)
   return (data as any).data || data
 }
 
