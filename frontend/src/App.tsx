@@ -74,7 +74,10 @@ function WorkspaceLayout({ variant }: { variant: SidebarVariant }) {
       <Header />
       <div className='workspace-shell' style={{ display: 'flex', flex: 1 }}>
         <Sidebar variant={variant} />
-        <main className={`workspace-main workspace-main--${variant}`} style={{ flex: 1, padding: '2rem', minWidth: 0, background: variant === 'admin' ? 'linear-gradient(135deg,#f6f4ff 0%,#fff8f3 100%)' : 'linear-gradient(135deg,#f2fbf8 0%,#fff9f2 100%)' }}>
+        <main
+          className={`workspace-main workspace-main--${variant}`}
+          style={{ flex: 1, padding: '2rem', minWidth: 0, background: 'var(--workspace-background)' }}
+        >
           <Outlet />
         </main>
       </div>

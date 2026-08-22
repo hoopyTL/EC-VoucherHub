@@ -38,9 +38,9 @@ export const colors = {
   hairlineStrong: '#BEB39A',
 
   /** Warm brand accent for primary actions, promotions and key states. */
-  accent: '#E8492C',
-  accentHover: '#C53A20',
-  accentSurface: '#FBE1D9',
+  accent: '#B4791E',
+  accentHover: '#8F5F16',
+  accentSurface: '#F5E6C8',
   onAccent: '#FFFFFF',
 
   /** Text/fill on top of ink surfaces. */

@@ -221,7 +221,7 @@ export function VoucherDetailPage() {
       <header style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
           <Badge variant='info'>{voucher.category}</Badge>
-          <Badge variant={voucher.remainingQuantity > 0 ? 'success' : 'danger'}>
+          <Badge variant={voucher.remainingQuantity > 0 ? 'success' : 'neutral'}>
             {voucher.remainingQuantity > 0 ? `Còn ${voucher.remainingQuantity}` : 'Hết hàng'}
           </Badge>
         </div>
