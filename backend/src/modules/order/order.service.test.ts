@@ -9,6 +9,7 @@ vi.mock('../../configs/prisma', () => ({
     order: { findUnique: vi.fn(), update: vi.fn(), findMany: vi.fn(), create: vi.fn() },
     voucherProduct: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
     issuedVoucherCode: { findUnique: vi.fn(), createManyAndReturn: vi.fn() },
+    paymentTransaction: { create: vi.fn(), update: vi.fn() },
     cart: { findUnique: vi.fn() },
     cartItem: { deleteMany: vi.fn() },
     $disconnect: vi.fn(),
@@ -24,6 +25,8 @@ describe('Order Service - Payment', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     prismaMock.$transaction.mockImplementation((callback: any) => callback(prismaMock))
+    prismaMock.paymentTransaction.create.mockResolvedValue({ id: 'payment-1' })
+    prismaMock.paymentTransaction.update.mockResolvedValue({ id: 'payment-1' })
     prismaMock.order.findUnique.mockResolvedValue({
       id: orderId,
       customerId,

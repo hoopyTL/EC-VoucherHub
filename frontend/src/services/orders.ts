@@ -79,6 +79,21 @@ export interface PaymentResultResponse {
   issuedCodeCount: number
 }
 
+/** A recorded gateway attempt returned by `GET /orders/:id/payments`. */
+export interface PaymentTransactionResponse {
+  id: string
+  orderId: string
+  gateway: string
+  gatewayTransId: string | null
+  amount: string
+  currency: string
+  status: 'PENDING' | 'SUCCESS' | 'FAILED' | 'REFUNDED'
+  failureReason: string | null
+  paidAt: string | null
+  refundedAt: string | null
+  createdAt: string
+}
+
 // ---------------------------------------------------------------------------
 // API calls
 // ---------------------------------------------------------------------------
@@ -150,6 +165,12 @@ export async function getVNPayUrl(orderId: string): Promise<string> {
 export async function getStripeUrl(orderId: string): Promise<string> {
   const { data } = await api.get<{ data: { url: string } }>(`/orders/${orderId}/stripe`)
   return data.data.url
+}
+
+/** Fetch the authenticated customer's payment attempts for one order. */
+export async function getOrderPayments(orderId: string): Promise<PaymentTransactionResponse[]> {
+  const { data } = await api.get<{ data: PaymentTransactionResponse[] }>(`/orders/${orderId}/payments`)
+  return (data as any).data || data
 }
 
 // ---------------------------------------------------------------------------

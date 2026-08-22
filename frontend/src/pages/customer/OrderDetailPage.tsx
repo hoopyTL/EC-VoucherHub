@@ -15,13 +15,25 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { useState, type CSSProperties } from 'react'
-import { ArrowLeft, CreditCard, Landmark, ReceiptText, ShieldCheck, XCircle } from 'lucide-react'
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Clock3,
+  CreditCard,
+  Landmark,
+  ReceiptText,
+  RefreshCcw,
+  ShieldCheck,
+  WalletCards,
+  XCircle
+} from 'lucide-react'
 import { api } from '../../services/api'
 import type { Order } from '../../types/customer'
 import { Badge, variantForStatus, LoadingSpinner, Button, ConfirmDialog, useToast } from '../../components/ui'
 import { formatCurrency, formatDateTime, formatStatus } from '../../utils/format'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
 import { CheckoutProgress } from '../../components/customer/CheckoutProgress'
+import { getOrderPayments, type PaymentTransactionResponse } from '../../services/orders'
 
 async function fetchOrder(id: string): Promise<Order> {
   const { data } = await api.get<any>(`/orders/${id}`)
@@ -50,6 +62,17 @@ export function OrderDetailPage() {
   })
 
   const queryClient = useQueryClient()
+  const {
+    data: payments = [],
+    isLoading: isLoadingPayments,
+    isError: isPaymentsError,
+    refetch: refetchPayments
+  } = useQuery({
+    queryKey: ['order-payments', id],
+    queryFn: () => getOrderPayments(id),
+    enabled: Boolean(id && order),
+    retry: 1
+  })
   const cancelMutation = useMutation({
     mutationFn: async () => {
       const { cancelOrder } = await import('../../services/orders')
@@ -246,6 +269,13 @@ export function OrderDetailPage() {
         </div>
       )}
 
+      <PaymentHistory
+        payments={payments}
+        isLoading={isLoadingPayments}
+        isError={isPaymentsError}
+        onRetry={() => void refetchPayments()}
+      />
+
       <ConfirmDialog
         open={showCancelDialog}
         title='Xác nhận hủy đơn hàng'
@@ -277,6 +307,105 @@ export function OrderDetailPage() {
       )}
     </section>
   )
+}
+
+function PaymentHistory({
+  payments,
+  isLoading,
+  isError,
+  onRetry
+}: {
+  payments: PaymentTransactionResponse[]
+  isLoading: boolean
+  isError: boolean
+  onRetry: () => void
+}) {
+  return (
+    <div className='payment-history-card' style={cardStyle}>
+      <div className='payment-history-header'>
+        <span className='order-card-icon'>
+          <WalletCards size={20} aria-hidden='true' />
+        </span>
+        <div>
+          <h2 style={cardTitleStyle}>Lịch sử thanh toán</h2>
+          <p>Theo dõi từng lần giao dịch và trạng thái đối soát của đơn hàng.</p>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className='payment-history-state'>
+          <LoadingSpinner label='Đang tải lịch sử thanh toán' />
+        </div>
+      ) : isError ? (
+        <div className='payment-history-state payment-history-error' role='alert'>
+          <span>Chưa thể tải lịch sử giao dịch.</span>
+          <button type='button' onClick={onRetry}>
+            Thử lại
+          </button>
+        </div>
+      ) : payments.length === 0 ? (
+        <div className='payment-history-empty'>
+          <Clock3 size={22} aria-hidden='true' />
+          <div>
+            <strong>Chưa phát sinh giao dịch</strong>
+            <span>Lịch sử sẽ xuất hiện sau khi bạn chọn một cổng thanh toán.</span>
+          </div>
+        </div>
+      ) : (
+        <ol className='payment-timeline'>
+          {payments.map((payment) => {
+            const presentation = paymentPresentation(payment.status)
+            const StatusIcon = presentation.icon
+            const eventTime = payment.refundedAt || payment.paidAt || payment.createdAt
+            return (
+              <li key={payment.id} className={`payment-timeline-item payment-${payment.status.toLowerCase()}`}>
+                <span className='payment-timeline-marker'>
+                  <StatusIcon size={18} aria-hidden='true' />
+                </span>
+                <div className='payment-timeline-content'>
+                  <div className='payment-timeline-main'>
+                    <div>
+                      <strong>{gatewayLabel(payment.gateway)}</strong>
+                      <span>{formatDateTime(eventTime)}</span>
+                    </div>
+                    <div className='payment-timeline-amount'>
+                      <strong>{formatCurrency(payment.amount)}</strong>
+                      <span className='payment-status-label'>{presentation.label}</span>
+                    </div>
+                  </div>
+                  {(payment.gatewayTransId || payment.failureReason) && (
+                    <div className='payment-timeline-meta'>
+                      {payment.gatewayTransId && <span>Mã đối soát: {payment.gatewayTransId}</span>}
+                      {payment.failureReason && <span className='payment-failure-reason'>{payment.failureReason}</span>}
+                    </div>
+                  )}
+                </div>
+              </li>
+            )
+          })}
+        </ol>
+      )}
+    </div>
+  )
+}
+
+function gatewayLabel(gateway: string): string {
+  const labels: Record<string, string> = {
+    VNPAY: 'VNPay',
+    STRIPE: 'Thẻ quốc tế · Stripe',
+    SIMULATE: 'Thanh toán mô phỏng'
+  }
+  return labels[gateway.toUpperCase()] || gateway
+}
+
+function paymentPresentation(status: PaymentTransactionResponse['status']) {
+  const values = {
+    PENDING: { label: 'Đang xử lý', icon: Clock3 },
+    SUCCESS: { label: 'Thành công', icon: CheckCircle2 },
+    FAILED: { label: 'Không thành công', icon: XCircle },
+    REFUNDED: { label: 'Đã hoàn tiền', icon: RefreshCcw }
+  }
+  return values[status]
 }
 
 const wrapperStyle: CSSProperties = { maxWidth: 980, margin: '0 auto' }
