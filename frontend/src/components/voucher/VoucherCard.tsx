@@ -126,10 +126,8 @@ export function VoucherCard({ voucher }: VoucherCardProps) {
               width: '100%',
               height: '100%',
               objectFit: 'cover',
-              // Desaturated, high-contrast per the design language; lifts on hover.
-              filter: hover ? 'saturate(1.08) contrast(1.04)' : 'saturate(.92) contrast(1.02)',
               transform: hover ? 'scale(1.08)' : 'none',
-              transition: 'transform 0.5s ease, filter 0.3s ease'
+              transition: 'transform 0.5s ease'
             }}
           />
         )}

@@ -326,8 +326,7 @@ export function VoucherDetailPage() {
               display: 'block',
               width: '100%',
               maxHeight: 420,
-              objectFit: 'cover',
-              filter: 'grayscale(55%) contrast(1.05)'
+              objectFit: 'cover'
             }}
           />
         </div>
