@@ -6,6 +6,7 @@ import { AxiosError, AxiosHeaders } from 'axios'
 import { OrderDetailPage } from './OrderDetailPage'
 import { api } from '../../services/api'
 import type { Order } from '../../types/customer'
+import { ToastProvider } from '../../components/ui'
 
 function makeOrder(overrides: Partial<Order> = {}): Order {
   return {
@@ -50,11 +51,13 @@ function renderAt(id: string) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={[`/orders/${id}`]}>
-        <Routes>
-          <Route path='/orders/:id' element={<OrderDetailPage />} />
-        </Routes>
-      </MemoryRouter>
+      <ToastProvider>
+        <MemoryRouter initialEntries={[`/orders/${id}`]}>
+          <Routes>
+            <Route path='/orders/:id' element={<OrderDetailPage />} />
+          </Routes>
+        </MemoryRouter>
+      </ToastProvider>
     </QueryClientProvider>
   )
 }

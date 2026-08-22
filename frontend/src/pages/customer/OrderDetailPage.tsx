@@ -14,10 +14,10 @@
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
-import type { CSSProperties } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { api } from '../../services/api'
 import type { Order } from '../../types/customer'
-import { Badge, variantForStatus, LoadingSpinner, Button } from '../../components/ui'
+import { Badge, variantForStatus, LoadingSpinner, Button, ConfirmDialog, useToast } from '../../components/ui'
 import { formatCurrency, formatDateTime, formatStatus } from '../../utils/format'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
 
@@ -33,6 +33,8 @@ function isNotFound(error: unknown): boolean {
 
 export function OrderDetailPage() {
   const { id = '' } = useParams<{ id: string }>()
+  const toast = useToast()
+  const [showCancelDialog, setShowCancelDialog] = useState(false)
 
   const {
     data: order,
@@ -53,10 +55,11 @@ export function OrderDetailPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['order', id] })
-      alert('Đã hủy đơn hàng thành công, số lượng voucher đã được hoàn lại kho.')
+      setShowCancelDialog(false)
+      toast.success('Đã hủy đơn hàng thành công, số lượng voucher đã được hoàn lại kho.')
     },
     onError: (err: any) => {
-      alert('Lỗi hủy đơn: ' + (err?.response?.data?.message || err?.message || 'Không xác định'))
+      toast.error(err?.response?.data?.error?.message || 'Không thể hủy đơn hàng. Vui lòng thử lại.')
     }
   })
 
@@ -173,8 +176,8 @@ export function OrderDetailPage() {
                   const { getVNPayUrl } = await import('../../services/orders')
                   const url = await getVNPayUrl(order.id)
                   window.location.href = url
-                } catch (e) {
-                  alert('Khởi tạo VNPay thất bại, vui lòng thử lại!')
+                } catch (error: any) {
+                  toast.error(error?.response?.data?.error?.message || 'Không thể mở VNPay. Vui lòng thử lại.')
                 }
               }}
             >
@@ -189,8 +192,10 @@ export function OrderDetailPage() {
                   const { getStripeUrl } = await import('../../services/orders')
                   const url = await getStripeUrl(order.id)
                   window.location.href = url
-                } catch {
-                  alert('Khởi tạo thanh toán quốc tế thất bại, vui lòng thử lại!')
+                } catch (error: any) {
+                  toast.error(
+                    error?.response?.data?.error?.message || 'Không thể mở cổng thanh toán quốc tế. Vui lòng thử lại.'
+                  )
                 }
               }}
             >
@@ -201,17 +206,25 @@ export function OrderDetailPage() {
               variant='danger'
               disabled={cancelMutation.isPending}
               isLoading={cancelMutation.isPending}
-              onClick={() => {
-                if (window.confirm('Bạn có chắc muốn hủy đơn hàng này không? Voucher sẽ được trả lại kho.')) {
-                  cancelMutation.mutate()
-                }
-              }}
+              onClick={() => setShowCancelDialog(true)}
             >
               Hủy đơn
             </Button>
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={showCancelDialog}
+        title='Xác nhận hủy đơn hàng'
+        message='Bạn có chắc muốn hủy đơn hàng này không? Số lượng voucher sẽ được trả lại kho.'
+        confirmLabel='Hủy đơn'
+        cancelLabel='Tiếp tục thanh toán'
+        danger
+        busy={cancelMutation.isPending}
+        onConfirm={() => cancelMutation.mutate()}
+        onCancel={() => setShowCancelDialog(false)}
+      />
 
       {isPaid && (
         <div style={cardStyle}>
