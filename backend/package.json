@@ -17,6 +17,7 @@
     "db:generate": "prisma generate",
     "db:status": "prisma migrate status",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed:full": "tsx scripts/seed-full.ts",
     "db:seed:catalogue": "tsx scripts/seed-catalogue.ts",
     "db:seed:marketplace": "tsx scripts/seed-marketplace.ts",
     "db:seed:search-catalogue": "tsx scripts/seed-search-catalogue.ts",

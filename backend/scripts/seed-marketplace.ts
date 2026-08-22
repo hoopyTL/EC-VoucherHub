@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs'
 import { PrismaClient, VoucherStatus } from '@prisma/client'
+import { DEMO_PASSWORD, ROLE_ALIASES, SEED_CATEGORY_NAMES } from '../prisma/seed/constants'
 
 const prisma = new PrismaClient()
 const DAY = 86_400_000
@@ -7,9 +8,12 @@ const fromNow = (days: number) => new Date(Date.now() + days * DAY)
 
 const partners = [
   {
-    email: 'owner@lotusspa.vn', legalName: 'Lotus Wellness & Spa', taxCode: 'VH-DEMO-LOTUS-01',
+    email: 'owner@lotusspa.vn',
+    legalName: 'Lotus Wellness & Spa',
+    taxCode: 'VH-DEMO-LOTUS-01',
     cover: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874',
-    representative: 'Trần Minh Anh', branch: ['Lotus Spa Quận 1', '45 Nguyễn Huệ, Quận 1', 'TP. Hồ Chí Minh'],
+    representative: 'Trần Minh Anh',
+    branch: ['Lotus Spa Quận 1', '45 Nguyễn Huệ, Quận 1', 'TP. Hồ Chí Minh'],
     products: [
       ['Chăm sóc da chuyên sâu 90 phút', 'Làm đẹp & Spa', 890000, 499000],
       ['Massage đá nóng thư giãn', 'Làm đẹp & Spa', 750000, 449000],
@@ -19,9 +23,12 @@ const partners = [
     ]
   },
   {
-    email: 'owner@goldengate.vn', legalName: 'Golden Gate Restaurant Group', taxCode: 'VH-DEMO-GOLDEN-02',
+    email: 'owner@goldengate.vn',
+    legalName: 'Golden Gate Restaurant Group',
+    taxCode: 'VH-DEMO-GOLDEN-02',
     cover: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5',
-    representative: 'Nguyễn Hoàng Nam', branch: ['Golden Gate Cầu Giấy', '17T5 Hoàng Đạo Thúy', 'Hà Nội'],
+    representative: 'Nguyễn Hoàng Nam',
+    branch: ['Golden Gate Cầu Giấy', '17T5 Hoàng Đạo Thúy', 'Hà Nội'],
     products: [
       ['Buffet nướng Hàn Quốc cuối tuần', 'Buffet & Lẩu', 499000, 349000],
       ['Set lẩu Nhật Bản cho hai người', 'Buffet & Lẩu', 699000, 459000],
@@ -31,9 +38,12 @@ const partners = [
     ]
   },
   {
-    email: 'owner@tripgo.vn', legalName: 'TripGo Việt Nam', taxCode: 'VH-DEMO-TRIPGO-03',
+    email: 'owner@tripgo.vn',
+    legalName: 'TripGo Việt Nam',
+    taxCode: 'VH-DEMO-TRIPGO-03',
     cover: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e',
-    representative: 'Lê Thu Trang', branch: ['TripGo Đà Nẵng', '36 Bạch Đằng, Hải Châu', 'Đà Nẵng'],
+    representative: 'Lê Thu Trang',
+    branch: ['TripGo Đà Nẵng', '36 Bạch Đằng, Hải Châu', 'Đà Nẵng'],
     products: [
       ['Nghỉ dưỡng biển Đà Nẵng 2N1Đ', 'Du lịch & Khách sạn', 3200000, 2190000],
       ['Tour Bà Nà Hills trọn ngày', 'Du lịch & Khách sạn', 1400000, 999000],
@@ -43,9 +53,12 @@ const partners = [
     ]
   },
   {
-    email: 'owner@starlight.vn', legalName: 'Starlight Entertainment', taxCode: 'VH-DEMO-STAR-04',
+    email: 'owner@starlight.vn',
+    legalName: 'Starlight Entertainment',
+    taxCode: 'VH-DEMO-STAR-04',
     cover: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba',
-    representative: 'Phạm Quốc Huy', branch: ['Starlight Ninh Kiều', '6 Hòa Bình, Ninh Kiều', 'Cần Thơ'],
+    representative: 'Phạm Quốc Huy',
+    branch: ['Starlight Ninh Kiều', '6 Hòa Bình, Ninh Kiều', 'Cần Thơ'],
     products: [
       ['Cặp vé xem phim 2D cuối tuần', 'Giải trí', 220000, 149000],
       ['Combo phim và bắp nước cho hai người', 'Giải trí', 360000, 229000],
@@ -55,9 +68,12 @@ const partners = [
     ]
   },
   {
-    email: 'owner@readmore.vn', legalName: 'ReadMore Lifestyle', taxCode: 'VH-DEMO-READ-05',
+    email: 'owner@readmore.vn',
+    legalName: 'ReadMore Lifestyle',
+    taxCode: 'VH-DEMO-READ-05',
     cover: 'https://images.unsplash.com/photo-1495446815901-a7297e633e8d',
-    representative: 'Võ Khánh Linh', branch: ['ReadMore Hải Phòng', '12 Trần Phú, Hồng Bàng', 'Hải Phòng'],
+    representative: 'Võ Khánh Linh',
+    branch: ['ReadMore Hải Phòng', '12 Trần Phú, Hồng Bàng', 'Hải Phòng'],
     products: [
       ['Voucher mua sách trị giá 300K', 'Mua sắm', 300000, 249000],
       ['Combo văn phòng phẩm sáng tạo', 'Mua sắm', 450000, 299000],
@@ -69,9 +85,9 @@ const partners = [
 ] as const
 
 async function main() {
-  const role = await prisma.role.findUnique({ where: { name: 'PARTNER' } })
+  const role = await prisma.role.findFirst({ where: { name: { in: [...ROLE_ALIASES.PARTNER] } } })
   if (!role) throw new Error('Thiếu role PARTNER')
-  const passwordHash = await bcrypt.hash('12345678', 10)
+  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10)
   let createdPartners = 0
   let createdVouchers = 0
 
@@ -84,7 +100,14 @@ async function main() {
     let partner = await prisma.partner.findUnique({ where: { taxCode: seed.taxCode } })
     if (!partner) {
       partner = await prisma.partner.create({
-        data: { ownerUserId: user.id, legalName: seed.legalName, taxCode: seed.taxCode, representative: seed.representative, approvalStatus: 'APPROVED', operatingStatus: 'ACTIVE' }
+        data: {
+          ownerUserId: user.id,
+          legalName: seed.legalName,
+          taxCode: seed.taxCode,
+          representative: seed.representative,
+          approvalStatus: 'APPROVED',
+          operatingStatus: 'ACTIVE'
+        }
       })
       createdPartners += 1
     }
@@ -96,6 +119,9 @@ async function main() {
       : await prisma.branch.create({ data: { partnerId: partner.id, name: branchName, address, region } })
 
     for (const [name, categoryName, originalPrice, salePrice] of seed.products) {
+      if (!SEED_CATEGORY_NAMES.includes(categoryName)) {
+        throw new Error(`Danh mục seed không hợp lệ: ${categoryName}`)
+      }
       const exists = await prisma.voucherProduct.findFirst({ where: { partnerId: partner.id, name } })
       if (exists) {
         if (!exists.imageUrl) {
@@ -103,17 +129,24 @@ async function main() {
         }
         continue
       }
-      const category =
-        (await prisma.category.findFirst({ where: { name: categoryName, parentId: null } })) ??
-        (await prisma.category.create({ data: { name: categoryName } }))
+      const category = await prisma.category.findFirstOrThrow({ where: { name: categoryName } })
       await prisma.voucherProduct.create({
         data: {
-          partnerId: partner.id, categoryId: category.id, name,
+          partnerId: partner.id,
+          categoryId: category.id,
+          name,
           imageUrl: seed.cover,
           description: `${name} tại ${seed.legalName}. Áp dụng theo điều kiện chương trình và số lượng có hạn.`,
-          originalPrice, salePrice, saleStart: fromNow(-5), saleEnd: fromNow(90),
-          usageStart: fromNow(-1), usageEnd: fromNow(180), totalQuantity: 300,
-          remainingQuantity: 300, isMultiUse: false, status: VoucherStatus.ON_SALE,
+          originalPrice,
+          salePrice,
+          saleStart: fromNow(-5),
+          saleEnd: fromNow(90),
+          usageStart: fromNow(-1),
+          usageEnd: fromNow(180),
+          totalQuantity: 300,
+          remainingQuantity: 300,
+          isMultiUse: false,
+          status: VoucherStatus.ON_SALE,
           voucherProductBranches: { create: { branchId: branch.id } }
         }
       })
@@ -125,7 +158,19 @@ async function main() {
   await prisma.branch.updateMany({ where: { name: { contains: 'Nhà Hát Lớn' } }, data: { region: 'Hà Nội' } })
   await prisma.branch.updateMany({ where: { name: { contains: 'Dinh Độc Lập' } }, data: { region: 'TP. Hồ Chí Minh' } })
 
-  console.log(JSON.stringify({ createdPartners, createdVouchers, totalPartners: await prisma.partner.count(), totalVouchers: await prisma.voucherProduct.count() }))
+  console.log(
+    JSON.stringify({
+      createdPartners,
+      createdVouchers,
+      totalPartners: await prisma.partner.count(),
+      totalVouchers: await prisma.voucherProduct.count()
+    })
+  )
 }
 
-main().catch((error) => { console.error(error); process.exitCode = 1 }).finally(() => prisma.$disconnect())
+main()
+  .catch((error) => {
+    console.error(error)
+    process.exitCode = 1
+  })
+  .finally(() => prisma.$disconnect())

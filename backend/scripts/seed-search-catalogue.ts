@@ -1,4 +1,5 @@
 import { PrismaClient, VoucherStatus } from '@prisma/client'
+import { SEED_CATEGORIES } from '../prisma/seed/constants'
 
 const prisma = new PrismaClient()
 const DAY = 86_400_000
@@ -16,13 +17,13 @@ const descriptors = [
   'Trải nghiệm mới'
 ]
 const categoryKeywords: Record<string, string> = {
-  'Mua sắm': 'shopping,lifestyle',
-  'Giải trí': 'cinema,entertainment',
-  'Du lịch & Khách sạn': 'travel,hotel',
-  'Làm đẹp & Spa': 'spa,wellness',
-  'Ăn uống': 'restaurant,food',
-  'Buffet & Lẩu': 'buffet,hotpot',
-  'Cà phê & Trà sữa': 'coffee,bubbletea'
+  [SEED_CATEGORIES.SHOPPING]: 'shopping,lifestyle',
+  [SEED_CATEGORIES.ENTERTAINMENT]: 'cinema,entertainment',
+  [SEED_CATEGORIES.TRAVEL]: 'travel,hotel',
+  [SEED_CATEGORIES.BEAUTY]: 'spa,wellness',
+  [SEED_CATEGORIES.FOOD]: 'restaurant,food',
+  [SEED_CATEGORIES.BUFFET]: 'buffet,hotpot',
+  [SEED_CATEGORIES.CAFE]: 'coffee,bubbletea'
 }
 
 async function main() {

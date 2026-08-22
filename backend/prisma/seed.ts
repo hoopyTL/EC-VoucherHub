@@ -1,10 +1,8 @@
 import { PrismaClient } from '@prisma/client'
-import { RoleName } from '@voucher/shared'
 import { hashPassword } from '../src/utils/password'
+import { DEMO_PASSWORD, SEED_CATEGORIES, SEED_ROLES } from './seed/constants'
 
 const prisma = new PrismaClient()
-
-const passwordHash = '$2b$10$EPVma1Sp2.3m/zJ1S.3oGe7rM4zK18/O5n7qg.ZqF68e1QvYpMyea'
 
 function daysFromNow(days: number) {
   return new Date(Date.now() + days * 24 * 60 * 60 * 1000)
@@ -31,16 +29,31 @@ async function resetDatabase() {
 async function main() {
   console.log('Seeding VoucherHub demo data...')
   await resetDatabase()
+  const passwordHash = await hashPassword(DEMO_PASSWORD)
 
-  const adminRole = await prisma.role.create({ data: { name: 'QUAN_TRI_VIEN' } })
-  const partnerRole = await prisma.role.create({ data: { name: 'DOI_TAC' } })
-  const customerRole = await prisma.role.create({ data: { name: 'KHACH_HANG' } })
+  const adminRole = await prisma.role.upsert({
+    where: { name: SEED_ROLES.ADMIN },
+    update: {},
+    create: { name: SEED_ROLES.ADMIN }
+  })
+  const partnerRole = await prisma.role.upsert({
+    where: { name: SEED_ROLES.PARTNER },
+    update: {},
+    create: { name: SEED_ROLES.PARTNER }
+  })
+  const customerRole = await prisma.role.upsert({
+    where: { name: SEED_ROLES.CUSTOMER },
+    update: {},
+    create: { name: SEED_ROLES.CUSTOMER }
+  })
 
-  const foodCat = await prisma.category.create({ data: { name: 'An uong' } })
-  const travelCat = await prisma.category.create({ data: { name: 'Du lich' } })
-  const beautyCat = await prisma.category.create({ data: { name: 'Lam dep' } })
-  const cafeCat = await prisma.category.create({ data: { name: 'Ca phe & Tra sua', parentId: foodCat.id } })
-  const buffetCat = await prisma.category.create({ data: { name: 'Buffet & Lau', parentId: foodCat.id } })
+  const foodCat = await prisma.category.create({ data: { name: SEED_CATEGORIES.FOOD } })
+  const travelCat = await prisma.category.create({ data: { name: SEED_CATEGORIES.TRAVEL } })
+  const beautyCat = await prisma.category.create({ data: { name: SEED_CATEGORIES.BEAUTY } })
+  const cafeCat = await prisma.category.create({ data: { name: SEED_CATEGORIES.CAFE, parentId: foodCat.id } })
+  const buffetCat = await prisma.category.create({ data: { name: SEED_CATEGORIES.BUFFET, parentId: foodCat.id } })
+  await prisma.category.create({ data: { name: SEED_CATEGORIES.SHOPPING } })
+  await prisma.category.create({ data: { name: SEED_CATEGORIES.ENTERTAINMENT } })
 
   const admin = await prisma.user.create({
     data: {

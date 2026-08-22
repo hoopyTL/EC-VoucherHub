@@ -1,5 +1,7 @@
 import 'dotenv/config'
 import { PrismaClient, VoucherStatus, UserStatus, ApprovalStatus, OperatingStatus } from '@prisma/client'
+import { hashPassword } from '../src/utils/password'
+import { DEMO_PASSWORD, ROLE_ALIASES, SEED_CATEGORIES } from '../prisma/seed/constants'
 
 const prisma = new PrismaClient()
 
@@ -7,19 +9,16 @@ async function main() {
   console.log('Seeding mock vouchers for TASK-008 Search testing...')
 
   // 1. Ensure Roles
-  const rolePartner = await prisma.role.upsert({
-    where: { name: 'DOI_TAC' },
-    update: {},
-    create: { name: 'DOI_TAC' }
-  })
+  const rolePartner = await prisma.role.findFirstOrThrow({ where: { name: { in: [...ROLE_ALIASES.PARTNER] } } })
+  const passwordHash = await hashPassword(DEMO_PASSWORD)
 
   // 2. Ensure a Partner User
   const owner = await prisma.user.upsert({
     where: { email: 'partner_seed@example.com' },
-    update: {},
+    update: { passwordHash, roleId: rolePartner.id, status: UserStatus.ACTIVE },
     create: {
       email: 'partner_seed@example.com',
-      passwordHash: 'dummy_hash',
+      passwordHash,
       fullName: 'Mock Partner Owner',
       roleId: rolePartner.id,
       status: UserStatus.ACTIVE
@@ -29,7 +28,7 @@ async function main() {
   // 3. Ensure a Partner profile
   const partner = await prisma.partner.upsert({
     where: { ownerUserId: owner.id },
-    update: {},
+    update: { approvalStatus: ApprovalStatus.APPROVED, operatingStatus: OperatingStatus.ACTIVE },
     create: {
       ownerUserId: owner.id,
       legalName: 'Mock Partner JSC',
@@ -40,8 +39,20 @@ async function main() {
     }
   })
 
+  const branchName = 'Mock Partner · Chi nhánh trung tâm'
+  const branch =
+    (await prisma.branch.findFirst({ where: { partnerId: partner.id, name: branchName } })) ??
+    (await prisma.branch.create({
+      data: {
+        partnerId: partner.id,
+        name: branchName,
+        address: '100 Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh',
+        region: 'TP. Hồ Chí Minh'
+      }
+    }))
+
   // 3.5 Ensure Categories
-  const categories = ['Food & Beverage', 'Spa & Beauty', 'Entertainment', 'Travel', 'Shopping', 'Education']
+  const categories = Object.values(SEED_CATEGORIES)
   const categoryMap = new Map<string, number>()
   for (const catName of categories) {
     let cat = await prisma.category.findFirst({
@@ -65,7 +76,7 @@ async function main() {
       status: VoucherStatus.ON_SALE,
       totalQuantity: 100,
       remainingQuantity: 100,
-      categoryName: 'Food & Beverage'
+      categoryName: SEED_CATEGORIES.FOOD
     },
     {
       name: 'Voucher Xem Phim CGV Cuối Tuần',
@@ -75,7 +86,7 @@ async function main() {
       status: VoucherStatus.ON_SALE,
       totalQuantity: 500,
       remainingQuantity: 500,
-      categoryName: 'Entertainment'
+      categoryName: SEED_CATEGORIES.ENTERTAINMENT
     },
     {
       name: 'Voucher Gym California 1 Tháng',
@@ -85,7 +96,7 @@ async function main() {
       status: VoucherStatus.ON_SALE,
       totalQuantity: 50,
       remainingQuantity: 0, // Hết hàng
-      categoryName: 'Spa & Beauty'
+      categoryName: SEED_CATEGORIES.BEAUTY
     },
     {
       name: 'Voucher Spa Chăm Sóc Da Chuyên Sâu',
@@ -95,7 +106,7 @@ async function main() {
       status: VoucherStatus.DRAFT, // Chưa bán, sẽ không ra trong kết quả search
       totalQuantity: 200,
       remainingQuantity: 200,
-      categoryName: 'Spa & Beauty'
+      categoryName: SEED_CATEGORIES.BEAUTY
     },
     {
       name: 'Buffet Lẩu Nướng Gogi House',
@@ -105,7 +116,7 @@ async function main() {
       status: VoucherStatus.ON_SALE,
       totalQuantity: 1000,
       remainingQuantity: 950,
-      categoryName: 'Food & Beverage'
+      categoryName: SEED_CATEGORIES.BUFFET
     }
   ]
 
@@ -115,25 +126,27 @@ async function main() {
       where: { name: v.name, partnerId: partner.id }
     })
 
+    const voucher = !exists
+      ? await prisma.voucherProduct.create({
+          data: {
+            partnerId: partner.id,
+            categoryId: categoryMap.get(v.categoryName),
+            name: v.name,
+            description: v.description,
+            originalPrice: v.originalPrice,
+            salePrice: v.salePrice,
+            saleStart: new Date(),
+            saleEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // +30 days
+            usageStart: new Date(),
+            usageEnd: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // +60 days
+            totalQuantity: v.totalQuantity,
+            remainingQuantity: v.remainingQuantity,
+            isMultiUse: false,
+            status: v.status
+          }
+        })
+      : exists
     if (!exists) {
-      await prisma.voucherProduct.create({
-        data: {
-          partnerId: partner.id,
-          categoryId: categoryMap.get(v.categoryName),
-          name: v.name,
-          description: v.description,
-          originalPrice: v.originalPrice,
-          salePrice: v.salePrice,
-          saleStart: new Date(),
-          saleEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // +30 days
-          usageStart: new Date(),
-          usageEnd: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // +60 days
-          totalQuantity: v.totalQuantity,
-          remainingQuantity: v.remainingQuantity,
-          isMultiUse: false,
-          status: v.status
-        }
-      })
       createdCount++
     } else {
       // Update category if missing
@@ -144,6 +157,11 @@ async function main() {
         })
       }
     }
+    await prisma.voucherProductBranch.upsert({
+      where: { voucherProductId_branchId: { voucherProductId: voucher.id, branchId: branch.id } },
+      update: {},
+      create: { voucherProductId: voucher.id, branchId: branch.id }
+    })
   }
 
   console.log(`✅ Seeded ${createdCount} mock vouchers successfully!`)
