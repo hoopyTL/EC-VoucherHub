@@ -73,6 +73,15 @@ enum UsageResult {
   @@map("usage_result")
 }
 
+enum PaymentStatus {
+  PENDING  @map("pending")
+  SUCCESS  @map("success")
+  FAILED   @map("failed")
+  REFUNDED @map("refunded")
+
+  @@map("payment_status")
+}
+
 // MODELS — Tài khoản & vai trò
 
 model Role {
@@ -280,9 +289,10 @@ model Order {
   updatedAt     DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   // Relations
-  customer           User                @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  orderItems         OrderItem[]
-  issuedVoucherCodes IssuedVoucherCode[]
+  customer             User                  @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  orderItems           OrderItem[]
+  issuedVoucherCodes   IssuedVoucherCode[]
+  paymentTransactions  PaymentTransaction[]
 
   @@index([customerId])
   @@index([status])
@@ -307,6 +317,38 @@ model OrderItem {
   @@index([orderId])
   @@index([voucherProductId])
   @@map("order_items")
+}
+
+/// Lịch sử giao dịch thanh toán. Mỗi đơn hàng có thể có nhiều lần thử thanh toán.
+/// Lưu trữ thông tin từ cổng thanh toán (VNPay, Stripe) để đối soát và tra cứu.
+model PaymentTransaction {
+  id                String        @id @default(uuid()) @db.Uuid
+  orderId           String        @map("order_id") @db.Uuid
+  /// Cổng thanh toán: VNPAY, STRIPE, SIMULATE...
+  gateway           String        @db.VarChar(32)
+  /// Mã giao dịch phía cổng thanh toán (vnp_TransactionNo, Stripe checkout session id...)
+  gatewayTransId    String?       @map("gateway_trans_id") @db.VarChar(255)
+  /// Số tiền thực tế gửi lên cổng (đơn vị VND hoặc cents tuỳ gateway)
+  amount            Decimal       @db.Decimal(12, 2)
+  /// Mã tiền tệ: VND, USD...
+  currency          String        @default("VND") @db.VarChar(8)
+  status            PaymentStatus @default(PENDING)
+  /// Raw response / metadata từ cổng thanh toán (để đối soát)
+  rawResponse       Json?         @map("raw_response") @db.JsonB
+  /// Lý do thất bại (nếu có)
+  failureReason     String?       @map("failure_reason") @db.Text
+  paidAt            DateTime?     @map("paid_at") @db.Timestamptz(6)
+  refundedAt        DateTime?     @map("refunded_at") @db.Timestamptz(6)
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // Relations
+  order Order @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([orderId])
+  @@index([gateway])
+  @@index([status])
+  @@index([gatewayTransId])
+  @@map("payment_transactions")
 }
 
 // MODELS — Phát hành & sử dụng

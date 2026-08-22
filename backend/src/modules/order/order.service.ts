@@ -14,6 +14,7 @@ import { Decimal } from '@prisma/client/runtime/library'
 import { generateVoucherCode } from '../../utils/voucher-code-generator'
 import stripe from '../../utils/stripe'
 import { env } from '../../configs/env'
+import { paymentService } from '../payment/payment.service'
 
 // ─── Constants ──────────────────────────────────────────────────────
 
@@ -355,8 +356,19 @@ export const processPayment = async (
     throw new ConflictError('đơn hàng đã hết hạn thanh toán')
   }
 
-  // 3. Nếu thanh toán thất bại
+  // 3. Nếu thanh toán thất bại → ghi log FAILED
   if (dto.outcome === 'FAILURE') {
+    const pt = await paymentService.create({
+      orderId: order.id,
+      gateway: order.paymentMethod,
+      amount: order.totalAmount,
+      currency: 'VND'
+    })
+    await paymentService.updateStatus(pt.id, {
+      status: 'FAILED',
+      failureReason: 'Thanh toán mô phỏng thất bại (outcome=FAILURE)'
+    })
+
     return {
       orderId: order.id,
       status: order.status,
@@ -414,11 +426,12 @@ export const processPayment = async (
     }
 
     // 4c. Cập nhật trạng thái đơn hàng -> PAID
+    const paidAt = new Date()
     await tx.order.update({
       where: { id: order.id },
       data: {
         status: 'PAID',
-        paidAt: new Date()
+        paidAt
       }
     })
 
@@ -432,6 +445,25 @@ export const processPayment = async (
         expiresAt: true
       }
     })
+
+    // 4e. Ghi log thanh toán thành công
+    const pt = await paymentService.create(
+      {
+        orderId: order.id,
+        gateway: order.paymentMethod,
+        amount: order.totalAmount,
+        currency: 'VND'
+      },
+      tx
+    )
+    await paymentService.updateStatus(
+      pt.id,
+      {
+        status: 'SUCCESS',
+        paidAt
+      },
+      tx
+    )
 
     return createdCodes
   })
@@ -482,10 +514,7 @@ export const cancelOrder = async (customerId: string, orderId: string): Promise<
   return { message: 'Hủy đơn hàng và hoàn khóa voucher thành công' }
 }
 
-export const createStripeCheckoutSession = async (
-  customerId: string,
-  orderId: string
-): Promise<{ url: string }> => {
+export const createStripeCheckoutSession = async (customerId: string, orderId: string): Promise<{ url: string }> => {
   const order = await prisma.order.findUnique({
     where: { id: orderId },
     include: { orderItems: { include: { voucherProduct: true } } }
