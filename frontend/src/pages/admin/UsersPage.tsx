@@ -187,7 +187,7 @@ export function UsersPage() {
       {!isLoading && !isError && data && accounts.length > 0 && (
         <>
           <div style={tableWrapperStyle}>
-            <table style={tableStyle}>
+            <table className='admin-data-table' style={tableStyle}>
               <thead>
                 <tr>
                   <th style={thStyle}>Tên</th>

@@ -721,3 +721,36 @@ body:focus-visible,
     font-size: 12px;
   }
 }
+
+/* Shared visual contract for administration data tables. */
+.admin-data-table {
+  width: 100%;
+  border-collapse: separate !important;
+  border-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+.admin-data-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface-muted) !important;
+  color: var(--slate) !important;
+  font-size: 11px !important;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.admin-data-table tbody tr {
+  transition: background-color 150ms ease;
+}
+.admin-data-table tbody tr:hover {
+  background: color-mix(in srgb, var(--accent) 5%, var(--surface));
+}
+.admin-data-table td,
+.admin-data-table th {
+  padding-block: 14px !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-data-table tbody tr {
+    transition: none;
+  }
+}

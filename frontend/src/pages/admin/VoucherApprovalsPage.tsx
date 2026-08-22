@@ -114,9 +114,7 @@ export function VoucherApprovalsPage() {
       <header>
         <p style={eyebrowStyle}>● Kiểm duyệt sản phẩm</p>
         <h1 style={titleStyle}>Voucher chờ duyệt</h1>
-        <p style={subtitleStyle}>
-          Kiểm tra nội dung, giá và thời hạn trước khi voucher được mở bán trên sàn.
-        </p>
+        <p style={subtitleStyle}>Kiểm tra nội dung, giá và thời hạn trước khi voucher được mở bán trên sàn.</p>
       </header>
 
       {isLoading && (
@@ -144,11 +142,16 @@ export function VoucherApprovalsPage() {
         <>
           <div style={cardStyle}>
             <div style={tableWrapperStyle}>
-              <table style={tableStyle}>
+              <table className='admin-data-table' style={tableStyle}>
                 <thead>
                   <tr>
                     <th style={thStyle}>Voucher</th>
-                    <th style={thStyle}>Đối tác</th><th style={thStyle}>Danh mục</th><th style={thNumStyle}>Giá bán</th><th style={thNumStyle}>Số lượng</th><th style={thStyle}>Thời gian bán</th><th style={thActionStyle}>Thao tác</th>
+                    <th style={thStyle}>Đối tác</th>
+                    <th style={thStyle}>Danh mục</th>
+                    <th style={thNumStyle}>Giá bán</th>
+                    <th style={thNumStyle}>Số lượng</th>
+                    <th style={thStyle}>Thời gian bán</th>
+                    <th style={thActionStyle}>Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -307,7 +310,8 @@ export function VoucherApprovalsPage() {
         <form id='reject-voucher-form' onSubmit={handleRejectSubmit}>
           {rejecting && (
             <p style={{ margin: '0 0 12px', color: colors.slate }}>
-              Nhập lý do từ chối <strong style={{ color: colors.ink }}>“{rejecting.title}”</strong>. Nội dung này sẽ được gửi cho đối tác.
+              Nhập lý do từ chối <strong style={{ color: colors.ink }}>“{rejecting.title}”</strong>. Nội dung này sẽ
+              được gửi cho đối tác.
             </p>
           )}
           <label htmlFor='voucher-reject-reason' style={labelStyle}>

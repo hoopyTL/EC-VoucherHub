@@ -100,8 +100,21 @@ function AnalyticsSection() {
       )}
 
       <div style={periodTabsStyle} aria-label='Chọn kỳ thống kê'>
-        {([['day', 'Ngày'], ['week', 'Tuần'], ['month', 'Tháng']] as const).map(([value, label]) => (
-          <button key={value} type='button' onClick={() => setPeriod(value)} style={{ ...periodButtonStyle, ...(period === value ? periodButtonActiveStyle : {}) }}>{label}</button>
+        {(
+          [
+            ['day', 'Ngày'],
+            ['week', 'Tuần'],
+            ['month', 'Tháng']
+          ] as const
+        ).map(([value, label]) => (
+          <button
+            key={value}
+            type='button'
+            onClick={() => setPeriod(value)}
+            style={{ ...periodButtonStyle, ...(period === value ? periodButtonActiveStyle : {}) }}
+          >
+            {label}
+          </button>
         ))}
       </div>
 
@@ -114,11 +127,12 @@ function AnalyticsContent({ analytics, period }: { analytics: AnalyticsOverview;
   const { revenueSeries, signupSeries, categoryBreakdown, funnel, windowDays } = analytics
 
   const groupSize = period === 'day' ? 1 : period === 'week' ? 7 : 30
-  const group = (values: number[]) => values.reduce<number[]>((buckets, value, index) => {
-    const bucket = Math.floor(index / groupSize)
-    buckets[bucket] = (buckets[bucket] ?? 0) + value
-    return buckets
-  }, [])
+  const group = (values: number[]) =>
+    values.reduce<number[]>((buckets, value, index) => {
+      const bucket = Math.floor(index / groupSize)
+      buckets[bucket] = (buckets[bucket] ?? 0) + value
+      return buckets
+    }, [])
   const revenuePoints = group(revenueSeries.map((p) => p.revenue))
   const signupPoints = group(signupSeries.map((p) => p.signups))
   const revenueTotal = revenuePoints.reduce((sum, value) => sum + value, 0)
@@ -133,10 +147,7 @@ function AnalyticsContent({ analytics, period }: { analytics: AnalyticsOverview;
             <span style={chartTitleStyle}>Doanh thu ({windowDays} ngày gần nhất)</span>
             <span style={chartTotalStyle}>{formatCurrency(revenueTotal)}</span>
           </div>
-          <LineChart
-            points={revenuePoints}
-            ariaLabel={`Doanh thu mỗi ngày trong ${windowDays} ngày gần nhất`}
-          />
+          <LineChart points={revenuePoints} ariaLabel={`Doanh thu mỗi ngày trong ${windowDays} ngày gần nhất`} />
         </div>
         <div style={chartCardStyle}>
           <div style={chartHeaderStyle}>
@@ -222,7 +233,7 @@ function DashboardContent({ stats }: { stats: DashboardStats }) {
         </div>
       ) : (
         <div style={tableWrapperStyle}>
-          <table style={tableStyle}>
+          <table className='admin-data-table' style={tableStyle}>
             <thead>
               <tr>
                 <th style={thStyle}>#</th>
@@ -255,7 +266,7 @@ function DashboardContent({ stats }: { stats: DashboardStats }) {
         </div>
       ) : (
         <div style={tableWrapperStyle}>
-          <table style={tableStyle}>
+          <table className='admin-data-table' style={tableStyle}>
             <thead>
               <tr>
                 <th style={thStyle}>Đối tác</th>
@@ -282,12 +293,28 @@ function DashboardContent({ stats }: { stats: DashboardStats }) {
 }
 
 /** A single summary metric card. */
-function StatCard({ label, value, footer, trend }: { label: string; value: string; footer?: ReactNode; trend?: string }) {
+function StatCard({
+  label,
+  value,
+  footer,
+  trend
+}: {
+  label: string
+  value: string
+  footer?: ReactNode
+  trend?: string
+}) {
   return (
     <div className='workspace-kpi-ticket' style={statCardStyle}>
       <span style={statLabelStyle}>{label}</span>
-      <span className='kpi-count-up' style={statValueStyle}><CountUpValue value={value} /></span>
-      {trend && <span className='kpi-trend'><span aria-hidden='true'>↗</span> {trend} <small>so với kỳ trước</small></span>}
+      <span className='kpi-count-up' style={statValueStyle}>
+        <CountUpValue value={value} />
+      </span>
+      {trend && (
+        <span className='kpi-trend'>
+          <span aria-hidden='true'>↗</span> {trend} <small>so với kỳ trước</small>
+        </span>
+      )}
       {footer && <span style={{ fontSize: 13 }}>{footer}</span>}
     </div>
   )
@@ -457,9 +484,32 @@ const chartCardStyle: CSSProperties = {
   backgroundImage: 'linear-gradient(145deg, #ffffff 45%, #fff7f2 100%)'
 }
 
-const periodTabsStyle: CSSProperties = { display: 'flex', width: 'fit-content', gap: 4, padding: 4, margin: '0 0 14px auto', borderRadius: radius.full, background: '#eeeae7', border: `1px solid ${colors.hairline}` }
-const periodButtonStyle: CSSProperties = { border: 0, background: 'transparent', color: colors.slate, borderRadius: radius.full, padding: '8px 15px', font: 'inherit', fontSize: 13, fontWeight: 700, cursor: 'pointer' }
-const periodButtonActiveStyle: CSSProperties = { background: '#e74720', color: '#fff', boxShadow: '0 5px 14px rgba(231,71,32,.22)' }
+const periodTabsStyle: CSSProperties = {
+  display: 'flex',
+  width: 'fit-content',
+  gap: 4,
+  padding: 4,
+  margin: '0 0 14px auto',
+  borderRadius: radius.full,
+  background: '#eeeae7',
+  border: `1px solid ${colors.hairline}`
+}
+const periodButtonStyle: CSSProperties = {
+  border: 0,
+  background: 'transparent',
+  color: colors.slate,
+  borderRadius: radius.full,
+  padding: '8px 15px',
+  font: 'inherit',
+  fontSize: 13,
+  fontWeight: 700,
+  cursor: 'pointer'
+}
+const periodButtonActiveStyle: CSSProperties = {
+  background: '#e74720',
+  color: '#fff',
+  boxShadow: '0 5px 14px rgba(231,71,32,.22)'
+}
 
 const chartHeaderStyle: CSSProperties = {
   display: 'flex',

@@ -142,7 +142,7 @@ export function PartnerApprovalsPage() {
         <>
           <div style={cardStyle}>
             <div style={tableWrapperStyle}>
-              <table style={tableStyle}>
+              <table className='admin-data-table' style={tableStyle}>
                 <thead>
                   <tr>
                     <th style={thStyle}>Business</th>
