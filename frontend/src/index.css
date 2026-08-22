@@ -476,15 +476,68 @@ body:focus-visible,
 .voucher-detail-media {
   grid-column: 1;
   grid-row: 2 / span 3;
-  position: sticky;
-  top: 112px;
-  min-height: 620px;
+  position: relative;
+  min-height: 0;
+  align-self: stretch;
+}
+html,
+body,
+#root {
+  max-width: 100%;
+  overflow-x: clip;
+}
+.public-main,
+.workspace-main,
+.workspace-shell,
+main > * {
+  min-width: 0;
+}
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+}
+:where(p, h1, h2, h3, td, th, a, button, span) {
+  overflow-wrap: anywhere;
+}
+.voucher-detail-media img {
+  max-height: 680px;
+  aspect-ratio: 4 / 5;
 }
 .voucher-detail-media img {
   transition: transform 180ms ease;
 }
 .voucher-detail-media:hover img {
   transform: scale(1.018);
+}
+
+.order-detail-page {
+  width: 100%;
+  min-width: 0;
+}
+.order-detail-card {
+  min-width: 0;
+}
+.order-detail-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+.order-payment-actions > * {
+  flex: 1 1 190px;
+}
+@media (max-width: 640px) {
+  .order-detail-page h1 {
+    font-size: 26px !important;
+  }
+  .order-detail-card {
+    padding: 16px !important;
+  }
+  .order-payment-actions > * {
+    width: 100%;
+    flex-basis: 100%;
+  }
 }
 @media (max-width: 1023px) {
   .voucher-detail-layout {

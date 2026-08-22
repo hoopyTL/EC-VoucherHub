@@ -33,7 +33,9 @@ function itemCount(order: Order): number {
   return (order.items || order.orderItems || []).reduce((sum, item) => sum + item.quantity, 0)
 }
 
-export function OrdersPage() {
+export type OrderHistoryView = 'processing' | 'purchased' | 'history' | 'all'
+
+export function OrdersPage({ view = 'all' }: { view?: OrderHistoryView }) {
   const navigate = useNavigate()
   const {
     data: orders,
@@ -44,9 +46,26 @@ export function OrdersPage() {
     queryFn: fetchOrders
   })
 
+  const visibleOrders = (orders ?? []).filter((order) => {
+    const status = order.status as string
+    if (view === 'processing') return status === 'PENDING_PAYMENT'
+    if (view === 'purchased') return status === 'PAID'
+    if (view === 'history') return status === 'CANCELLED' || status === 'REFUNDED'
+    return true
+  })
+
+  const heading =
+    view === 'processing'
+      ? 'Đơn chờ thanh toán'
+      : view === 'purchased'
+        ? 'Voucher đã mua'
+        : view === 'history'
+          ? 'Lịch sử đơn hàng'
+          : 'Lịch sử mua voucher'
+
   return (
     <section style={{ maxWidth: 820, margin: '0 auto' }}>
-      <h1 style={pageHeadingStyle}>Lịch sử mua voucher</h1>
+      <h1 style={pageHeadingStyle}>{heading}</h1>
 
       {isLoading && (
         <div style={{ padding: 32 }}>
@@ -60,18 +79,18 @@ export function OrdersPage() {
         </div>
       )}
 
-      {!isLoading && !isError && orders && orders.length === 0 && (
+      {!isLoading && !isError && visibleOrders.length === 0 && (
         <div style={emptyStyle}>
-          <p style={{ margin: 0 }}>Bạn chưa có đơn hàng nào.</p>
+          <p style={{ margin: 0 }}>Bạn chưa có đơn hàng nào trong nhóm này.</p>
           <Link to='/search' style={linkStyle}>
             Khám phá voucher →
           </Link>
         </div>
       )}
 
-      {!isLoading && !isError && orders && orders.length > 0 && (
+      {!isLoading && !isError && visibleOrders.length > 0 && (
         <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-          {orders.map((order) => (
+          {visibleOrders.map((order) => (
             <li key={order.id}>
               <button
                 type='button'

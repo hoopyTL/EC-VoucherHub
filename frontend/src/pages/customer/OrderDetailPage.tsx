@@ -102,7 +102,7 @@ export function OrderDetailPage() {
   }
 
   return (
-    <section style={wrapperStyle}>
+    <section className='order-detail-page' style={wrapperStyle}>
       <p style={{ marginTop: 0, marginBottom: 8 }}>
         <Link to='/orders' style={linkStyle}>
           ← Quay lại đơn hàng
@@ -130,44 +130,46 @@ export function OrderDetailPage() {
         </div>
       )}
 
-      <div style={cardStyle}>
+      <div className='order-detail-card' style={cardStyle}>
         <h2 style={cardTitleStyle}>Voucher</h2>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
-          <thead>
-            <tr>
-              <th style={thStyle}>Voucher</th>
-              <th style={{ ...thStyle, textAlign: 'center' }}>SL</th>
-              <th style={{ ...thStyle, textAlign: 'right' }}>Đơn giá</th>
-              <th style={{ ...thStyle, textAlign: 'right' }}>Thành tiền</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(order.items || []).map((item) => (
-              <tr key={item.id}>
-                <td style={tdStyle}>{item.voucherProductName}</td>
-                <td style={{ ...tdStyle, textAlign: 'center' }}>{item.quantity}</td>
-                <td style={{ ...tdStyle, textAlign: 'right' }}>{formatCurrency(item.unitPrice)}</td>
-                <td style={{ ...tdStyle, textAlign: 'right' }}>
-                  {formatCurrency(Number(item.unitPrice) * item.quantity)}
-                </td>
+        <div className='order-detail-table-wrap'>
+          <table style={{ width: '100%', minWidth: 560, borderCollapse: 'collapse', fontSize: 14 }}>
+            <thead>
+              <tr>
+                <th style={thStyle}>Voucher</th>
+                <th style={{ ...thStyle, textAlign: 'center' }}>SL</th>
+                <th style={{ ...thStyle, textAlign: 'right' }}>Đơn giá</th>
+                <th style={{ ...thStyle, textAlign: 'right' }}>Thành tiền</th>
               </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr>
-              <td style={{ ...tdStyle, fontWeight: 600 }} colSpan={3}>
-                Tổng cộng
-              </td>
-              <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600 }}>{formatCurrency(order.totalAmount)}</td>
-            </tr>
-          </tfoot>
-        </table>
+            </thead>
+            <tbody>
+              {(order.items || []).map((item) => (
+                <tr key={item.id}>
+                  <td style={tdStyle}>{item.voucherProductName}</td>
+                  <td style={{ ...tdStyle, textAlign: 'center' }}>{item.quantity}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right' }}>{formatCurrency(item.unitPrice)}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right' }}>
+                    {formatCurrency(Number(item.unitPrice) * item.quantity)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td style={{ ...tdStyle, fontWeight: 600 }} colSpan={3}>
+                  Tổng cộng
+                </td>
+                <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600 }}>{formatCurrency(order.totalAmount)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
       </div>
 
       {order.status === 'PENDING_PAYMENT' && (
         <div style={cardStyle}>
           <p style={{ margin: 0, color: colors.ink }}>Đơn hàng đang chờ hoàn tất thanh toán.</p>
-          <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
+          <div className='order-payment-actions' style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 16 }}>
             <Button
               variant='primary'
               style={{ backgroundColor: '#005baa' }}
