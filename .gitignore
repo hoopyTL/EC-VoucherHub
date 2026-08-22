@@ -50,5 +50,6 @@ backend/prisma/*.db-journal
 
 # Test coverage
 coverage/
+review-screenshots/
 playwright-report/
 test-results/
