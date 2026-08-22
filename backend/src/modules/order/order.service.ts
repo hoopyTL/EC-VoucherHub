@@ -535,21 +535,33 @@ export const createStripeCheckoutSession = async (customerId: string, orderId: s
   if (order.customerId !== customerId) throw new ForbiddenError('Đơn hàng không thuộc về bạn')
   if (order.status !== 'PENDING_PAYMENT') throw new ConflictError('Đơn hàng không ở trạng thái chờ thanh toán')
 
-  const session = await stripe.checkout.sessions.create({
-    payment_method_types: ['card'],
-    line_items: order.orderItems.map((item) => ({
-      price_data: {
-        currency: 'vnd',
-        product_data: { name: item.voucherProduct.name },
-        unit_amount: Math.round(Number(item.unitPrice))
-      },
-      quantity: item.quantity
-    })),
-    mode: 'payment',
-    success_url: `${env.CORS_ORIGIN}/payment-result?stripe_success=true&order_id=${order.id}`,
-    cancel_url: `${env.CORS_ORIGIN}/payment-result?stripe_success=false&order_id=${order.id}`,
-    metadata: { orderId: order.id }
-  })
+  if (order.orderItems.length === 0) {
+    throw new ConflictError('Đơn hàng không có voucher để thanh toán. Vui lòng tạo lại đơn từ giỏ hàng.')
+  }
+
+  let session
+  try {
+    session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: order.orderItems.map((item) => ({
+        price_data: {
+          currency: 'vnd',
+          product_data: { name: item.voucherProduct.name },
+          unit_amount: Math.round(Number(item.unitPrice))
+        },
+        quantity: item.quantity
+      })),
+      mode: 'payment',
+      success_url: `${env.CORS_ORIGIN}/payment-result?stripe_success=true&order_id=${order.id}&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${env.CORS_ORIGIN}/payment-result?stripe_success=false&order_id=${order.id}`,
+      client_reference_id: order.id,
+      metadata: { orderId: order.id }
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : ''
+    console.error('Stripe checkout error:', message)
+    throw new ConflictError('Không thể kết nối cổng thanh toán quốc tế. Vui lòng thử lại sau.')
+  }
 
   if (!session.url) throw new ConflictError('Stripe không trả về đường dẫn thanh toán')
   return { url: session.url }

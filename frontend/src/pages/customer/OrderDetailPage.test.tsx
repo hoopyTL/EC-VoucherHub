@@ -128,9 +128,9 @@ describe('OrderDetailPage', () => {
 
     renderAt('order-1')
 
-    expect(await screen.findByText('Lịch sử thanh toán')).toBeDefined()
+    expect(await screen.findByText('Thông tin thanh toán')).toBeDefined()
     expect(await screen.findByText('Thẻ quốc tế · Stripe')).toBeDefined()
-    expect(screen.getByText('Thành công')).toBeDefined()
+    expect(screen.getAllByText('Đã thanh toán').length).toBeGreaterThan(0)
     expect(screen.getByText(/pi_demo_123/)).toBeDefined()
   })
 

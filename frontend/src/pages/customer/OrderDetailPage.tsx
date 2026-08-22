@@ -22,7 +22,6 @@ import {
   CreditCard,
   Landmark,
   ReceiptText,
-  RefreshCcw,
   ShieldCheck,
   WalletCards,
   XCircle
@@ -327,8 +326,8 @@ function PaymentHistory({
           <WalletCards size={20} aria-hidden='true' />
         </span>
         <div>
-          <h2 style={cardTitleStyle}>Lịch sử thanh toán</h2>
-          <p>Theo dõi từng lần giao dịch và trạng thái đối soát của đơn hàng.</p>
+          <h2 style={cardTitleStyle}>Thông tin thanh toán</h2>
+          <p>Phương thức và số tiền của giao dịch đã hoàn tất.</p>
         </div>
       </div>
 
@@ -347,15 +346,14 @@ function PaymentHistory({
         <div className='payment-history-empty'>
           <Clock3 size={22} aria-hidden='true' />
           <div>
-            <strong>Chưa phát sinh giao dịch</strong>
-            <span>Lịch sử sẽ xuất hiện sau khi bạn chọn một cổng thanh toán.</span>
+            <strong>Chưa có thanh toán thành công</strong>
+            <span>Thông tin sẽ xuất hiện sau khi đơn hàng được thanh toán.</span>
           </div>
         </div>
       ) : (
         <ol className='payment-timeline'>
           {payments.map((payment) => {
-            const presentation = paymentPresentation(payment.status)
-            const StatusIcon = presentation.icon
+            const StatusIcon = CheckCircle2
             const eventTime = payment.refundedAt || payment.paidAt || payment.createdAt
             return (
               <li key={payment.id} className={`payment-timeline-item payment-${payment.status.toLowerCase()}`}>
@@ -370,13 +368,12 @@ function PaymentHistory({
                     </div>
                     <div className='payment-timeline-amount'>
                       <strong>{formatCurrency(payment.amount)}</strong>
-                      <span className='payment-status-label'>{presentation.label}</span>
+                      <span className='payment-status-label'>Đã thanh toán</span>
                     </div>
                   </div>
-                  {(payment.gatewayTransId || payment.failureReason) && (
+                  {payment.gatewayTransId && (
                     <div className='payment-timeline-meta'>
-                      {payment.gatewayTransId && <span>Mã đối soát: {payment.gatewayTransId}</span>}
-                      {payment.failureReason && <span className='payment-failure-reason'>{payment.failureReason}</span>}
+                      <span>Mã đối soát: {payment.gatewayTransId}</span>
                     </div>
                   )}
                 </div>
@@ -396,16 +393,6 @@ function gatewayLabel(gateway: string): string {
     SIMULATE: 'Thanh toán mô phỏng'
   }
   return labels[gateway.toUpperCase()] || gateway
-}
-
-function paymentPresentation(status: PaymentTransactionResponse['status']) {
-  const values = {
-    PENDING: { label: 'Đang xử lý', icon: Clock3 },
-    SUCCESS: { label: 'Thành công', icon: CheckCircle2 },
-    FAILED: { label: 'Không thành công', icon: XCircle },
-    REFUNDED: { label: 'Đã hoàn tiền', icon: RefreshCcw }
-  }
-  return values[status]
 }
 
 const wrapperStyle: CSSProperties = { maxWidth: 980, margin: '0 auto' }

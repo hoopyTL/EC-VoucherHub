@@ -8,7 +8,6 @@ dotenv.config({ quiet: true })
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY || 'sk_test_mock_key_for_development_only'
 
 export const stripe = new Stripe(stripeSecretKey, {
-  apiVersion: '2026-07-29.dahlia',
   typescript: true
 })
 

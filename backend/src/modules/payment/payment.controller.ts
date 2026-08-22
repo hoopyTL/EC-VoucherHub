@@ -17,7 +17,7 @@ export const getPaymentsByOrder = asyncHandler(async (req: Request, res: Respons
   if (!order) throw new NotFoundError('Đơn hàng không tồn tại')
   if (order.customerId !== customerId) throw new ForbiddenError('Đơn hàng không thuộc về bạn')
 
-  const payments = await paymentService.getByOrderId(orderId)
+  const payments = (await paymentService.getByOrderId(orderId)).filter((payment) => payment.status === 'SUCCESS')
   successResponse(res, payments)
 })
 
