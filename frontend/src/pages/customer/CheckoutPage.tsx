@@ -19,6 +19,7 @@
 import { useState, type CSSProperties, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { LockKeyhole } from 'lucide-react'
 import type { CreateOrderRequest } from '@ui-contracts'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
@@ -126,7 +127,7 @@ export function CheckoutPage() {
           {/* Order summary (Req 14.1) */}
           <div aria-label='Tóm tắt đơn hàng' style={panelStyle}>
             <h2 style={panelHeadingStyle}>Tóm tắt đơn hàng</h2>
-            <table style={tableStyle}>
+            <table className='checkout-summary-table' style={tableStyle}>
               <thead>
                 <tr>
                   <th style={thStyle}>Voucher</th>
@@ -137,7 +138,7 @@ export function CheckoutPage() {
               </thead>
               <tbody>
                 {cart.items.map((item) => (
-                  <tr key={item.id}>
+                  <tr className='checkout-summary-row' key={item.id}>
                     <td style={tdStyle}>{item.title}</td>
                     <td style={tdNumStyle}>{formatMoney(item.unitPrice)}</td>
                     <td style={tdNumStyle}>{item.quantity}</td>
@@ -208,6 +209,12 @@ export function CheckoutPage() {
             <Button type='submit' fullWidth isLoading={createOrderMutation.isPending}>
               Đặt hàng
             </Button>
+            <div className='checkout-security-note'>
+              <LockKeyhole size={16} aria-hidden='true' />
+              <span>
+                {'Giao d\u1ecbch \u0111\u01b0\u1ee3c m\u00e3 h\u00f3a v\u00e0 b\u1ea3o v\u1ec7 an to\u00e0n.'}
+              </span>
+            </div>
             <Link to='/cart' style={{ display: 'inline-block', marginTop: 12, fontSize: 14, ...linkStyle }}>
               Quay lại giỏ hàng
             </Link>
