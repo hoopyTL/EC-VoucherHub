@@ -182,6 +182,22 @@ export function OrderDetailPage() {
             </Button>
 
             <Button
+              variant='primary'
+              style={{ backgroundColor: '#635bff' }}
+              onClick={async () => {
+                try {
+                  const { getStripeUrl } = await import('../../services/orders')
+                  const url = await getStripeUrl(order.id)
+                  window.location.href = url
+                } catch {
+                  alert('Khởi tạo thanh toán quốc tế thất bại, vui lòng thử lại!')
+                }
+              }}
+            >
+              Thanh toán qua thẻ quốc tế (Stripe)
+            </Button>
+
+            <Button
               variant='danger'
               disabled={cancelMutation.isPending}
               isLoading={cancelMutation.isPending}

@@ -18,6 +18,17 @@ export function PaymentResultPage() {
     hasProcessed.current = true
 
     const handleVNPayReturn = async () => {
+      const stripeOrderId = searchParams.get('order_id')
+      const stripeSuccess = searchParams.get('stripe_success')
+
+      if (stripeOrderId) {
+        if (!stripeSuccess || stripeSuccess !== 'true') {
+          alert('Bạn đã hủy hoặc chưa hoàn tất thanh toán quốc tế.')
+        }
+        navigate(`/orders/${stripeOrderId}`, { replace: true })
+        return
+      }
+
       // ----------------------------------------------------------------------
       // BƯỚC 1: ĐỒNG BỘ IPN CỤC BỘ (Fallback cho Localhost)
       // Do VNPay ngoài Internet không thể chọc API vào localhost, Frontend sẽ

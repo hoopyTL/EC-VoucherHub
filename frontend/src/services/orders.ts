@@ -146,6 +146,12 @@ export async function getVNPayUrl(orderId: string): Promise<string> {
   return data.data.url
 }
 
+/** Get the Stripe Checkout URL for an order. */
+export async function getStripeUrl(orderId: string): Promise<string> {
+  const { data } = await api.get<{ data: { url: string } }>(`/orders/${orderId}/stripe`)
+  return data.data.url
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
