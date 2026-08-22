@@ -1,26 +1,38 @@
 import { NavLink } from 'react-router-dom'
 import type { CSSProperties } from 'react'
+import {
+  Building2,
+  CheckCircle2,
+  ClipboardList,
+  LayoutDashboard,
+  MapPin,
+  PackageCheck,
+  TrendingUp,
+  UserRound,
+  Users,
+  type LucideIcon
+} from 'lucide-react'
 
 export type SidebarVariant = 'admin' | 'partner'
 interface SidebarItem {
   to: string
   label: string
-  icon: string
+  icon: LucideIcon
 }
 const ADMIN_ITEMS: SidebarItem[] = [
-  { to: '/admin', label: 'Tổng quan', icon: '◫' },
-  { to: '/admin/users', label: 'Người dùng', icon: '◎' },
-  { to: '/admin/partners', label: 'Duyệt đối tác', icon: '◇' },
-  { to: '/admin/vouchers', label: 'Duyệt voucher', icon: '▣' },
-  { to: '/admin/orders', label: 'Đơn hàng', icon: '≡' }
+  { to: '/admin', label: 'Tổng quan', icon: LayoutDashboard },
+  { to: '/admin/users', label: 'Người dùng', icon: Users },
+  { to: '/admin/partners', label: 'Duyệt đối tác', icon: Building2 },
+  { to: '/admin/vouchers', label: 'Duyệt voucher', icon: PackageCheck },
+  { to: '/admin/orders', label: 'Đơn hàng', icon: ClipboardList }
 ]
 const PARTNER_ITEMS: SidebarItem[] = [
-  { to: '/partner', label: 'Tổng quan', icon: '◫' },
-  { to: '/partner/profile', label: 'Hồ sơ doanh nghiệp', icon: '◎' },
-  { to: '/partner/branches', label: 'Chi nhánh', icon: '⌖' },
-  { to: '/partner/vouchers', label: 'Kho voucher', icon: '▣' },
-  { to: '/partner/redeem', label: 'Xác nhận sử dụng', icon: '✓' },
-  { to: '/partner/reports', label: 'Báo cáo', icon: '↗' }
+  { to: '/partner', label: 'Tổng quan', icon: LayoutDashboard },
+  { to: '/partner/profile', label: 'Hồ sơ doanh nghiệp', icon: UserRound },
+  { to: '/partner/branches', label: 'Chi nhánh', icon: MapPin },
+  { to: '/partner/vouchers', label: 'Kho voucher', icon: PackageCheck },
+  { to: '/partner/redeem', label: 'Xác nhận sử dụng', icon: CheckCircle2 },
+  { to: '/partner/reports', label: 'Báo cáo', icon: TrendingUp }
 ]
 export interface SidebarProps {
   variant: SidebarVariant
@@ -58,25 +70,28 @@ export function Sidebar({ variant }: SidebarProps) {
         </span>
       </div>
       <nav aria-label={`${variant} navigation`} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {items.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.to === `/${variant}`}
-            style={({ isActive }) => ({
-              ...itemStyle,
-              color: '#fff',
-              background: isActive ? 'rgba(255,255,255,.18)' : 'transparent',
-              boxShadow: isActive ? `inset 3px 0 0 ${accent}` : 'none',
-              opacity: isActive ? 1 : 0.78
-            })}
-          >
-            <span aria-hidden='true' style={{ width: 28, fontSize: 19, textAlign: 'center' }}>
-              {item.icon}
-            </span>
-            <span>{item.label}</span>
-          </NavLink>
-        ))}
+        {items.map((item) => {
+          const Icon = item.icon
+          return (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.to === `/${variant}`}
+              style={({ isActive }) => ({
+                ...itemStyle,
+                color: '#fff',
+                background: isActive ? 'rgba(255,255,255,.18)' : 'transparent',
+                boxShadow: isActive ? `inset 3px 0 0 ${accent}` : 'none',
+                opacity: isActive ? 1 : 0.78
+              })}
+            >
+              <span aria-hidden='true' style={{ width: 28, display: 'inline-flex', justifyContent: 'center' }}>
+                <Icon size={19} strokeWidth={1.8} />
+              </span>
+              <span>{item.label}</span>
+            </NavLink>
+          )
+        })}
       </nav>
       <div
         style={{

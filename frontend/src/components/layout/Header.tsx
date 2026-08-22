@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../hooks/useAuth'
 import { colors, fonts, radius, glass, shadows } from '../../theme/tokens'
 import { ConfirmDialog } from '../ui'
+import { Home, LogOut, ShoppingCart } from 'lucide-react'
 
 interface NavItem {
   to: string
@@ -45,9 +46,7 @@ function renderNavLink({ to, label }: NavItem) {
       })}
     >
       {to === '/' && (
-        <svg width='16' height='16' viewBox='0 0 24 24' fill='none' aria-hidden='true' style={{ marginRight: 7, verticalAlign: '-3px' }}>
-          <path d='M3 11.2 12 4l9 7.2v8.3a.5.5 0 0 1-.5.5H15v-6H9v6H3.5a.5.5 0 0 1-.5-.5v-8.3Z' stroke='currentColor' strokeWidth='1.8' strokeLinejoin='round' />
-        </svg>
+        <Home size={16} strokeWidth={1.8} aria-hidden='true' style={{ marginRight: 7, verticalAlign: '-3px' }} />
       )}
       {label}
     </NavLink>
@@ -157,11 +156,7 @@ export function Header() {
                   boxShadow: isActive ? '0 6px 16px rgba(228, 77, 38, 0.10)' : 'none'
                 })}
               >
-                <svg width='20' height='20' viewBox='0 0 24 24' fill='none' aria-hidden='true'>
-                  <path d='M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.6L20 7H6' stroke='currentColor' strokeWidth='1.8' strokeLinecap='round' strokeLinejoin='round' />
-                  <circle cx='10' cy='20' r='1.25' fill='currentColor' />
-                  <circle cx='18' cy='20' r='1.25' fill='currentColor' />
-                </svg>
+                <ShoppingCart size={20} strokeWidth={1.8} aria-hidden='true' />
               </NavLink>
             )}
             <NavLink
@@ -206,9 +201,7 @@ export function Header() {
                 fontWeight: 600
               }}
             >
-              <svg width='19' height='19' viewBox='0 0 24 24' fill='none' aria-hidden='true'>
-                <path d='M10 5H5.5a1.5 1.5 0 0 0-1.5 1.5v11A1.5 1.5 0 0 0 5.5 19H10M14 8l4 4-4 4M9 12h9' stroke='currentColor' strokeWidth='1.8' strokeLinecap='round' strokeLinejoin='round' />
-              </svg>
+              <LogOut size={19} strokeWidth={1.8} aria-hidden='true' />
             </button>
           </>
         ) : (
@@ -235,7 +228,19 @@ export function Header() {
           </>
         )}
       </div>
-      <ConfirmDialog open={logoutOpen} title='Đăng xuất VoucherHub?' message='Bạn có chắc muốn kết thúc phiên đăng nhập trên thiết bị này không?' cancelLabel='Ở lại' confirmLabel='Đăng xuất' danger onCancel={()=>setLogoutOpen(false)} onConfirm={()=>{setLogoutOpen(false);logout()}} />
+      <ConfirmDialog
+        open={logoutOpen}
+        title='Đăng xuất VoucherHub?'
+        message='Bạn có chắc muốn kết thúc phiên đăng nhập trên thiết bị này không?'
+        cancelLabel='Ở lại'
+        confirmLabel='Đăng xuất'
+        danger
+        onCancel={() => setLogoutOpen(false)}
+        onConfirm={() => {
+          setLogoutOpen(false)
+          logout()
+        }}
+      />
     </header>
   )
 }
