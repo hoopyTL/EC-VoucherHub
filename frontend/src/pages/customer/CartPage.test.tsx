@@ -57,6 +57,7 @@ function sampleCart(): CartView {
 
 afterEach(() => {
   vi.restoreAllMocks()
+  sessionStorage.clear()
 })
 
 /* -------------------------------------------------------------------------- */
@@ -89,6 +90,20 @@ describe('CartPage helpers', () => {
 /* -------------------------------------------------------------------------- */
 
 describe('CartPage', () => {
+  it('only totals the items selected for checkout', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue({ data: sampleCart() } as never)
+
+    renderCart()
+
+    await screen.findByText('Spa Day Pass')
+    fireEvent.click(screen.getByLabelText('Chọn Dinner for Two để thanh toán'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('cart-total').textContent).toBe(formatPrice(100))
+    })
+    expect(screen.getByRole('button', { name: 'Thanh toán 1 voucher' })).toBeDefined()
+  })
+
   it('renders each item name, unit price, quantity, subtotal, and cart total', async () => {
     vi.spyOn(api, 'get').mockResolvedValue({ data: sampleCart() } as never)
 

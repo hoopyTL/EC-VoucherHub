@@ -33,6 +33,7 @@ import {
   type CartResponse,
   type OrderResponse
 } from '../../services/orders'
+import { clearCheckoutSelection, readCheckoutSelection } from '../../services/checkout-selection'
 
 /** Trim a string and return `undefined` when the result is empty. */
 function emptyToUndefined(value: string): string | undefined {
@@ -48,11 +49,13 @@ export function CheckoutPage() {
   const [recipientEmail, setRecipientEmail] = useState('')
   const [recipientPhone, setRecipientPhone] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [selectedIds] = useState(readCheckoutSelection)
 
   const cartQuery = useQuery<CartResponse>({
     queryKey: ['cart'],
     queryFn: getCart
   })
+  const selectionForOrder = selectedIds.length > 0 ? selectedIds : (cartQuery.data?.items.map((item) => item.id) ?? [])
 
   const createOrderMutation = useMutation<OrderResponse, unknown, CreateOrderRequest>({
     mutationFn: createOrder,
@@ -60,6 +63,7 @@ export function CheckoutPage() {
       // The order now owns the reserved inventory and the cart was cleared
       // server-side — drop the cached cart so other views refetch.
       queryClient.invalidateQueries({ queryKey: ['cart'] })
+      clearCheckoutSelection()
       navigate(`/orders/${order.id}`)
     },
     onError: (err) => {
@@ -79,8 +83,9 @@ export function CheckoutPage() {
     // If we only have flat fields locally, map them into the nested object
     const giftRecipient = name || email || phone ? { name, email, phone } : undefined
 
-    const body: any = {
-      giftRecipient
+    const body: CreateOrderRequest = {
+      giftRecipient,
+      selectedCartItemIds: selectionForOrder.map(Number)
     }
 
     createOrderMutation.mutate(body)
@@ -106,7 +111,15 @@ export function CheckoutPage() {
   }
 
   const cart = cartQuery.data
-  const isEmpty = !cart || cart.items.length === 0
+  const selectedCart = cart
+    ? {
+        items: cart.items.filter((item) => selectionForOrder.includes(item.id)),
+        total: cart.items
+          .filter((item) => selectionForOrder.includes(item.id))
+          .reduce((sum, item) => sum + item.subtotal, 0)
+      }
+    : undefined
+  const isEmpty = !selectedCart || selectedCart.items.length === 0
 
   return (
     <section style={sectionStyle}>
@@ -137,7 +150,7 @@ export function CheckoutPage() {
                 </tr>
               </thead>
               <tbody>
-                {cart.items.map((item) => (
+                {selectedCart!.items.map((item) => (
                   <tr className='checkout-summary-row' key={item.id}>
                     <td style={tdStyle}>{item.title}</td>
                     <td style={tdNumStyle}>{formatMoney(item.unitPrice)}</td>
@@ -152,7 +165,7 @@ export function CheckoutPage() {
                     Tổng cộng
                   </td>
                   <td style={{ ...tdNumStyle, fontWeight: 700 }} data-testid='cart-total'>
-                    {formatMoney(cart.total)}
+                    {formatMoney(selectedCart!.total)}
                   </td>
                 </tr>
               </tfoot>

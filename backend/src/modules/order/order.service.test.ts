@@ -131,6 +131,33 @@ describe('Order Service - createOrder', () => {
     expect(prismaMock.cartItem.deleteMany).toHaveBeenCalledWith({ where: { id: { in: [1] } } })
     expect(result.status).toBe('PENDING_PAYMENT')
   })
+  it('creates an order from selected cart items and keeps unselected items in the cart', async () => {
+    prismaMock.order.findMany.mockResolvedValue([])
+    const cart = cartRecord(2)
+    cart.cartItems.push({
+      id: 2,
+      quantity: 1,
+      voucherProductId: 'vp-2',
+      voucherProduct: {
+        id: 'vp-2',
+        name: 'Voucher 2',
+        status: 'ON_SALE',
+        remainingQuantity: 100,
+        salePrice: new Decimal(300)
+      }
+    })
+    prismaMock.cart.findUnique.mockResolvedValue(cart)
+    prismaMock.voucherProduct.updateMany.mockResolvedValue({ count: 1 })
+    prismaMock.order.create.mockResolvedValue(orderRecord('PENDING_PAYMENT', false))
+
+    await createOrder('cust-1', { selectedCartItemIds: [2] })
+
+    expect(prismaMock.order.create.mock.calls[0][0].data.totalAmount.toString()).toBe('300')
+    expect(prismaMock.order.create.mock.calls[0][0].data.orderItems.create).toEqual([
+      { voucherProductId: 'vp-2', quantity: 1, unitPrice: new Decimal(300) }
+    ])
+    expect(prismaMock.cartItem.deleteMany).toHaveBeenCalledWith({ where: { id: { in: [2] } } })
+  })
   it('prevents holding more than ten units of one voucher', async () => {
     prismaMock.order.findMany.mockResolvedValue([{ orderItems: [{ voucherProductId: 'vp-1', quantity: 6 }] }])
     prismaMock.cart.findUnique.mockResolvedValue(cartRecord(5))

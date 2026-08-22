@@ -15,7 +15,8 @@ export type GiftRecipient = z.infer<typeof giftRecipientSchema>
 
 export const createOrderSchema = z.object({
   paymentMethod: z.string().optional(),
-  giftRecipient: giftRecipientSchema.optional()
+  giftRecipient: giftRecipientSchema.optional(),
+  selectedCartItemIds: z.array(z.coerce.number().int().positive()).min(1, 'cần chọn ít nhất một voucher').optional()
 })
 export type CreateOrderDto = z.infer<typeof createOrderSchema>
 
