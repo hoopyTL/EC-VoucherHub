@@ -1,5 +1,7 @@
 import { ApprovalStatus, OperatingStatus, Prisma, VoucherCodeStatus, VoucherStatus } from '@prisma/client'
 import type { VoucherDto } from '@voucher/shared'
+import fs from 'node:fs'
+import path from 'node:path'
 
 import prisma from '~/configs/prisma'
 import { voucherTransitions } from '~/domain/transitions'
@@ -25,6 +27,19 @@ type VoucherRecord = Prisma.VoucherProductGetPayload<{ include: typeof voucherIn
 type VoucherCodeCounts = Pick<VoucherDto, 'issuedCodeCount' | 'usedCodeCount' | 'expiredCodeCount'>
 
 const emptyCodeCounts = (): VoucherCodeCounts => ({ issuedCodeCount: 0, usedCodeCount: 0, expiredCodeCount: 0 })
+
+function assertOwnedImage(imageUrl: string | null | undefined, partnerId: string): void {
+  if (!imageUrl) return
+  const expectedPrefix = `/uploads/vouchers/${partnerId}-`
+  if (!imageUrl.startsWith(expectedPrefix)) {
+    throw AppError.forbidden('Ảnh voucher không thuộc đối tác của bạn')
+  }
+  const filename = path.basename(imageUrl)
+  const absolutePath = path.resolve(process.cwd(), 'uploads', 'vouchers', filename)
+  if (!fs.existsSync(absolutePath)) {
+    throw AppError.validation('Ảnh voucher không tồn tại hoặc đã bị xóa')
+  }
+}
 
 function toVoucherDto(voucher: VoucherRecord, codeCounts: VoucherCodeCounts = emptyCodeCounts()): VoucherDto {
   return {
@@ -340,6 +355,7 @@ export const voucherService = {
   async create(userId: string, input: CreateVoucherInput) {
     const partner = await getPartnerByOwner(userId)
     validateCompleteValues(input)
+    assertOwnedImage(input.imageUrl, partner.id)
     return prisma.$transaction(async (tx) => {
       await validateRelations(tx, partner.id, input)
       const voucher = await tx.voucherProduct.create({
@@ -395,6 +411,7 @@ export const voucherService = {
       usesPerCode: input.usesPerCode !== undefined ? input.usesPerCode : voucher.usesPerCode
     }
     validateCompleteValues(values)
+    assertOwnedImage(input.imageUrl, partner.id)
     return prisma.$transaction(async (tx) => {
       await validateRelations(tx, partner.id, input)
       const updated = await tx.voucherProduct.updateMany({

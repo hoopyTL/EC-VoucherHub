@@ -44,6 +44,7 @@ interface BranchFieldErrors {
 
 interface FieldErrors {
   email?: string
+  phone?: string
   password?: string
   legalName?: string
   taxCode?: string
@@ -102,7 +103,10 @@ export function RegisterPartnerPage() {
   function validate(): FieldErrors {
     const errors: FieldErrors = {}
 
-    if (!email.trim()) errors.email = 'Vui lòng nhập email.'
+    if (!email.trim() && !phone.trim()) {
+      errors.email = 'Vui lòng cung cấp email hoặc số điện thoại.'
+      errors.phone = 'Vui lòng cung cấp email hoặc số điện thoại.'
+    }
     if (password.length < MIN_PASSWORD_LENGTH) {
       errors.password = `Mật khẩu phải có ít nhất ${MIN_PASSWORD_LENGTH} ký tự.`
     }
@@ -135,7 +139,6 @@ export function RegisterPartnerPage() {
     }
 
     const payload: RegisterPartnerDto = {
-      email: email.trim(),
       password,
       legalName: legalName.trim(),
       taxCode: taxCode.trim(),
@@ -145,6 +148,7 @@ export function RegisterPartnerPage() {
         address: branch.address.trim(),
         region: branch.region.trim()
       })),
+      ...(email.trim() ? { email: email.trim() } : {}),
       ...(phone.trim() ? { phone: phone.trim() } : {})
     }
 
@@ -197,6 +201,7 @@ export function RegisterPartnerPage() {
               type='tel'
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
+              error={fieldErrors.phone}
               autoComplete='tel'
             />
             <Input

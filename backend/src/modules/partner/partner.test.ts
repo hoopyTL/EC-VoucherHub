@@ -244,6 +244,37 @@ describe('partner RBAC and branch ownership', () => {
     expect(updated.body.data.name).toBe('Admin đã cập nhật')
   })
 
+  it('allows an admin to search and filter partner records', async () => {
+    await createPartner({ email: 'approved-search@example.com', taxCode: 'SEARCH-APPROVED' })
+    await createPartner({
+      email: 'rejected-search@example.com',
+      taxCode: 'SEARCH-REJECTED',
+      approvalStatus: ApprovalStatus.REJECTED,
+      operatingStatus: OperatingStatus.SUSPENDED
+    })
+    const admin = await createUser({ email: 'admin-search@example.com', role: RoleName.ADMIN })
+    const headers = authHeader(admin.id, RoleName.ADMIN)
+
+    const byText = await request(app)
+      .get('/api/admin/partners')
+      .query({ q: 'rejected-search@example.com' })
+      .set(headers)
+    const byStatus = await request(app)
+      .get('/api/admin/partners')
+      .query({ approvalStatus: 'REJECTED', operatingStatus: 'SUSPENDED' })
+      .set(headers)
+
+    expect(byText.status).toBe(200)
+    expect(byText.body.data.pagination.total).toBe(1)
+    expect(byText.body.data.partners[0].taxCode).toBe('SEARCH-REJECTED')
+    expect(byStatus.status).toBe(200)
+    expect(byStatus.body.data.partners).toHaveLength(1)
+    expect(byStatus.body.data.partners[0]).toMatchObject({
+      approvalStatus: ApprovalStatus.REJECTED,
+      operatingStatus: OperatingStatus.SUSPENDED
+    })
+  })
+
   it('applies partner lock and unlock immediately to an existing token', async () => {
     const partner = await createPartner({ email: 'locked@example.com', taxCode: 'TAX-LOCKED' })
     const admin = await createUser({ email: 'admin@example.com', role: RoleName.ADMIN })

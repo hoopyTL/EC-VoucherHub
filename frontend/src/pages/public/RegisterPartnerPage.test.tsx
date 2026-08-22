@@ -76,6 +76,25 @@ describe('RegisterPartnerPage', () => {
     expect(screen.getByLabelText(/tên chi nhánh/i)).toBeDefined()
   })
 
+  it('accepts a phone number without requiring an email', async () => {
+    const postSpy = vi.spyOn(api, 'post').mockResolvedValue({ data: { success: true, data: {} } } as never)
+    renderPage()
+
+    fireEvent.change(screen.getByLabelText(/số điện thoại/i), { target: { value: '0912345678' } })
+    fireEvent.change(screen.getByLabelText(/^mật khẩu/i), { target: { value: 'password123' } })
+    fireEvent.change(screen.getByLabelText(/tên pháp lý/i), { target: { value: 'Công ty Điện thoại' } })
+    fireEvent.change(screen.getByLabelText(/mã số thuế/i), { target: { value: 'PHONE-TAX-01' } })
+    fireEvent.change(screen.getByLabelText(/họ tên người đại diện/i), { target: { value: 'Nguyễn Đại Diện' } })
+    fireEvent.change(screen.getByLabelText(/tên chi nhánh/i), { target: { value: 'Chi nhánh chính' } })
+    fireEvent.change(screen.getByLabelText(/địa chỉ/i), { target: { value: '1 Nguyễn Huệ' } })
+    fireEvent.change(screen.getByLabelText(/khu vực/i), { target: { value: 'Hồ Chí Minh' } })
+    fireEvent.click(screen.getByRole('button', { name: /gửi hồ sơ/i }))
+
+    await waitFor(() => expect(postSpy).toHaveBeenCalled())
+    expect(postSpy.mock.calls[0]?.[1]).toMatchObject({ phone: '0912345678' })
+    expect(postSpy.mock.calls[0]?.[1]).not.toHaveProperty('email')
+  })
+
   it('starts with one branch and can add and remove branches', () => {
     renderPage()
     expect(screen.getByText(/chi nhánh 1/i)).toBeDefined()

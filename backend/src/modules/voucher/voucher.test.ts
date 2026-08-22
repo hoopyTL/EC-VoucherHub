@@ -342,6 +342,37 @@ describe('voucher admin and supporting APIs', () => {
     fs.rmSync(path.resolve(process.cwd(), imageUrl.slice(1)), { force: true })
   })
 
+  it('only accepts an existing image uploaded by the voucher owner', async () => {
+    const owner = await createPartner('image-owner@example.com', 'VOUCHER-IMAGE-OWNER')
+    const other = await createPartner('image-other@example.com', 'VOUCHER-IMAGE-OTHER')
+    const png = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+      'base64'
+    )
+    const upload = await request(app)
+      .post('/api/vouchers/images')
+      .set(owner.headers)
+      .attach('image', png, { filename: 'owned.png', contentType: 'image/png' })
+    const imageUrl = upload.body.data.url as string
+
+    const crossPartner = await request(app)
+      .post('/api/vouchers')
+      .set(other.headers)
+      .send({ ...(await voucherPayload(other.partner.branches.map(({ id }) => id))), imageUrl })
+    const missing = await request(app)
+      .post('/api/vouchers')
+      .set(owner.headers)
+      .send({
+        ...(await voucherPayload(owner.partner.branches.map(({ id }) => id))),
+        imageUrl: `/uploads/vouchers/${owner.partner.id}-missing.png`
+      })
+
+    expect(upload.status).toBe(201)
+    expect(crossPartner.status).toBe(403)
+    expect(missing.status).toBe(400)
+    fs.rmSync(path.resolve(process.cwd(), imageUrl.slice(1)), { force: true })
+  })
+
   it('rate limits persistent image uploads per partner', async () => {
     const seller = await createPartner('upload-limit@example.com', 'VOUCHER-UPLOAD-LIMIT')
     const png = Buffer.from(

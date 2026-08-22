@@ -2,20 +2,47 @@ import { useEffect, useState, type CSSProperties, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { AdminPartnerDto, BranchDto } from '@voucher/shared'
 
-import { Badge, Button, Input, LoadingSpinner, Modal, useToast, variantForStatus } from '../../components/ui'
+import {
+  Badge,
+  Button,
+  Input,
+  LoadingSpinner,
+  Modal,
+  Pagination,
+  useToast,
+  variantForStatus
+} from '../../components/ui'
 import { changePartnerOperatingStatus, getAdminApiError, listPartners, updatePartnerBranch } from '../../services/admin'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
 import { formatStatus } from '../../utils/format'
 
 const ALL_PARTNERS_KEY = ['admin-partners'] as const
+const PAGE_LIMIT = 10
+type ApprovalFilter = '' | 'PENDING' | 'APPROVED' | 'REJECTED'
+type OperatingFilter = '' | 'ACTIVE' | 'SUSPENDED'
 
 export function PartnerManagementSection() {
   const queryClient = useQueryClient()
   const toast = useToast()
+  const [page, setPage] = useState(1)
+  const [searchInput, setSearchInput] = useState('')
+  const [query, setQuery] = useState('')
+  const [approvalStatus, setApprovalStatus] = useState<ApprovalFilter>('')
+  const [operatingStatus, setOperatingStatus] = useState<OperatingFilter>('')
   const [editing, setEditing] = useState<{ partner: AdminPartnerDto; branch: BranchDto } | null>(null)
   const [branchForm, setBranchForm] = useState({ name: '', address: '', region: '' })
   const [formError, setFormError] = useState<string | null>(null)
-  const partnersQuery = useQuery({ queryKey: ALL_PARTNERS_KEY, queryFn: () => listPartners({ limit: 100 }) })
+  const partnersQuery = useQuery({
+    queryKey: [...ALL_PARTNERS_KEY, { page, query, approvalStatus, operatingStatus }],
+    queryFn: () =>
+      listPartners({
+        page,
+        limit: PAGE_LIMIT,
+        q: query || undefined,
+        approvalStatus: approvalStatus || undefined,
+        operatingStatus: operatingStatus || undefined
+      })
+  })
 
   useEffect(() => {
     if (!editing) return
@@ -57,6 +84,22 @@ export function PartnerManagementSection() {
     branchMutation.mutate()
   }
 
+  function submitSearch(event: FormEvent) {
+    event.preventDefault()
+    setPage(1)
+    setQuery(searchInput.trim())
+  }
+
+  function clearFilters() {
+    setPage(1)
+    setSearchInput('')
+    setQuery('')
+    setApprovalStatus('')
+    setOperatingStatus('')
+  }
+
+  const totalPages = Math.max(1, Math.ceil((partnersQuery.data?.pagination.total ?? 0) / PAGE_LIMIT))
+
   return (
     <section aria-labelledby='all-partners-heading' style={{ display: 'grid', gap: 16, marginTop: 24 }}>
       <div>
@@ -65,6 +108,53 @@ export function PartnerManagementSection() {
         </h2>
         <p style={descriptionStyle}>Suspend or reactivate approved partners and correct their branch information.</p>
       </div>
+      <form onSubmit={submitSearch} style={filterStyle}>
+        <div style={{ flex: '1 1 300px' }}>
+          <Input
+            label='Tìm kiếm đối tác'
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            placeholder='Tên doanh nghiệp, mã số thuế, người đại diện, email hoặc số điện thoại'
+          />
+        </div>
+        <label style={filterLabelStyle}>
+          Trạng thái duyệt
+          <select
+            value={approvalStatus}
+            onChange={(event) => {
+              setApprovalStatus(event.target.value as ApprovalFilter)
+              setPage(1)
+            }}
+            style={selectStyle}
+          >
+            <option value=''>Tất cả</option>
+            <option value='PENDING'>Chờ duyệt</option>
+            <option value='APPROVED'>Đã duyệt</option>
+            <option value='REJECTED'>Từ chối</option>
+          </select>
+        </label>
+        <label style={filterLabelStyle}>
+          Hoạt động
+          <select
+            value={operatingStatus}
+            onChange={(event) => {
+              setOperatingStatus(event.target.value as OperatingFilter)
+              setPage(1)
+            }}
+            style={selectStyle}
+          >
+            <option value=''>Tất cả</option>
+            <option value='ACTIVE'>Đang hoạt động</option>
+            <option value='SUSPENDED'>Đang khóa</option>
+          </select>
+        </label>
+        <div style={filterActionsStyle}>
+          <Button type='submit'>Tìm kiếm</Button>
+          <Button type='button' variant='secondary' onClick={clearFilters}>
+            Xóa lọc
+          </Button>
+        </div>
+      </form>
       {partnersQuery.isLoading && <LoadingSpinner label='Loading partners' />}
       {partnersQuery.isError && (
         <div role='alert' style={alertStyle}>
@@ -114,8 +204,18 @@ export function PartnerManagementSection() {
             ))}
             {partner.branches.length === 0 && <span style={metaStyle}>No branches.</span>}
           </div>
+          {partner.approvalStatus === 'REJECTED' && partner.rejectReason && (
+            <div style={rejectReasonStyle}>
+              <strong>Lý do từ chối:</strong> {partner.rejectReason}
+            </div>
+          )}
         </article>
       ))}
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+        </div>
+      )}
 
       <Modal
         isOpen={editing !== null}
@@ -165,6 +265,33 @@ export function PartnerManagementSection() {
 
 const headingStyle: CSSProperties = { margin: 0, fontFamily: fonts.display, fontSize: 28, color: colors.ink }
 const descriptionStyle: CSSProperties = { margin: '6px 0 0', color: colors.slate }
+const filterStyle: CSSProperties = {
+  display: 'flex',
+  gap: 12,
+  flexWrap: 'wrap',
+  alignItems: 'flex-end',
+  padding: 16,
+  borderRadius: radius.lg,
+  background: colors.surface,
+  border: `1px solid ${colors.hairline}`
+}
+const filterActionsStyle: CSSProperties = { display: 'flex', gap: 8, paddingBottom: 1 }
+const filterLabelStyle: CSSProperties = {
+  display: 'grid',
+  gap: 6,
+  minWidth: 165,
+  fontSize: 12,
+  fontWeight: 600,
+  color: colors.slate
+}
+const selectStyle: CSSProperties = {
+  minHeight: 42,
+  padding: '0 12px',
+  borderRadius: radius.md,
+  border: `1px solid ${colors.hairline}`,
+  color: colors.ink,
+  background: colors.surface
+}
 const cardStyle: CSSProperties = {
   padding: 20,
   borderRadius: radius.lg,
@@ -191,6 +318,13 @@ const branchStyle: CSSProperties = {
   background: colors.surfaceMuted
 }
 const metaStyle: CSSProperties = { marginTop: 3, color: colors.slate, fontSize: 13 }
+const rejectReasonStyle: CSSProperties = {
+  marginTop: 12,
+  padding: 12,
+  borderRadius: radius.md,
+  color: colors.onDangerSurface,
+  background: colors.dangerSurface
+}
 const alertStyle: CSSProperties = {
   padding: 12,
   borderRadius: radius.md,
