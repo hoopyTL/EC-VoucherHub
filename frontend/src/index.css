@@ -516,16 +516,143 @@ canvas {
   width: 100%;
   min-width: 0;
 }
+.order-detail-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--slate) !important;
+  text-decoration: none;
+  transition:
+    color 150ms ease,
+    transform 150ms ease;
+}
+.order-detail-back:hover {
+  color: var(--accent-deep) !important;
+  transform: translateX(-3px);
+}
+.order-detail-hero {
+  position: relative;
+  isolation: isolate;
+  min-height: 150px;
+  align-items: center !important;
+  margin-bottom: 22px !important;
+  padding: clamp(24px, 4vw, 38px);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 18px 48px 18px 18px;
+  background:
+    radial-gradient(circle at 88% 15%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 34%),
+    linear-gradient(120deg, var(--surface) 0%, var(--accent-soft) 115%);
+  box-shadow: var(--shadow-md);
+}
+.order-detail-hero::after {
+  content: '';
+  position: absolute;
+  top: 16px;
+  right: -8px;
+  bottom: 16px;
+  width: 16px;
+  background: radial-gradient(circle, var(--paper) 0 6px, transparent 6.5px) center / 16px 24px repeat-y;
+  pointer-events: none;
+}
+.order-detail-eyebrow {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--accent-deep);
+  font: 700 11px/1.4 var(--font-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
 .order-detail-card {
   min-width: 0;
+  border-radius: 20px !important;
+}
+.order-card-heading {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 18px;
+}
+.order-card-heading h2 {
+  margin-bottom: 3px !important;
+}
+.order-card-heading p {
+  margin: 0;
+  color: var(--slate);
+  font-size: 13px;
+}
+.order-card-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  place-items: center;
+  border-radius: 12px;
+  color: var(--accent-deep);
+  background: var(--accent-soft);
 }
 .order-detail-table-wrap {
   width: 100%;
   overflow-x: auto;
   overscroll-behavior-inline: contain;
 }
+.order-summary-table thead th {
+  padding-block: 12px !important;
+  color: var(--slate);
+  font-size: 11px !important;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.order-summary-table tbody td {
+  padding-block: 15px !important;
+}
+.order-summary-table tfoot td {
+  padding-top: 18px !important;
+  border-bottom: 0 !important;
+  font-size: 17px;
+}
+.order-payment-card {
+  padding: clamp(22px, 4vw, 32px) !important;
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--line)) !important;
+  background: linear-gradient(
+    145deg,
+    var(--surface),
+    color-mix(in srgb, var(--accent-soft) 42%, var(--surface))
+  ) !important;
+}
+.order-payment-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  color: var(--accent-deep);
+}
+.order-payment-heading span {
+  font: 700 11px/1.4 var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.order-payment-heading h2 {
+  margin: 5px 0 0;
+  color: var(--ink);
+  font: 800 clamp(21px, 3vw, 27px)/1.25 var(--font-sans);
+  letter-spacing: -0.025em;
+}
+.order-payment-note {
+  max-width: 680px;
+  margin: 12px 0 22px;
+  color: var(--slate);
+  font-size: 14px;
+  line-height: 1.7;
+}
 .order-payment-actions > * {
-  flex: 1 1 190px;
+  flex: 1 1 320px;
+  min-height: 54px;
+}
+.order-payment-actions > *:last-child {
+  flex: 0 0 auto;
+  min-height: 44px;
+  margin-left: auto;
 }
 @media (max-width: 640px) {
   .order-detail-page h1 {
@@ -534,9 +661,15 @@ canvas {
   .order-detail-card {
     padding: 16px !important;
   }
-  .order-payment-actions > * {
+  .order-detail-hero {
+    min-height: 0;
+    border-radius: 18px 32px 18px 18px;
+  }
+  .order-payment-actions > *,
+  .order-payment-actions > *:last-child {
     width: 100%;
     flex-basis: 100%;
+    margin-left: 0;
   }
 }
 @media (max-width: 1023px) {

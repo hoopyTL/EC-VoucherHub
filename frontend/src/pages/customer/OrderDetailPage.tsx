@@ -15,11 +15,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { useState, type CSSProperties } from 'react'
+import { ArrowLeft, CreditCard, Landmark, ReceiptText, ShieldCheck, XCircle } from 'lucide-react'
 import { api } from '../../services/api'
 import type { Order } from '../../types/customer'
 import { Badge, variantForStatus, LoadingSpinner, Button, ConfirmDialog, useToast } from '../../components/ui'
 import { formatCurrency, formatDateTime, formatStatus } from '../../utils/format'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
+import { CheckoutProgress } from '../../components/customer/CheckoutProgress'
 
 async function fetchOrder(id: string): Promise<Order> {
   const { data } = await api.get<any>(`/orders/${id}`)
@@ -103,14 +105,17 @@ export function OrderDetailPage() {
 
   return (
     <section className='order-detail-page' style={wrapperStyle}>
-      <p style={{ marginTop: 0, marginBottom: 8 }}>
-        <Link to='/orders' style={linkStyle}>
-          ← Quay lại đơn hàng
+      <p style={{ marginTop: 0, marginBottom: 18 }}>
+        <Link to='/orders' className='order-detail-back' style={linkStyle}>
+          <ArrowLeft size={17} aria-hidden='true' /> Quay lại đơn hàng
         </Link>
       </p>
 
-      <div style={headerStyle}>
+      <CheckoutProgress current={isPaid ? 'complete' : 'checkout'} />
+
+      <div className='order-detail-hero' style={headerStyle}>
         <div>
+          <span className='order-detail-eyebrow'>Chi tiết giao dịch</span>
           <h1 style={{ margin: 0, fontFamily: fonts.display, letterSpacing: '-0.02em', color: colors.ink }}>
             Đơn #{order.id.slice(0, 8)}
           </h1>
@@ -131,9 +136,20 @@ export function OrderDetailPage() {
       )}
 
       <div className='order-detail-card' style={cardStyle}>
-        <h2 style={cardTitleStyle}>Voucher</h2>
+        <div className='order-card-heading'>
+          <span className='order-card-icon'>
+            <ReceiptText size={20} aria-hidden='true' />
+          </span>
+          <div>
+            <h2 style={cardTitleStyle}>Voucher trong đơn</h2>
+            <p>Kiểm tra sản phẩm và số lượng trước khi thanh toán.</p>
+          </div>
+        </div>
         <div className='order-detail-table-wrap'>
-          <table style={{ width: '100%', minWidth: 560, borderCollapse: 'collapse', fontSize: 14 }}>
+          <table
+            className='order-summary-table'
+            style={{ width: '100%', minWidth: 560, borderCollapse: 'collapse', fontSize: 14 }}
+          >
             <thead>
               <tr>
                 <th style={thStyle}>Voucher</th>
@@ -167,11 +183,22 @@ export function OrderDetailPage() {
       </div>
 
       {order.status === 'PENDING_PAYMENT' && (
-        <div style={cardStyle}>
-          <p style={{ margin: 0, color: colors.ink }}>Đơn hàng đang chờ hoàn tất thanh toán.</p>
+        <div className='order-payment-card' style={cardStyle}>
+          <div className='order-payment-heading'>
+            <div>
+              <span>Thanh toán an toàn</span>
+              <h2>Chọn phương thức thanh toán</h2>
+            </div>
+            <ShieldCheck size={30} aria-hidden='true' />
+          </div>
+          <p className='order-payment-note'>
+            Đơn hàng đang chờ hoàn tất thanh toán và được giữ chỗ. Giao dịch được mã hóa và xử lý qua cổng thanh toán
+            bảo mật.
+          </p>
           <div className='order-payment-actions' style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 16 }}>
             <Button
               variant='primary'
+              leftIcon={<Landmark size={19} aria-hidden='true' />}
               style={{ backgroundColor: '#005baa' }}
               onClick={async () => {
                 try {
@@ -188,6 +215,7 @@ export function OrderDetailPage() {
 
             <Button
               variant='primary'
+              leftIcon={<CreditCard size={19} aria-hidden='true' />}
               style={{ backgroundColor: '#635bff' }}
               onClick={async () => {
                 try {
@@ -205,7 +233,9 @@ export function OrderDetailPage() {
             </Button>
 
             <Button
-              variant='danger'
+              variant='secondary'
+              leftIcon={<XCircle size={18} aria-hidden='true' />}
+              style={{ color: colors.danger, borderColor: colors.danger }}
               disabled={cancelMutation.isPending}
               isLoading={cancelMutation.isPending}
               onClick={() => setShowCancelDialog(true)}
@@ -249,7 +279,7 @@ export function OrderDetailPage() {
   )
 }
 
-const wrapperStyle: CSSProperties = { maxWidth: 760, margin: '0 auto' }
+const wrapperStyle: CSSProperties = { maxWidth: 980, margin: '0 auto' }
 
 const pageHeadingStyle: CSSProperties = {
   marginTop: 0,
