@@ -204,21 +204,20 @@ export function VoucherDetailPage() {
 
   return (
     <article
+      className='voucher-detail-layout'
       style={{
-        display: 'flex',
-        flexDirection: 'column',
         gap: 20,
-        maxWidth: 860,
+        maxWidth: 1180,
         margin: '0 auto'
       }}
     >
-      <nav>
+      <nav className='voucher-detail-nav'>
         <Link to='/search' style={{ fontSize: 13, fontFamily: fonts.display, fontWeight: 600, color: colors.slate }}>
           ← Quay lại tìm kiếm
         </Link>
       </nav>
 
-      <header style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <header className='voucher-detail-summary' style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
           <Badge variant='info'>{voucher.category}</Badge>
           <Badge variant={voucher.remainingQuantity > 0 ? 'success' : 'neutral'}>
@@ -258,7 +257,7 @@ export function VoucherDetailPage() {
       </header>
 
       {/* Purchase panel — quantity selector + add to cart (Req 13.1) */}
-      <section style={purchasePanelStyle} aria-label='Mua voucher'>
+      <section className='voucher-detail-purchase' style={purchasePanelStyle} aria-label='Mua voucher'>
         {isCustomer ? (
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
@@ -311,6 +310,7 @@ export function VoucherDetailPage() {
 
       {voucher.imageUrl && (
         <div
+          className='voucher-detail-media'
           style={{
             borderRadius: radius.xl,
             overflow: 'hidden',
@@ -325,19 +325,21 @@ export function VoucherDetailPage() {
             style={{
               display: 'block',
               width: '100%',
-              maxHeight: 420,
+              height: '100%',
+              minHeight: 440,
               objectFit: 'cover'
             }}
           />
         </div>
       )}
 
-      <section style={cardStyle}>
+      <section className='voucher-detail-description' style={cardStyle}>
         <h2 style={sectionTitleStyle}>Mô tả</h2>
         <p style={{ ...bodyTextStyle, whiteSpace: 'pre-line' }}>{voucher.description}</p>
       </section>
 
       <div
+        className='voucher-detail-facts'
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
@@ -362,7 +364,7 @@ export function VoucherDetailPage() {
         </section>
       </div>
 
-      <section style={cardStyle}>
+      <section className='voucher-detail-wide' style={cardStyle}>
         <h2 style={sectionTitleStyle}>Chi nhánh áp dụng</h2>
         {activeBranches.length === 0 ? (
           <p style={bodyTextStyle}>Voucher chưa có chi nhánh đang hoạt động.</p>
@@ -378,7 +380,7 @@ export function VoucherDetailPage() {
         )}
       </section>
 
-      <section style={cardStyle}>
+      <section className='voucher-detail-wide' style={cardStyle}>
         <h2 style={sectionTitleStyle}>Điều khoản và điều kiện</h2>
         <p style={{ ...bodyTextStyle, whiteSpace: 'pre-line' }}>
           {voucher.terms?.trim() ? voucher.terms : 'Voucher chưa có điều khoản và điều kiện riêng.'}

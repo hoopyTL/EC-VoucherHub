@@ -418,6 +418,87 @@ body:focus-visible,
   }
 }
 
+/* Voucher detail: editorial product view with a stable purchase column. */
+.voucher-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(340px, 0.92fr);
+  align-items: start;
+}
+.voucher-detail-nav,
+.voucher-detail-facts,
+.voucher-detail-wide {
+  grid-column: 1 / -1;
+}
+.voucher-detail-summary,
+.voucher-detail-purchase,
+.voucher-detail-description {
+  grid-column: 2;
+}
+.voucher-detail-summary {
+  grid-row: 2;
+}
+.voucher-detail-purchase {
+  grid-row: 3;
+}
+.voucher-detail-description {
+  grid-row: 4;
+}
+.voucher-detail-media {
+  grid-column: 1;
+  grid-row: 2 / span 3;
+  position: sticky;
+  top: 112px;
+  min-height: 620px;
+}
+.voucher-detail-media img {
+  transition: transform 180ms ease;
+}
+.voucher-detail-media:hover img {
+  transform: scale(1.018);
+}
+@media (max-width: 1023px) {
+  .voucher-detail-layout {
+    display: flex;
+    flex-direction: column;
+  }
+  .voucher-detail-nav {
+    order: 0;
+  }
+  .voucher-detail-media {
+    position: static;
+    order: 1;
+    width: 100%;
+    min-height: 0;
+  }
+  .voucher-detail-media img {
+    min-height: 280px !important;
+    max-height: 460px;
+  }
+  .voucher-detail-summary {
+    order: 2;
+  }
+  .voucher-detail-description {
+    order: 3;
+  }
+  .voucher-detail-purchase {
+    order: 4;
+  }
+  .voucher-detail-facts {
+    order: 5;
+  }
+  .voucher-detail-wide {
+    order: 6;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .voucher-detail-media img {
+    transition: none;
+  }
+  .voucher-detail-media:hover img {
+    transform: none;
+  }
+}
+
 /* Shared ticket-stub shell for login, registration and password recovery. */
 .auth-shell {
   display: grid;
