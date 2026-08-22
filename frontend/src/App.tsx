@@ -67,6 +67,35 @@ function PublicLayout() {
   )
 }
 
+/** Full-bleed presentation shell shared by all guest authentication screens. */
+function AuthLayout() {
+  return (
+    <section className='auth-shell'>
+      <div className='auth-shell__form'>
+        <Outlet />
+      </div>
+      <aside className='auth-shell__brand' aria-label='VoucherHub'>
+        <div className='auth-shell__brand-content'>
+          <span className='auth-shell__eyebrow'>VoucherHub Marketplace</span>
+          <h2>Ưu đãi thật. Trải nghiệm đáng nhớ.</h2>
+          <p>Kết nối người mua với những thương hiệu Việt được tuyển chọn kỹ lưỡng.</p>
+          <div className='auth-shell__stats'>
+            <span>
+              <strong>100+</strong> voucher đang bán
+            </span>
+            <span>
+              <strong>12</strong> đối tác uy tín
+            </span>
+            <span>
+              <strong>5</strong> khu vực phục vụ
+            </span>
+          </div>
+        </div>
+      </aside>
+    </section>
+  )
+}
+
 /** Workspace layout for admin/partner: header, sidebar + content, footer. */
 function WorkspaceLayout({ variant }: { variant: SidebarVariant }) {
   return (
@@ -119,12 +148,14 @@ export function AppRoutes() {
 
         {/* Guest-only auth routes: signed-in users are redirected to their home. */}
         <Route element={<GuestRoute />}>
-          <Route path='login' element={<LoginPage />} />
-          <Route path='forgot-password' element={<ForgotPasswordPage />} />
-          <Route path='register' element={<RegisterChooserPage />} />
-          <Route path='register/customer' element={<RegisterCustomerPage />} />
-          <Route path='partner/register' element={<RegisterPartnerPage />} />
-          <Route path='register/partner' element={<RegisterPartnerPage />} />
+          <Route element={<AuthLayout />}>
+            <Route path='login' element={<LoginPage />} />
+            <Route path='forgot-password' element={<ForgotPasswordPage />} />
+            <Route path='register' element={<RegisterChooserPage />} />
+            <Route path='register/customer' element={<RegisterCustomerPage />} />
+            <Route path='partner/register' element={<RegisterPartnerPage />} />
+            <Route path='register/partner' element={<RegisterPartnerPage />} />
+          </Route>
         </Route>
 
         {/* Customer-only routes */}

@@ -13,8 +13,7 @@
   --vh-slate: var(--muted-ink);
   --vh-hairline: var(--line);
 
-  font-family:
-    var(--font-sans);
+  font-family: var(--font-sans);
   line-height: 1.6;
   font-weight: 400;
   color: var(--vh-ink);
@@ -97,14 +96,18 @@ a {
 }
 
 @keyframes voucher-shimmer {
-  to { background-position-x: -220%; }
+  to {
+    background-position-x: -220%;
+  }
 }
 
 /* Signature “vé xé”: chỉ voucher và hero dùng chi tiết nhận diện này. */
 .voucher-ticket {
   position: relative;
   overflow: visible !important;
-  transition: transform 280ms ease, box-shadow 280ms ease !important;
+  transition:
+    transform 280ms ease,
+    box-shadow 280ms ease !important;
 }
 .voucher-ticket::before,
 .voucher-ticket::after {
@@ -118,8 +121,12 @@ a {
   background: var(--paper);
   border: 1px solid var(--line);
 }
-.voucher-ticket::before { left: -11px; }
-.voucher-ticket::after { right: -11px; }
+.voucher-ticket::before {
+  left: -11px;
+}
+.voucher-ticket::after {
+  right: -11px;
+}
 .voucher-ticket__tear {
   position: relative;
   height: 1px;
@@ -142,16 +149,16 @@ a {
   transform: rotate(-9deg);
   transition: transform 280ms ease;
 }
-.voucher-ticket:hover .voucher-ticket__stamp { transform: rotate(-5deg); }
+.voucher-ticket:hover .voucher-ticket__stamp {
+  transform: rotate(-5deg);
+}
 
 /* Workspace: KPI mang hình thái cuống vé, bảng dữ liệu vẫn giữ cấu trúc chuẩn. */
 .workspace-kpi-ticket {
   position: relative;
   overflow: hidden;
   border-color: color-mix(in srgb, var(--accent) 28%, var(--line)) !important;
-  background:
-    radial-gradient(circle at 100% 0, var(--accent-soft), transparent 46%),
-    var(--surface) !important;
+  background: radial-gradient(circle at 100% 0, var(--accent-soft), transparent 46%), var(--surface) !important;
 }
 .workspace-kpi-ticket::before,
 .workspace-kpi-ticket::after {
@@ -165,12 +172,16 @@ a {
   border: 1px solid var(--line);
   transform: translateY(-50%);
 }
-.workspace-kpi-ticket::before { left: -10px; }
-.workspace-kpi-ticket::after { right: -10px; }
+.workspace-kpi-ticket::before {
+  left: -10px;
+}
+.workspace-kpi-ticket::after {
+  right: -10px;
+}
 .kpi-count-up {
   font-family: var(--font-mono) !important;
   font-variant-numeric: tabular-nums;
-  animation: kpi-rise 720ms cubic-bezier(.2,.7,.2,1) both;
+  animation: kpi-rise 720ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 .kpi-trend {
   width: fit-content;
@@ -180,7 +191,10 @@ a {
   color: var(--success);
   font: 700 11px/1.3 var(--font-mono);
 }
-.kpi-trend small { color: var(--muted-ink); font: 500 10px/1.3 var(--font-sans); }
+.kpi-trend small {
+  color: var(--muted-ink);
+  font: 500 10px/1.3 var(--font-sans);
+}
 
 .workspace-main table tbody tr {
   transition: background-color 160ms ease;
@@ -199,13 +213,23 @@ a {
 /* Một nhịp chuyển động dàn dựng duy nhất cho hero. */
 .ticket-hero > div:last-child > * {
   opacity: 0;
-  animation: hero-ticket-in 400ms cubic-bezier(.2,.7,.2,1) forwards;
+  animation: hero-ticket-in 400ms cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
 }
-.ticket-hero > div:last-child > *:nth-child(1) { animation-delay: 40ms; }
-.ticket-hero > div:last-child > *:nth-child(2) { animation-delay: 110ms; }
-.ticket-hero > div:last-child > *:nth-child(3) { animation-delay: 180ms; }
-.ticket-hero > div:last-child > *:nth-child(4) { animation-delay: 250ms; }
-.ticket-hero > div:last-child > *:nth-child(5) { animation-delay: 320ms; }
+.ticket-hero > div:last-child > *:nth-child(1) {
+  animation-delay: 40ms;
+}
+.ticket-hero > div:last-child > *:nth-child(2) {
+  animation-delay: 110ms;
+}
+.ticket-hero > div:last-child > *:nth-child(3) {
+  animation-delay: 180ms;
+}
+.ticket-hero > div:last-child > *:nth-child(4) {
+  animation-delay: 250ms;
+}
+.ticket-hero > div:last-child > *:nth-child(5) {
+  animation-delay: 320ms;
+}
 
 .voucher-reveal {
   height: 100%;
@@ -213,29 +237,55 @@ a {
   transform: translateY(12px);
 }
 .voucher-reveal.is-visible {
-  animation: voucher-reveal-in 350ms cubic-bezier(.2,.7,.2,1) var(--reveal-delay, 0ms) both;
+  animation: voucher-reveal-in 350ms cubic-bezier(0.2, 0.7, 0.2, 1) var(--reveal-delay, 0ms) both;
 }
 .voucher-ticket:hover {
   transform: translateY(-6px) !important;
   box-shadow: var(--shadow-lg) !important;
 }
-.toast-motion { animation: toast-enter 260ms cubic-bezier(.2,.7,.2,1) both; }
+.toast-motion {
+  animation: toast-enter 260ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
 
 @keyframes hero-ticket-in {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 @keyframes voucher-reveal-in {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 @keyframes toast-enter {
-  from { opacity: 0; transform: translate(18px, -12px) scale(.97); }
-  to { opacity: 1; transform: translate(0, 0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translate(18px, -12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
 }
 @keyframes kpi-rise {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .filter-chip-bar {
@@ -263,8 +313,12 @@ a {
   background: var(--accent);
   color: #fff;
 }
-.filter-toolbar-actions { display: none; }
-.filter-advanced { display: contents; }
+.filter-toolbar-actions {
+  display: none;
+}
+.filter-advanced {
+  display: contents;
+}
 .ticket-hero::after {
   content: '';
   position: absolute;
@@ -284,7 +338,10 @@ body:focus-visible,
 }
 
 @media (max-width: 720px) {
-  .filter-toolbar-actions { display: flex; justify-content: flex-end; }
+  .filter-toolbar-actions {
+    display: flex;
+    justify-content: flex-end;
+  }
   .filter-drawer-trigger {
     padding: 0 18px;
     border: 1px solid var(--accent);
@@ -311,9 +368,14 @@ body:focus-visible,
     box-shadow: var(--shadow-lg);
     transform: translateY(105%);
     visibility: hidden;
-    transition: transform 240ms ease, visibility 240ms;
+    transition:
+      transform 240ms ease,
+      visibility 240ms;
   }
-  .filter-advanced.is-open { transform: translateY(0); visibility: visible; }
+  .filter-advanced.is-open {
+    transform: translateY(0);
+    visibility: visible;
+  }
   .public-main,
   .workspace-main {
     padding: 24px 16px !important;
@@ -341,7 +403,9 @@ body:focus-visible,
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     scroll-behavior: auto !important;
     animation-duration: 1ms !important;
     animation-iteration-count: 1 !important;
@@ -351,5 +415,130 @@ body:focus-visible,
   .voucher-reveal {
     opacity: 1;
     transform: none;
+  }
+}
+
+/* Shared ticket-stub shell for login, registration and password recovery. */
+.auth-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
+  width: calc(100% + 48px);
+  min-height: calc(100vh - 150px);
+  margin: -40px -24px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.auth-shell__form {
+  display: grid;
+  align-items: center;
+  padding: clamp(32px, 6vw, 88px);
+  background: var(--paper);
+}
+.auth-shell__form > * {
+  width: 100%;
+  opacity: 0;
+  animation: auth-form-in 400ms cubic-bezier(0.2, 0.7, 0.2, 1) 60ms forwards;
+}
+.auth-shell__brand {
+  position: relative;
+  display: grid;
+  align-items: center;
+  padding: clamp(48px, 7vw, 104px);
+  color: #fff;
+  background: var(--ink);
+}
+.auth-shell__brand::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -12px;
+  width: 24px;
+  background: radial-gradient(circle at center, var(--paper) 0 9px, transparent 9.5px) center top / 24px 34px repeat-y;
+}
+.auth-shell__brand-content {
+  max-width: 520px;
+}
+.auth-shell__eyebrow {
+  color: var(--accent-soft);
+  font: 700 12px/1.4 var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.auth-shell__brand h2 {
+  max-width: 500px;
+  margin: 22px 0 18px;
+  font: 800 clamp(42px, 5vw, 72px)/1.02 var(--font-sans);
+  letter-spacing: -0.05em;
+}
+.auth-shell__brand p {
+  max-width: 480px;
+  color: rgb(255 255 255 / 68%);
+  line-height: 1.75;
+}
+.auth-shell__stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 42px;
+}
+.auth-shell__stats span {
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: var(--radius-control);
+  color: rgb(255 255 255 / 66%);
+  font-size: 12px;
+}
+.auth-shell__stats strong {
+  color: var(--accent-soft);
+  font: 700 24px/1 var(--font-mono);
+}
+.auth-choice-card {
+  position: relative;
+}
+.auth-choice-card::after {
+  content: '';
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: -8px;
+  height: 16px;
+  background: radial-gradient(circle, var(--paper) 0 5px, transparent 5.5px) left center / 20px 16px repeat-x;
+  pointer-events: none;
+}
+@keyframes auth-form-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (max-width: 1023px) {
+  .auth-shell {
+    grid-template-columns: 1fr;
+  }
+  .auth-shell__form {
+    min-height: 70vh;
+    padding: 32px 20px;
+  }
+  .auth-shell__brand {
+    min-height: 10px;
+    padding: 8px;
+  }
+  .auth-shell__brand::before,
+  .auth-shell__brand-content {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-shell__form > * {
+    opacity: 1;
+    transform: none;
+    animation: none;
   }
 }
