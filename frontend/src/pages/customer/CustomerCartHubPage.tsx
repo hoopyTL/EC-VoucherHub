@@ -23,8 +23,8 @@ export function CustomerCartHubPage() {
   }
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto' }}>
-      <div role='tablist' aria-label='Giỏ hàng và lịch sử mua hàng' style={tabListStyle}>
+    <div className='customer-commerce-hub' style={{ maxWidth: 1120, margin: '0 auto' }}>
+      <div className='commerce-tabs' role='tablist' aria-label='Giỏ hàng và lịch sử mua hàng' style={tabListStyle}>
         <button
           type='button'
           role='tab'
@@ -59,7 +59,7 @@ export function CustomerCartHubPage() {
           onClick={() => selectTab('history')}
           style={tabStyle(activeTab === 'history')}
         >
-          Lịch sử
+          Đã hủy &amp; hoàn tiền
         </button>
       </div>
       <div role='tabpanel'>{activeTab === 'cart' ? <CartPage /> : <OrdersPage view={activeTab} />}</div>

@@ -199,7 +199,7 @@ export function OrderDetailPage() {
             <Button
               variant='primary'
               leftIcon={<Landmark size={19} aria-hidden='true' />}
-              style={{ backgroundColor: '#005baa' }}
+              style={{ backgroundColor: colors.accent, borderColor: colors.accent }}
               onClick={async () => {
                 try {
                   const { getVNPayUrl } = await import('../../services/orders')
@@ -216,7 +216,7 @@ export function OrderDetailPage() {
             <Button
               variant='primary'
               leftIcon={<CreditCard size={19} aria-hidden='true' />}
-              style={{ backgroundColor: '#635bff' }}
+              style={{ backgroundColor: colors.ink, borderColor: colors.ink }}
               onClick={async () => {
                 try {
                   const { getStripeUrl } = await import('../../services/orders')

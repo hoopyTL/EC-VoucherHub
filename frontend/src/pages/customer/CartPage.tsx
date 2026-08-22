@@ -266,11 +266,11 @@ export function CartPage() {
   }
 
   return (
-    <section style={sectionStyle}>
+    <section className='customer-cart-view' style={sectionStyle}>
       <CheckoutProgress current='cart' />
       <h1 style={headingStyle}>Giỏ hàng</h1>
 
-      <ul style={listStyle}>
+      <ul className='customer-cart-list' style={listStyle}>
         {cart.items.map((item) => {
           const rowError = rowErrors[item.id]
           const isUpdatingRow = updateMutation.isPending && updateMutation.variables?.id === item.id
@@ -278,7 +278,7 @@ export function CartPage() {
           const rowBusy = isUpdatingRow || isRemovingRow
 
           return (
-            <li key={item.id} style={rowStyle} data-testid={`cart-item-${item.id}`}>
+            <li className='customer-cart-row' key={item.id} style={rowStyle} data-testid={`cart-item-${item.id}`}>
               <div style={thumbnailStyle}>
                 <span>VH</span>
                 {item.imageUrl && (
@@ -352,7 +352,7 @@ export function CartPage() {
         })}
       </ul>
 
-      <div style={footerStyle}>
+      <div className='customer-cart-summary' style={footerStyle}>
         <div style={{ fontSize: 16 }}>
           <span style={{ color: colors.slate, marginRight: 8 }}>Tổng giỏ hàng</span>
           <strong data-testid='cart-total'>{formatPrice(cart.total)}</strong>
@@ -375,7 +375,7 @@ export function CartPage() {
 /* -------------------------------------------------------------------------- */
 
 const sectionStyle: CSSProperties = {
-  maxWidth: 760,
+  maxWidth: 1040,
   margin: '0 auto'
 }
 

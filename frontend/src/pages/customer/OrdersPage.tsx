@@ -60,11 +60,11 @@ export function OrdersPage({ view = 'all' }: { view?: OrderHistoryView }) {
       : view === 'purchased'
         ? 'Voucher đã mua'
         : view === 'history'
-          ? 'Lịch sử đơn hàng'
+          ? 'Đơn đã hủy & hoàn tiền'
           : 'Lịch sử mua voucher'
 
   return (
-    <section style={{ maxWidth: 820, margin: '0 auto' }}>
+    <section className='customer-orders-view' style={{ maxWidth: 1040, margin: '0 auto' }}>
       <h1 style={pageHeadingStyle}>{heading}</h1>
 
       {isLoading && (
@@ -89,11 +89,12 @@ export function OrdersPage({ view = 'all' }: { view?: OrderHistoryView }) {
       )}
 
       {!isLoading && !isError && visibleOrders.length > 0 && (
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+        <ul className='customer-order-list' style={{ listStyle: 'none', margin: 0, padding: 0 }}>
           {visibleOrders.map((order) => (
             <li key={order.id}>
               <button
                 type='button'
+                className='customer-order-row'
                 onClick={() => navigate(`/orders/${order.id}`)}
                 style={rowStyle}
                 aria-label={`Xem đơn hàng ${order.id}`}
