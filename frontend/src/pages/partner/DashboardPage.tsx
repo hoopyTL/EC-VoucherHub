@@ -148,18 +148,16 @@ function DashboardContent({ stats }: { stats: PartnerDashboardStats }) {
         <StatCard
           label='Chi nhánh hoạt động'
           value={`${stats.activeBranches} / ${stats.totalBranches}`}
-          trend='+4,2%'
           footer={<Link to='/partner/branches'>Quản lý chi nhánh →</Link>}
         />
         <StatCard
           label='Voucher'
           value={String(stats.totalVouchers)}
-          trend='+11,8%'
           footer={<Link to='/partner/vouchers'>Quản lý voucher →</Link>}
         />
-        <StatCard label='Voucher đang bán' value={String(stats.approvedVouchers)} trend='+7,5%' />
-        <StatCard label='Lượt đã bán' value={String(stats.unitsSold)} trend='+15,3%' />
-        <StatCard label='Doanh số' value={formatCurrency(stats.grossSales)} trend='+9,7%' />
+        <StatCard label='Voucher đang bán' value={String(stats.approvedVouchers)} />
+        <StatCard label='Lượt đã bán' value={String(stats.unitsSold)} />
+        <StatCard label='Doanh số' value={formatCurrency(stats.grossSales)} />
       </div>
 
       <h2 style={sectionHeadingStyle}>Voucher theo trạng thái</h2>
@@ -183,28 +181,13 @@ function DashboardContent({ stats }: { stats: PartnerDashboardStats }) {
 }
 
 /** A single summary metric card. */
-function StatCard({
-  label,
-  value,
-  footer,
-  trend
-}: {
-  label: string
-  value: string
-  footer?: ReactNode
-  trend?: string
-}) {
+function StatCard({ label, value, footer }: { label: string; value: string; footer?: ReactNode }) {
   return (
     <div className='workspace-kpi-ticket' style={statCardStyle}>
       <span style={statLabelStyle}>{label}</span>
       <span className='kpi-count-up' style={statValueStyle}>
         <CountUpValue value={value} />
       </span>
-      {trend && (
-        <span className='kpi-trend'>
-          <span aria-hidden='true'>↗</span> {trend} <small>so với kỳ trước</small>
-        </span>
-      )}
       {footer && <span style={{ fontSize: 13 }}>{footer}</span>}
     </div>
   )

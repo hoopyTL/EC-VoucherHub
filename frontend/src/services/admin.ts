@@ -162,7 +162,15 @@ export async function rejectPartner(id: string, reason: string): Promise<Partner
 }
 
 /** List every Partner, including approved, rejected, active, and suspended records. */
-export async function listPartners(params: { page?: number; limit?: number } = {}): Promise<ListPartnersDto> {
+export async function listPartners(
+  params: {
+    page?: number
+    limit?: number
+    q?: string
+    approvalStatus?: 'PENDING' | 'APPROVED' | 'REJECTED'
+    operatingStatus?: 'ACTIVE' | 'SUSPENDED'
+  } = {}
+): Promise<ListPartnersDto> {
   const { data } = await api.get<ApiEnvelope<ListPartnersDto>>('/admin/partners', { params })
   return data.data
 }

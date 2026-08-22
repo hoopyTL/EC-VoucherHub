@@ -237,6 +237,14 @@ export function CreateVoucherPage() {
     if (!file) return
 
     setUploadError(null)
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setUploadError('Chỉ chấp nhận ảnh JPEG, PNG hoặc WebP.')
+      return
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setUploadError('Ảnh voucher không được vượt quá 2 MB.')
+      return
+    }
     setIsUploading(true)
     try {
       const url = await uploadVoucherImage(file)

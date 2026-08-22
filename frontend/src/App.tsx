@@ -42,7 +42,7 @@ import { DashboardPage as PartnerDashboardPage } from './pages/partner/Dashboard
 import { BranchesPage as PartnerBranchesPage } from './pages/partner/BranchesPage'
 import { RedeemCodePage } from './pages/partner/RedeemCodePage'
 import { ProfilePage as PartnerProfilePage } from './pages/partner/ProfilePage'
-import { ReportsPage as PartnerReportsPage } from './pages/partner/ReportsPage'
+import { PartnerReportsPage } from './pages/partner/PartnerReportsPage'
 import { DashboardPage as AdminDashboardPage } from './pages/admin/DashboardPage'
 import { UsersPage as AdminUsersPage } from './pages/admin/UsersPage'
 import { PartnerApprovalsPage as AdminPartnerApprovalsPage } from './pages/admin/PartnerApprovalsPage'

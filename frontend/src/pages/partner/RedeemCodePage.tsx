@@ -45,6 +45,17 @@ export interface RedemptionResult {
   /** ISO date string. */
   redeemedAt: string
   redemptionBranchId: string
+  remainingUses: number
+}
+
+interface ValidationResult {
+  code: string
+  status: VoucherCodeStatus
+  valid: boolean
+  reason: string | null
+  remainingUses: number
+  expiresAt: string
+  voucher: { id: string; name: string; isMultiUse: boolean }
 }
 
 /** Structured error body returned by the backend error handler. */
@@ -63,11 +74,16 @@ async function fetchBranches(): Promise<PartnerBranch[]> {
 }
 
 async function redeemCode(code: string, branchId: string): Promise<RedemptionResult> {
-  const { data } = await api.post<ApiEnvelope<RedemptionResult> | RedemptionResult>('/partner/redeem-code', {
-    code,
-    branchId
-  })
+  const { data } = await api.post<ApiEnvelope<RedemptionResult> | RedemptionResult>(
+    `/voucher-codes/${encodeURIComponent(code)}/redemption`,
+    { branchId: Number(branchId) }
+  )
   return 'data' in data ? data.data : data
+}
+
+async function validateCode(code: string): Promise<ValidationResult> {
+  const { data } = await api.get<ApiEnvelope<ValidationResult>>(`/voucher-codes/${encodeURIComponent(code)}`)
+  return data.data
 }
 
 /**
@@ -116,9 +132,22 @@ export function RedeemCodePage() {
   const mutation = useMutation({
     mutationFn: ({ code: c, branchId: b }: { code: string; branchId: string }) => redeemCode(c, b)
   })
+  const validation = useMutation({ mutationFn: validateCode })
 
   const trimmed = code.trim()
-  const canSubmit = Boolean(trimmed) && Boolean(branchId) && !mutation.isPending
+  const canValidate = Boolean(trimmed) && !validation.isPending && !mutation.isPending
+  const canSubmit = Boolean(validation.data?.valid) && Boolean(branchId) && !mutation.isPending
+
+  const changeCode = (value: string) => {
+    setCode(value)
+    validation.reset()
+    mutation.reset()
+  }
+
+  const scanQr = () => {
+    const scanned = window.prompt('Mô phỏng quét QR: nhập mã voucher')
+    if (scanned) changeCode(scanned.trim())
+  }
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
@@ -144,11 +173,41 @@ export function RedeemCodePage() {
           label='Mã voucher'
           placeholder='Ví dụ: SPA-AAAA-1111'
           value={code}
-          onChange={(e) => setCode(e.target.value)}
+          onChange={(e) => changeCode(e.target.value)}
           autoComplete='off'
           disabled={Boolean(result)}
           data-testid='redeem-code-input'
         />
+
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <Button
+            type='button'
+            onClick={() => validation.mutate(trimmed)}
+            isLoading={validation.isPending}
+            disabled={!canValidate}
+            data-testid='validate-code-btn'
+          >
+            Kiểm tra mã
+          </Button>
+          <Button type='button' variant='secondary' onClick={scanQr} data-testid='scan-qr-btn'>
+            Quét QR mô phỏng
+          </Button>
+        </div>
+
+        {validation.data && (
+          <div data-testid='code-status' role='status' style={validation.data.valid ? successStyle : alertStyle}>
+            <strong>{validation.data.voucher.name}</strong>
+            <div>{validation.data.valid ? 'Mã hợp lệ' : validation.data.reason}</div>
+            <div>
+              Còn {validation.data.remainingUses} lượt · Hạn {formatDateTime(validation.data.expiresAt)}
+            </div>
+          </div>
+        )}
+        {validation.isError && (
+          <div role='alert' style={alertStyle} data-testid='validate-error'>
+            {resolveRedeemError(validation.error)}
+          </div>
+        )}
 
         <div>
           <label htmlFor='redeem-branch' style={labelStyle}>
@@ -187,7 +246,7 @@ export function RedeemCodePage() {
         </div>
 
         {!result && (
-          <Button type='submit' isLoading={mutation.isPending} disabled={!canSubmit}>
+          <Button type='submit' isLoading={mutation.isPending} disabled={!canSubmit} data-testid='confirm-redeem-btn'>
             Xác nhận sử dụng
           </Button>
         )}
@@ -213,6 +272,8 @@ export function RedeemCodePage() {
             <dd style={ddStyle}>{redeemedBranch?.name ?? result.redemptionBranchId}</dd>
             <dt style={dtStyle}>Thời gian sử dụng</dt>
             <dd style={ddStyle}>{formatDateTime(result.redeemedAt)}</dd>
+            <dt style={dtStyle}>Lượt còn lại</dt>
+            <dd style={ddStyle}>{result.remainingUses}</dd>
           </dl>
         </div>
       )}

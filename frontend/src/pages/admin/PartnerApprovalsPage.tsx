@@ -52,7 +52,12 @@ export function PartnerApprovalsPage() {
     queryFn: () => listPendingPartners({ page, limit: PAGE_LIMIT })
   })
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: [PENDING_PARTNERS_QUERY_KEY] })
+  const invalidate = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: [PENDING_PARTNERS_QUERY_KEY] }),
+      queryClient.invalidateQueries({ queryKey: ['admin-partners'] })
+    ])
+  }
 
   const approveMutation = useMutation({
     mutationFn: (partner: PartnerApprovalView) => approvePartner(partner.id),

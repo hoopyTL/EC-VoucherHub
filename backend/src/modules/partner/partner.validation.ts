@@ -52,7 +52,10 @@ export const adminBranchIdSchema = z.object({
 })
 export const partnerListSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(20)
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  q: z.string().trim().max(255).optional(),
+  approvalStatus: z.enum(['PENDING', 'APPROVED', 'REJECTED']).optional(),
+  operatingStatus: z.enum(['ACTIVE', 'SUSPENDED']).optional()
 })
 export const approvalSchema = z
   .object({

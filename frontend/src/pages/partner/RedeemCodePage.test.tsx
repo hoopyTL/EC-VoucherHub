@@ -7,7 +7,7 @@ import { api } from '../../services/api'
 
 function makeBranch(overrides: Partial<PartnerBranch> = {}): PartnerBranch {
   return {
-    id: 'b-1',
+    id: '1',
     name: 'Downtown Spa',
     address: '1 Main St',
     region: 'Hà Nội',
@@ -23,9 +23,30 @@ function makeResult(overrides: Partial<RedemptionResult> = {}): RedemptionResult
     code: 'SPA-AAAA-1111',
     status: 'USED',
     redeemedAt: '2025-06-01T10:30:00.000Z',
-    redemptionBranchId: 'b-1',
+    redemptionBranchId: '1',
+    remainingUses: 0,
     ...overrides
   }
+}
+
+const validCode = {
+  success: true,
+  data: {
+    code: 'SPA-AAAA-1111',
+    status: 'UNUSED',
+    valid: true,
+    reason: null,
+    remainingUses: 1,
+    expiresAt: '2027-06-01T10:30:00.000Z',
+    voucher: { id: 'voucher-1', name: 'Spa Day', isMultiUse: false }
+  }
+}
+
+function mockApiGet(branches: PartnerBranch[] = [makeBranch()]) {
+  return vi.spyOn(api, 'get').mockImplementation((url) => {
+    if (url === '/partner/branches') return Promise.resolve({ data: branches }) as never
+    return Promise.resolve({ data: validCode }) as never
+  })
 }
 
 function renderPage(initialEntry = '/partner/redeem') {
@@ -77,57 +98,62 @@ describe('RedeemCodePage', () => {
   })
 
   it('redeems a code at the selected branch and shows the result (Req 19.1)', async () => {
-    vi.spyOn(api, 'get').mockResolvedValue({ data: [makeBranch()] } as never)
+    mockApiGet()
     const post = vi.spyOn(api, 'post').mockResolvedValue({ data: makeResult() } as never)
 
     renderPage('/partner/redeem?code=SPA-AAAA-1111')
 
     await waitFor(() => expect(screen.getByTestId('branch-select')).toBeDefined())
-    fireEvent.change(screen.getByTestId('branch-select'), { target: { value: 'b-1' } })
+    fireEvent.click(screen.getByTestId('validate-code-btn'))
+    expect(await screen.findByText(/mã hợp lệ/i)).toBeDefined()
+    fireEvent.change(screen.getByTestId('branch-select'), { target: { value: '1' } })
     fireEvent.click(screen.getByRole('button', { name: /xác nhận sử dụng/i }))
 
     const success = await screen.findByTestId('redeem-success')
     expect(success.textContent).toMatch(/đã xác nhận sử dụng mã/i)
     expect(success.textContent).toMatch(/Downtown Spa/)
-    expect(post).toHaveBeenCalledWith('/partner/redeem-code', {
-      code: 'SPA-AAAA-1111',
-      branchId: 'b-1'
-    })
+    expect(post).toHaveBeenCalledWith('/voucher-codes/SPA-AAAA-1111/redemption', { branchId: 1 })
   })
 
   it('shows the already-redeemed message for a used code (Req 19.2)', async () => {
-    vi.spyOn(api, 'get').mockResolvedValue({ data: [makeBranch()] } as never)
+    mockApiGet()
     vi.spyOn(api, 'post').mockRejectedValue(apiError(409, 'This voucher code has already been redeemed'))
 
     renderPage('/partner/redeem?code=USED-CODE')
     await waitFor(() => expect(screen.getByTestId('branch-select')).toBeDefined())
-    fireEvent.change(screen.getByTestId('branch-select'), { target: { value: 'b-1' } })
+    fireEvent.click(screen.getByTestId('validate-code-btn'))
+    await screen.findByText(/mã hợp lệ/i)
+    fireEvent.change(screen.getByTestId('branch-select'), { target: { value: '1' } })
     fireEvent.click(screen.getByRole('button', { name: /xác nhận sử dụng/i }))
 
     expect((await screen.findByTestId('redeem-error')).textContent).toMatch(/already been redeemed/i)
   })
 
   it('shows the branch-not-owned message (Req 19.3)', async () => {
-    vi.spyOn(api, 'get').mockResolvedValue({ data: [makeBranch()] } as never)
+    mockApiGet()
     vi.spyOn(api, 'post').mockRejectedValue(apiError(403, 'The selected branch does not belong to your account'))
 
     renderPage('/partner/redeem?code=SPA-AAAA-1111')
     await waitFor(() => expect(screen.getByTestId('branch-select')).toBeDefined())
-    fireEvent.change(screen.getByTestId('branch-select'), { target: { value: 'b-1' } })
+    fireEvent.click(screen.getByTestId('validate-code-btn'))
+    await screen.findByText(/mã hợp lệ/i)
+    fireEvent.change(screen.getByTestId('branch-select'), { target: { value: '1' } })
     fireEvent.click(screen.getByRole('button', { name: /xác nhận sử dụng/i }))
 
     expect((await screen.findByTestId('redeem-error')).textContent).toMatch(/does not belong to your account/i)
   })
 
   it('keeps the confirm button disabled until a branch is selected', async () => {
-    vi.spyOn(api, 'get').mockResolvedValue({ data: [makeBranch()] } as never)
+    mockApiGet()
 
     renderPage('/partner/redeem?code=SPA-AAAA-1111')
     await waitFor(() => expect(screen.getByTestId('branch-select')).toBeDefined())
 
     expect(screen.getByRole('button', { name: /xác nhận sử dụng/i })).toHaveProperty('disabled', true)
 
-    fireEvent.change(screen.getByTestId('branch-select'), { target: { value: 'b-1' } })
+    fireEvent.click(screen.getByTestId('validate-code-btn'))
+    await screen.findByText(/mã hợp lệ/i)
+    fireEvent.change(screen.getByTestId('branch-select'), { target: { value: '1' } })
     expect(screen.getByRole('button', { name: /xác nhận sử dụng/i })).toHaveProperty('disabled', false)
   })
 
