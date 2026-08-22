@@ -20,6 +20,7 @@
 import { useEffect, useMemo, useState, type CSSProperties, type FormEvent } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
+import { CheckCircle2 } from 'lucide-react'
 import type { VoucherCodeStatus } from '@ui-contracts'
 import { api } from '../../services/api'
 import { Badge, Button, Input, LoadingSpinner, variantForStatus } from '../../components/ui'
@@ -260,6 +261,7 @@ export function RedeemCodePage() {
       {result && (
         <div style={successStyle} data-testid='redeem-success'>
           <div style={successHeaderStyle}>
+            <CheckCircle2 size={28} aria-hidden='true' />
             <span style={{ fontWeight: 600, color: colors.onSuccessSurface }}>Đã xác nhận sử dụng mã</span>
             <Badge variant={variantForStatus(result.status)}>{formatStatus(result.status)}</Badge>
           </div>

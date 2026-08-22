@@ -7,29 +7,70 @@ import { colors, fonts, radius } from '../../theme/tokens'
 /** Customer commerce hub: the cart icon owns both the active cart and purchase history. */
 export function CustomerCartHubPage() {
   const [params, setParams] = useSearchParams()
-  const activeTab = params.get('tab') === 'orders' ? 'orders' : 'cart'
+  const requestedTab = params.get('tab')
+  const activeTab =
+    requestedTab === 'processing' ||
+    requestedTab === 'purchased' ||
+    requestedTab === 'history' ||
+    requestedTab === 'orders'
+      ? requestedTab === 'orders'
+        ? 'history'
+        : requestedTab
+      : 'cart'
 
-  function selectTab(tab: 'cart' | 'orders') {
-    setParams(tab === 'orders' ? { tab: 'orders' } : {}, { replace: true })
+  function selectTab(tab: 'cart' | 'processing' | 'purchased' | 'history') {
+    setParams(tab === 'cart' ? {} : { tab }, { replace: true })
   }
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto' }}>
-      <div role='tablist' aria-label='Giỏ hàng và đơn đã mua' style={tabListStyle}>
-        <button type='button' role='tab' aria-selected={activeTab === 'cart'} onClick={() => selectTab('cart')} style={tabStyle(activeTab === 'cart')}>
+    <div className='customer-commerce-hub' style={{ maxWidth: 1120, margin: '0 auto' }}>
+      <div className='commerce-tabs' role='tablist' aria-label='Giỏ hàng và lịch sử mua hàng' style={tabListStyle}>
+        <button
+          type='button'
+          role='tab'
+          aria-selected={activeTab === 'cart'}
+          onClick={() => selectTab('cart')}
+          style={tabStyle(activeTab === 'cart')}
+        >
           Giỏ hàng
         </button>
-        <button type='button' role='tab' aria-selected={activeTab === 'orders'} onClick={() => selectTab('orders')} style={tabStyle(activeTab === 'orders')}>
-          Đơn đã mua
+        <button
+          type='button'
+          role='tab'
+          aria-selected={activeTab === 'processing'}
+          onClick={() => selectTab('processing')}
+          style={tabStyle(activeTab === 'processing')}
+        >
+          Chờ thanh toán
+        </button>
+        <button
+          type='button'
+          role='tab'
+          aria-selected={activeTab === 'purchased'}
+          onClick={() => selectTab('purchased')}
+          style={tabStyle(activeTab === 'purchased')}
+        >
+          Đã mua
+        </button>
+        <button
+          type='button'
+          role='tab'
+          aria-selected={activeTab === 'history'}
+          onClick={() => selectTab('history')}
+          style={tabStyle(activeTab === 'history')}
+        >
+          Đã hủy &amp; hoàn tiền
         </button>
       </div>
-      <div role='tabpanel'>{activeTab === 'cart' ? <CartPage /> : <OrdersPage />}</div>
+      <div role='tabpanel'>{activeTab === 'cart' ? <CartPage /> : <OrdersPage view={activeTab} />}</div>
     </div>
   )
 }
 
 const tabListStyle: CSSProperties = {
-  display: 'inline-flex',
+  display: 'flex',
+  maxWidth: '100%',
+  overflowX: 'auto',
   gap: 4,
   marginBottom: 28,
   padding: 5,

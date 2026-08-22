@@ -66,6 +66,7 @@ function ChoiceCard({ icon, title, description, to, ctaLabel }: ChoiceCardProps)
   const [hover, setHover] = useState(false)
   return (
     <Link
+      className='auth-choice-card'
       to={to}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
@@ -97,7 +98,7 @@ export function RegisterChooserPage() {
         <p style={subtitleStyle}>Chọn loại tài khoản phù hợp với nhu cầu của bạn.</p>
       </header>
 
-      <div style={gridStyle}>
+      <div className='auth-choice-grid' style={gridStyle}>
         <ChoiceCard
           icon={<TagIcon />}
           title='Đăng ký khách hàng'

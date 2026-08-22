@@ -44,7 +44,7 @@ function renderCheckout() {
 const SAMPLE_CART = {
   items: [
     {
-      id: 'ci-1',
+      id: '1',
       voucherId: 'v-1',
       title: 'Spa Day Pass',
       unitPrice: 50,
@@ -52,7 +52,7 @@ const SAMPLE_CART = {
       subtotal: 100
     },
     {
-      id: 'ci-2',
+      id: '2',
       voucherId: 'v-2',
       title: 'Dinner for Two',
       unitPrice: 30,
@@ -66,6 +66,7 @@ const SAMPLE_CART = {
 describe('CheckoutPage', () => {
   beforeEach(() => {
     localStorage.clear()
+    sessionStorage.clear()
     getCartMock.mockReset()
     createOrderMock.mockReset()
   })
@@ -117,7 +118,7 @@ describe('CheckoutPage', () => {
       expect(screen.getByTestId('location').textContent).toBe('/orders/order-123')
     })
     // No recipient details entered → all fields omitted.
-    expect(createOrderMock).toHaveBeenCalledWith({ giftRecipient: undefined })
+    expect(createOrderMock).toHaveBeenCalledWith({ giftRecipient: undefined, selectedCartItemIds: [1, 2] })
   })
 
   it('passes gift recipient details when provided', async () => {
@@ -148,6 +149,7 @@ describe('CheckoutPage', () => {
 
     await waitFor(() => {
       expect(createOrderMock).toHaveBeenCalledWith({
+        selectedCartItemIds: [1, 2],
         giftRecipient: {
           name: 'Bob',
           email: 'bob@example.com',

@@ -50,14 +50,14 @@ function headerGradient(seed: string): string {
 
 function categoryBadgeColor(category: string): string {
   const normalized = category.toLocaleLowerCase('vi')
-  if (normalized.includes('du lịch')) return '#2563EB'
-  if (normalized.includes('giải trí')) return '#7C3AED'
-  if (normalized.includes('làm đẹp')) return '#DB2777'
-  if (normalized.includes('cà phê')) return '#92400E'
-  if (normalized.includes('buffet')) return '#DC2626'
-  if (normalized.includes('ăn uống')) return '#EA580C'
-  if (normalized.includes('mua sắm')) return '#047857'
-  return '#334155'
+  if (normalized.includes('du lịch')) return '#556B5D'
+  if (normalized.includes('giải trí')) return '#6B5B73'
+  if (normalized.includes('làm đẹp')) return '#8A5D62'
+  if (normalized.includes('cà phê')) return '#71543B'
+  if (normalized.includes('buffet')) return '#8A4F3D'
+  if (normalized.includes('ăn uống')) return '#9A642F'
+  if (normalized.includes('mua sắm')) return '#4F6B58'
+  return '#5F594E'
 }
 
 export function VoucherCard({ voucher }: VoucherCardProps) {
@@ -105,7 +105,7 @@ export function VoucherCard({ voucher }: VoucherCardProps) {
               inset: 0,
               backgroundImage: "url('/assets/voucher-catalogue-sprite.png')",
               backgroundSize: '1000% auto',
-              backgroundPosition: `${(spriteCell % 10) * 100 / 9}% ${Math.floor(spriteCell / 10) * 100 / 6}%`,
+              backgroundPosition: `${((spriteCell % 10) * 100) / 9}% ${(Math.floor(spriteCell / 10) * 100) / 6}%`,
               backgroundRepeat: 'no-repeat',
               transform: hover ? 'scale(1.08)' : 'scale(1)',
               transition: 'transform .5s ease'
@@ -126,10 +126,8 @@ export function VoucherCard({ voucher }: VoucherCardProps) {
               width: '100%',
               height: '100%',
               objectFit: 'cover',
-              // Desaturated, high-contrast per the design language; lifts on hover.
-              filter: hover ? 'saturate(1.08) contrast(1.04)' : 'saturate(.92) contrast(1.02)',
               transform: hover ? 'scale(1.08)' : 'none',
-              transition: 'transform 0.5s ease, filter 0.3s ease'
+              transition: 'transform 0.5s ease'
             }}
           />
         )}
@@ -168,7 +166,7 @@ export function VoucherCard({ voucher }: VoucherCardProps) {
             right: 14
           }}
         >
-          <Badge variant={remaining > 0 ? 'success' : 'danger'}>
+          <Badge variant={remaining > 0 ? 'success' : 'neutral'}>
             {remaining > 0 ? `Còn ${remaining}` : 'Hết hàng'}
           </Badge>
         </span>

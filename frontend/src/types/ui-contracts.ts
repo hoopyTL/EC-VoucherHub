@@ -121,6 +121,9 @@ export interface AddToCartRequest {
 }
 
 export interface CreateOrderRequest {
+  selectedCartItemIds?: number[]
+  paymentMethod?: string
+  giftRecipient?: { name?: string; email?: string; phone?: string }
   recipientName?: string
   recipientEmail?: string
   recipientPhone?: string

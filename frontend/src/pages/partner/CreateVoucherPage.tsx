@@ -305,6 +305,29 @@ export function CreateVoucherPage() {
         Voucher được lưu ở trạng thái nháp. Gửi duyệt từ danh sách voucher khi nội dung đã sẵn sàng.
       </p>
 
+      <ol className='voucher-form-steps' aria-label='Các bước tạo voucher'>
+        <li className='is-active'>
+          <a href='#voucher-step-info'>
+            <span>1</span> Thông tin
+          </a>
+        </li>
+        <li>
+          <a href='#voucher-step-commercial'>
+            <span>2</span> Giá &amp; số lượng
+          </a>
+        </li>
+        <li>
+          <a href='#voucher-step-scope'>
+            <span>3</span> Phạm vi áp dụng
+          </a>
+        </li>
+        <li>
+          <a href='#voucher-step-confirm'>
+            <span>4</span> Xác nhận
+          </a>
+        </li>
+      </ol>
+
       {submitError && (
         <div role='alert' style={alertStyle}>
           {submitError}
@@ -312,6 +335,9 @@ export function CreateVoucherPage() {
       )}
 
       <form onSubmit={handleSubmit} noValidate>
+        <h2 id='voucher-step-info' className='voucher-form-section-title'>
+          01 · Thông tin voucher
+        </h2>
         <Input
           label='Tiêu đề'
           required
@@ -371,6 +397,9 @@ export function CreateVoucherPage() {
           )}
         </div>
 
+        <h2 id='voucher-step-commercial' className='voucher-form-section-title'>
+          02 · Giá và số lượng
+        </h2>
         <div style={twoColStyle}>
           <Input
             label='Giá gốc (₫)'
@@ -497,6 +526,9 @@ export function CreateVoucherPage() {
         </div>
 
         {/* Branch selection (Req 8.5) */}
+        <h2 id='voucher-step-scope' className='voucher-form-section-title'>
+          03 · Phạm vi áp dụng
+        </h2>
         <fieldset style={fieldsetStyle}>
           <legend style={legendStyle}>Chi nhánh áp dụng</legend>
 
@@ -534,6 +566,9 @@ export function CreateVoucherPage() {
           )}
         </fieldset>
 
+        <h2 id='voucher-step-confirm' className='voucher-form-section-title'>
+          04 · Kiểm tra và xác nhận
+        </h2>
         <div style={buttonRowStyle}>
           <Button type='submit' isLoading={createMutation.isPending} disabled={createMutation.isPending}>
             {editId ? 'Lưu thay đổi' : 'Lưu bản nháp'}

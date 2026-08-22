@@ -16,7 +16,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import type { CSSProperties } from 'react'
 import { api } from '../../services/api'
 import type { Order } from '../../types/customer'
-import { Badge, variantForStatus, LoadingSpinner } from '../../components/ui'
+import { Badge, ContentSkeleton, variantForStatus } from '../../components/ui'
 import { formatCurrency, formatDate, formatStatus } from '../../utils/format'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
 
@@ -33,7 +33,9 @@ function itemCount(order: Order): number {
   return (order.items || order.orderItems || []).reduce((sum, item) => sum + item.quantity, 0)
 }
 
-export function OrdersPage() {
+export type OrderHistoryView = 'processing' | 'purchased' | 'history' | 'all'
+
+export function OrdersPage({ view = 'all' }: { view?: OrderHistoryView }) {
   const navigate = useNavigate()
   const {
     data: orders,
@@ -44,13 +46,30 @@ export function OrdersPage() {
     queryFn: fetchOrders
   })
 
+  const visibleOrders = (orders ?? []).filter((order) => {
+    const status = order.status as string
+    if (view === 'processing') return status === 'PENDING_PAYMENT'
+    if (view === 'purchased') return status === 'PAID'
+    if (view === 'history') return status === 'CANCELLED' || status === 'REFUNDED'
+    return true
+  })
+
+  const heading =
+    view === 'processing'
+      ? 'Đơn chờ thanh toán'
+      : view === 'purchased'
+        ? 'Voucher đã mua'
+        : view === 'history'
+          ? 'Đơn đã hủy & hoàn tiền'
+          : 'Lịch sử mua voucher'
+
   return (
-    <section style={{ maxWidth: 820, margin: '0 auto' }}>
-      <h1 style={pageHeadingStyle}>Lịch sử mua voucher</h1>
+    <section className='customer-orders-view' style={{ maxWidth: 1040, margin: '0 auto' }}>
+      <h1 style={pageHeadingStyle}>{heading}</h1>
 
       {isLoading && (
         <div style={{ padding: 32 }}>
-          <LoadingSpinner label='Đang tải đơn hàng' />
+          <ContentSkeleton rows={5} label='Đang tải đơn hàng' />
         </div>
       )}
 
@@ -60,21 +79,22 @@ export function OrdersPage() {
         </div>
       )}
 
-      {!isLoading && !isError && orders && orders.length === 0 && (
+      {!isLoading && !isError && visibleOrders.length === 0 && (
         <div style={emptyStyle}>
-          <p style={{ margin: 0 }}>Bạn chưa có đơn hàng nào.</p>
+          <p style={{ margin: 0 }}>Bạn chưa có đơn hàng nào trong nhóm này.</p>
           <Link to='/search' style={linkStyle}>
             Khám phá voucher →
           </Link>
         </div>
       )}
 
-      {!isLoading && !isError && orders && orders.length > 0 && (
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-          {orders.map((order) => (
+      {!isLoading && !isError && visibleOrders.length > 0 && (
+        <ul className='customer-order-list' style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+          {visibleOrders.map((order) => (
             <li key={order.id}>
               <button
                 type='button'
+                className='customer-order-row'
                 onClick={() => navigate(`/orders/${order.id}`)}
                 style={rowStyle}
                 aria-label={`Xem đơn hàng ${order.id}`}

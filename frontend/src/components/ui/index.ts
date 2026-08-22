@@ -13,6 +13,7 @@ export type { ModalProps, ModalSize } from './Modal'
 
 export { LoadingSpinner } from './LoadingSpinner'
 export type { LoadingSpinnerProps, SpinnerSize } from './LoadingSpinner'
+export { ContentSkeleton } from './ContentSkeleton'
 
 export { Toast, ToastProvider, useToast } from './Toast'
 export type { ToastProps, ToastProviderProps, ToastContextValue, ToastItem, ToastOptions, ToastVariant } from './Toast'

@@ -19,7 +19,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import { VoucherStatus } from '@voucher/shared'
 import { listBranches, listPartnerVouchers } from '../../services/partner'
 import type { Branch, PartnerVoucher } from '../../types/partner'
-import { Badge, variantForStatus, LoadingSpinner } from '../../components/ui'
+import { Badge, ContentSkeleton, variantForStatus } from '../../components/ui'
 import { CountUpValue } from '../../components/ui/CountUpValue'
 import { formatCurrency, formatStatus, parsePrice } from '../../utils/format'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
@@ -123,7 +123,7 @@ export function DashboardPage() {
 
       {isLoading && (
         <div style={{ padding: 32 }}>
-          <LoadingSpinner label='Đang tải tổng quan' />
+          <ContentSkeleton rows={4} variant='cards' label='Đang tải tổng quan' />
         </div>
       )}
 

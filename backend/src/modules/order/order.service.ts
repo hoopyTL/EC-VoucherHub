@@ -14,6 +14,7 @@ import { Decimal } from '@prisma/client/runtime/library'
 import { generateVoucherCode } from '../../utils/voucher-code-generator'
 import stripe from '../../utils/stripe'
 import { env } from '../../configs/env'
+import { paymentService } from '../payment/payment.service'
 
 // ─── Constants ──────────────────────────────────────────────────────
 
@@ -147,14 +148,25 @@ export const createOrder = async (customerId: string, dto: CreateOrderDto): Prom
   })
 
   // 2. Validate giỏ có items
+  const selectedIdSet = dto.selectedCartItemIds ? new Set(dto.selectedCartItemIds) : null
+  const selectedCartItems = selectedIdSet
+    ? (cart?.cartItems.filter((item) => selectedIdSet.has(item.id)) ?? [])
+    : (cart?.cartItems ?? [])
+
   if (!cart || cart.cartItems.length === 0) {
     throw new ValidationError('giỏ hàng rỗng', [{ field: 'cart', message: 'giỏ hàng rỗng, không thể tạo đơn' }])
   }
 
   // 3. Validate từng mục
+  if (selectedCartItems.length === 0 || (selectedIdSet && selectedCartItems.length !== selectedIdSet.size)) {
+    throw new ValidationError('lựa chọn giỏ hàng không hợp lệ', [
+      { field: 'selectedCartItemIds', message: 'vui lòng chọn ít nhất một voucher hợp lệ trong giỏ hàng' }
+    ])
+  }
+
   const stockErrors: Array<{ field: string; message: string }> = []
 
-  for (const item of cart.cartItems) {
+  for (const item of selectedCartItems) {
     const vp = item.voucherProduct
 
     if (vp.status !== 'ON_SALE') {
@@ -190,16 +202,16 @@ export const createOrder = async (customerId: string, dto: CreateOrderDto): Prom
 
   // 4. Tính tổng
   let totalAmount = new Decimal(0)
-  for (const item of cart.cartItems) {
+  for (const item of selectedCartItems) {
     totalAmount = totalAmount.add(item.voucherProduct.salePrice.mul(item.quantity))
   }
 
   // 5. Transaction: tạo order + items + xóa cart items đã đặt
-  const cartItemIds = cart.cartItems.map((ci) => ci.id)
+  const cartItemIds = selectedCartItems.map((ci) => ci.id)
 
   const order = await prisma.$transaction(async (tx) => {
     // 5a. Khóa và trừ tồn kho (Soft Reserve)
-    for (const item of cart.cartItems) {
+    for (const item of selectedCartItems) {
       const updateResult = await tx.voucherProduct.updateMany({
         where: {
           id: item.voucherProductId,
@@ -229,7 +241,7 @@ export const createOrder = async (customerId: string, dto: CreateOrderDto): Prom
         expiresAt: new Date(Date.now() + 15 * 60 * 1000), // Khóa 15 phút — chống ôm hàng
         giftRecipient: dto.giftRecipient ? (dto.giftRecipient as unknown as Prisma.InputJsonValue) : Prisma.JsonNull,
         orderItems: {
-          create: cart.cartItems.map((ci) => ({
+          create: selectedCartItems.map((ci) => ({
             voucherProductId: ci.voucherProductId,
             quantity: ci.quantity,
             unitPrice: ci.voucherProduct.salePrice // snapshot giá
@@ -355,8 +367,19 @@ export const processPayment = async (
     throw new ConflictError('đơn hàng đã hết hạn thanh toán')
   }
 
-  // 3. Nếu thanh toán thất bại
+  // 3. Nếu thanh toán thất bại → ghi log FAILED
   if (dto.outcome === 'FAILURE') {
+    const pt = await paymentService.create({
+      orderId: order.id,
+      gateway: order.paymentMethod,
+      amount: order.totalAmount,
+      currency: 'VND'
+    })
+    await paymentService.updateStatus(pt.id, {
+      status: 'FAILED',
+      failureReason: 'Thanh toán mô phỏng thất bại (outcome=FAILURE)'
+    })
+
     return {
       orderId: order.id,
       status: order.status,
@@ -414,11 +437,12 @@ export const processPayment = async (
     }
 
     // 4c. Cập nhật trạng thái đơn hàng -> PAID
+    const paidAt = new Date()
     await tx.order.update({
       where: { id: order.id },
       data: {
         status: 'PAID',
-        paidAt: new Date()
+        paidAt
       }
     })
 
@@ -432,6 +456,25 @@ export const processPayment = async (
         expiresAt: true
       }
     })
+
+    // 4e. Ghi log thanh toán thành công
+    const pt = await paymentService.create(
+      {
+        orderId: order.id,
+        gateway: order.paymentMethod,
+        amount: order.totalAmount,
+        currency: 'VND'
+      },
+      tx
+    )
+    await paymentService.updateStatus(
+      pt.id,
+      {
+        status: 'SUCCESS',
+        paidAt
+      },
+      tx
+    )
 
     return createdCodes
   })
@@ -482,10 +525,7 @@ export const cancelOrder = async (customerId: string, orderId: string): Promise<
   return { message: 'Hủy đơn hàng và hoàn khóa voucher thành công' }
 }
 
-export const createStripeCheckoutSession = async (
-  customerId: string,
-  orderId: string
-): Promise<{ url: string }> => {
+export const createStripeCheckoutSession = async (customerId: string, orderId: string): Promise<{ url: string }> => {
   const order = await prisma.order.findUnique({
     where: { id: orderId },
     include: { orderItems: { include: { voucherProduct: true } } }

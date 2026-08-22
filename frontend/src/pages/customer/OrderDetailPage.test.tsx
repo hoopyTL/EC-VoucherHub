@@ -97,6 +97,43 @@ describe('OrderDetailPage', () => {
     expect(screen.queryByRole('link', { name: 'SPA-AAAA-1111' })).toBeNull()
   })
 
+  it('renders the payment transaction timeline in Vietnamese', async () => {
+    vi.spyOn(api, 'get').mockImplementation((url: string) => {
+      if (url === '/orders/order-1') {
+        return Promise.resolve({ data: makeOrder() } as never)
+      }
+      if (url === '/orders/order-1/payments') {
+        return Promise.resolve({
+          data: {
+            data: [
+              {
+                id: 'payment-1',
+                orderId: 'order-1',
+                gateway: 'STRIPE',
+                gatewayTransId: 'pi_demo_123',
+                amount: '250000',
+                currency: 'VND',
+                status: 'SUCCESS',
+                failureReason: null,
+                paidAt: '2025-01-05T10:01:00.000Z',
+                refundedAt: null,
+                createdAt: '2025-01-05T10:00:00.000Z'
+              }
+            ]
+          }
+        } as never)
+      }
+      return Promise.resolve({ data: [] } as never)
+    })
+
+    renderAt('order-1')
+
+    expect(await screen.findByText('Lịch sử thanh toán')).toBeDefined()
+    expect(await screen.findByText('Thẻ quốc tế · Stripe')).toBeDefined()
+    expect(screen.getByText('Thành công')).toBeDefined()
+    expect(screen.getByText(/pi_demo_123/)).toBeDefined()
+  })
+
   it('does not fetch or show codes for a PENDING_PAYMENT order', async () => {
     const getSpy = vi.spyOn(api, 'get').mockImplementation((url: string) => {
       if (url === '/orders/order-1') {

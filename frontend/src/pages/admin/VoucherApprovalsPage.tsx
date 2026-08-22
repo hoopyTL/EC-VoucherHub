@@ -21,7 +21,8 @@ import { useState, type CSSProperties, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { approveVoucher, getAdminApiError, listPendingVouchers, rejectVoucher } from '../../services/admin'
 import type { VoucherApprovalView } from '../../types/admin'
-import { Badge, Button, LoadingSpinner, Modal, Pagination, useToast, variantForStatus } from '../../components/ui'
+import { Badge, Button, ContentSkeleton, Modal, Pagination, useToast, variantForStatus } from '../../components/ui'
+import { DataTable } from '../../components/admin/DataTable'
 import { discountPercent, formatCurrency, formatDateRange, formatDateTime, formatStatus } from '../../utils/format'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
 import { VoucherManagementSection } from './VoucherManagementSection'
@@ -114,14 +115,12 @@ export function VoucherApprovalsPage() {
       <header>
         <p style={eyebrowStyle}>● Kiểm duyệt sản phẩm</p>
         <h1 style={titleStyle}>Voucher chờ duyệt</h1>
-        <p style={subtitleStyle}>
-          Kiểm tra nội dung, giá và thời hạn trước khi voucher được mở bán trên sàn.
-        </p>
+        <p style={subtitleStyle}>Kiểm tra nội dung, giá và thời hạn trước khi voucher được mở bán trên sàn.</p>
       </header>
 
       {isLoading && (
         <div style={{ padding: 48 }}>
-          <LoadingSpinner label='Đang tải voucher chờ duyệt' />
+          <ContentSkeleton rows={5} label='Đang tải voucher chờ duyệt' />
         </div>
       )}
 
@@ -144,11 +143,16 @@ export function VoucherApprovalsPage() {
         <>
           <div style={cardStyle}>
             <div style={tableWrapperStyle}>
-              <table style={tableStyle}>
+              <DataTable style={tableStyle} accessibleLabel='Danh sách voucher chờ duyệt'>
                 <thead>
                   <tr>
                     <th style={thStyle}>Voucher</th>
-                    <th style={thStyle}>Đối tác</th><th style={thStyle}>Danh mục</th><th style={thNumStyle}>Giá bán</th><th style={thNumStyle}>Số lượng</th><th style={thStyle}>Thời gian bán</th><th style={thActionStyle}>Thao tác</th>
+                    <th style={thStyle}>Đối tác</th>
+                    <th style={thStyle}>Danh mục</th>
+                    <th style={thNumStyle}>Giá bán</th>
+                    <th style={thNumStyle}>Số lượng</th>
+                    <th style={thStyle}>Thời gian bán</th>
+                    <th style={thActionStyle}>Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -212,7 +216,7 @@ export function VoucherApprovalsPage() {
                     )
                   })}
                 </tbody>
-              </table>
+              </DataTable>
             </div>
           </div>
 
@@ -307,7 +311,8 @@ export function VoucherApprovalsPage() {
         <form id='reject-voucher-form' onSubmit={handleRejectSubmit}>
           {rejecting && (
             <p style={{ margin: '0 0 12px', color: colors.slate }}>
-              Nhập lý do từ chối <strong style={{ color: colors.ink }}>“{rejecting.title}”</strong>. Nội dung này sẽ được gửi cho đối tác.
+              Nhập lý do từ chối <strong style={{ color: colors.ink }}>“{rejecting.title}”</strong>. Nội dung này sẽ
+              được gửi cho đối tác.
             </p>
           )}
           <label htmlFor='voucher-reject-reason' style={labelStyle}>

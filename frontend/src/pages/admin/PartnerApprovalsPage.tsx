@@ -23,7 +23,8 @@ import { useState, type CSSProperties, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { approvePartner, getAdminApiError, listPendingPartners, rejectPartner } from '../../services/admin'
 import type { PartnerApprovalView } from '../../types/admin'
-import { Badge, Button, LoadingSpinner, Modal, Pagination, useToast, variantForStatus } from '../../components/ui'
+import { Badge, Button, ContentSkeleton, Modal, Pagination, useToast, variantForStatus } from '../../components/ui'
+import { DataTable } from '../../components/admin/DataTable'
 import { formatDateTime, formatStatus } from '../../utils/format'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
 import { PartnerManagementSection } from './PartnerManagementSection'
@@ -124,7 +125,7 @@ export function PartnerApprovalsPage() {
 
       {isLoading && (
         <div style={{ padding: 48 }}>
-          <LoadingSpinner label='Loading pending partners' />
+          <ContentSkeleton rows={5} label='Đang tải đối tác chờ duyệt' />
         </div>
       )}
 
@@ -147,7 +148,7 @@ export function PartnerApprovalsPage() {
         <>
           <div style={cardStyle}>
             <div style={tableWrapperStyle}>
-              <table style={tableStyle}>
+              <DataTable style={tableStyle} accessibleLabel='Danh sách đối tác chờ duyệt'>
                 <thead>
                   <tr>
                     <th style={thStyle}>Business</th>
@@ -206,7 +207,7 @@ export function PartnerApprovalsPage() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </DataTable>
             </div>
           </div>
 

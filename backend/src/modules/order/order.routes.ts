@@ -5,6 +5,7 @@ import { RoleName } from '@voucher/shared'
 import { validate } from '../../middleware/validate'
 import { createOrderSchema, paymentOutcomeSchema } from '@voucher/shared'
 import * as orderController from './order.controller'
+import * as paymentController from '../payment/payment.controller'
 
 const router = Router()
 
@@ -22,6 +23,7 @@ router.get('/', orderController.getMyOrders)
 router.get('/:id/vnpay', orderController.createVNPayPayment)
 router.get('/:id/stripe', orderController.createStripePayment)
 router.get('/:id', orderController.getOrderDetail)
+router.get('/:orderId/payments', paymentController.getPaymentsByOrder)
 router.post('/:id/cancel', orderController.cancelOrder)
 router.post('/:id/payment', validate(paymentOutcomeSchema), orderController.processPayment)
 
