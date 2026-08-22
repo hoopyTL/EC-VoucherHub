@@ -21,7 +21,8 @@ import { useState, type CSSProperties, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { approveVoucher, getAdminApiError, listPendingVouchers, rejectVoucher } from '../../services/admin'
 import type { VoucherApprovalView } from '../../types/admin'
-import { Badge, Button, LoadingSpinner, Modal, Pagination, useToast, variantForStatus } from '../../components/ui'
+import { Badge, Button, ContentSkeleton, Modal, Pagination, useToast, variantForStatus } from '../../components/ui'
+import { DataTable } from '../../components/admin/DataTable'
 import { discountPercent, formatCurrency, formatDateRange, formatDateTime, formatStatus } from '../../utils/format'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
 import { VoucherManagementSection } from './VoucherManagementSection'
@@ -119,7 +120,7 @@ export function VoucherApprovalsPage() {
 
       {isLoading && (
         <div style={{ padding: 48 }}>
-          <LoadingSpinner label='Đang tải voucher chờ duyệt' />
+          <ContentSkeleton rows={5} label='Đang tải voucher chờ duyệt' />
         </div>
       )}
 
@@ -142,7 +143,7 @@ export function VoucherApprovalsPage() {
         <>
           <div style={cardStyle}>
             <div style={tableWrapperStyle}>
-              <table className='admin-data-table' style={tableStyle}>
+              <DataTable style={tableStyle} accessibleLabel='Danh sách voucher chờ duyệt'>
                 <thead>
                   <tr>
                     <th style={thStyle}>Voucher</th>
@@ -215,7 +216,7 @@ export function VoucherApprovalsPage() {
                     )
                   })}
                 </tbody>
-              </table>
+              </DataTable>
             </div>
           </div>
 

@@ -16,7 +16,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import type { CSSProperties } from 'react'
 import { api } from '../../services/api'
 import type { Order } from '../../types/customer'
-import { Badge, variantForStatus, LoadingSpinner } from '../../components/ui'
+import { Badge, ContentSkeleton, variantForStatus } from '../../components/ui'
 import { formatCurrency, formatDate, formatStatus } from '../../utils/format'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
 
@@ -50,7 +50,7 @@ export function OrdersPage() {
 
       {isLoading && (
         <div style={{ padding: 32 }}>
-          <LoadingSpinner label='Đang tải đơn hàng' />
+          <ContentSkeleton rows={5} label='Đang tải đơn hàng' />
         </div>
       )}
 

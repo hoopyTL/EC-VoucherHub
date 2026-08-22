@@ -27,6 +27,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../services/api'
 import { Button } from '../../components/ui/Button'
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner'
+import { ContentSkeleton } from '../../components/ui/ContentSkeleton'
 import { CheckoutProgress } from '../../components/customer/CheckoutProgress'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
 
@@ -233,7 +234,7 @@ export function CartPage() {
     return (
       <section style={sectionStyle}>
         <h1 style={headingStyle}>Giỏ hàng</h1>
-        <LoadingSpinner label='Đang tải giỏ hàng' />
+        <ContentSkeleton rows={3} variant='cards' label='Đang tải giỏ hàng' />
       </section>
     )
   }

@@ -19,7 +19,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import { VoucherStatus } from '@voucher/shared'
 import { listBranches, listPartnerVouchers } from '../../services/partner'
 import type { Branch, PartnerVoucher } from '../../types/partner'
-import { Badge, variantForStatus, LoadingSpinner } from '../../components/ui'
+import { Badge, ContentSkeleton, variantForStatus } from '../../components/ui'
 import { CountUpValue } from '../../components/ui/CountUpValue'
 import { formatCurrency, formatStatus, parsePrice } from '../../utils/format'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
@@ -94,13 +94,36 @@ export function DashboardPage() {
   return (
     <section style={{ maxWidth: 1080, margin: '0 auto' }}>
       <div style={heroStyle}>
-        <div><p style={{margin:'0 0 8px',fontSize:12,fontWeight:800,letterSpacing:'.12em',textTransform:'uppercase'}}>Trung tâm kinh doanh</p><h1 style={{...titleStyle,color:'#fff'}}>Tổng quan đối tác</h1><p style={{...subtitleStyle,color:'rgba(255,255,255,.78)'}}>Nắm bắt hiệu quả bán voucher và vận hành chi nhánh trong một màn hình.</p></div>
-        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}><Link to='/partner/vouchers/new' style={heroActionStyle}>＋ Tạo voucher</Link><Link to='/partner/reports' style={heroSecondaryStyle}>Xem báo cáo →</Link></div>
+        <div>
+          <p
+            style={{
+              margin: '0 0 8px',
+              fontSize: 12,
+              fontWeight: 800,
+              letterSpacing: '.12em',
+              textTransform: 'uppercase'
+            }}
+          >
+            Trung tâm kinh doanh
+          </p>
+          <h1 style={{ ...titleStyle, color: '#fff' }}>Tổng quan đối tác</h1>
+          <p style={{ ...subtitleStyle, color: 'rgba(255,255,255,.78)' }}>
+            Nắm bắt hiệu quả bán voucher và vận hành chi nhánh trong một màn hình.
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <Link to='/partner/vouchers/new' style={heroActionStyle}>
+            ＋ Tạo voucher
+          </Link>
+          <Link to='/partner/reports' style={heroSecondaryStyle}>
+            Xem báo cáo →
+          </Link>
+        </div>
       </div>
 
       {isLoading && (
         <div style={{ padding: 32 }}>
-          <LoadingSpinner label='Đang tải tổng quan' />
+          <ContentSkeleton rows={4} variant='cards' label='Đang tải tổng quan' />
         </div>
       )}
 
@@ -160,12 +183,28 @@ function DashboardContent({ stats }: { stats: PartnerDashboardStats }) {
 }
 
 /** A single summary metric card. */
-function StatCard({ label, value, footer, trend }: { label: string; value: string; footer?: ReactNode; trend?: string }) {
+function StatCard({
+  label,
+  value,
+  footer,
+  trend
+}: {
+  label: string
+  value: string
+  footer?: ReactNode
+  trend?: string
+}) {
   return (
     <div className='workspace-kpi-ticket' style={statCardStyle}>
       <span style={statLabelStyle}>{label}</span>
-      <span className='kpi-count-up' style={statValueStyle}><CountUpValue value={value} /></span>
-      {trend && <span className='kpi-trend'><span aria-hidden='true'>↗</span> {trend} <small>so với kỳ trước</small></span>}
+      <span className='kpi-count-up' style={statValueStyle}>
+        <CountUpValue value={value} />
+      </span>
+      {trend && (
+        <span className='kpi-trend'>
+          <span aria-hidden='true'>↗</span> {trend} <small>so với kỳ trước</small>
+        </span>
+      )}
       {footer && <span style={{ fontSize: 13 }}>{footer}</span>}
     </div>
   )
@@ -229,9 +268,32 @@ const statValueStyle: CSSProperties = {
   color: colors.ink
 }
 
-const heroStyle:CSSProperties={display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:24,padding:'clamp(26px,5vw,42px)',marginBottom:24,borderRadius:'12px 44px 12px 44px',background:'radial-gradient(circle at 85% 10%,rgba(75,236,193,.42),transparent 30%),linear-gradient(135deg,#064e3b,#087f68)',boxShadow:'0 22px 50px rgba(6,78,59,.18)'}
-const heroActionStyle:CSSProperties={padding:'12px 18px',borderRadius:999,background:'#fff',color:'#064e3b',fontWeight:800}
-const heroSecondaryStyle:CSSProperties={padding:'12px 18px',borderRadius:999,border:'1px solid rgba(255,255,255,.4)',color:'#fff',fontWeight:700}
+const heroStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'flex-end',
+  justifyContent: 'space-between',
+  gap: 24,
+  padding: 'clamp(26px,5vw,42px)',
+  marginBottom: 24,
+  borderRadius: '12px 44px 12px 44px',
+  background:
+    'radial-gradient(circle at 85% 10%,rgba(75,236,193,.42),transparent 30%),linear-gradient(135deg,#064e3b,#087f68)',
+  boxShadow: '0 22px 50px rgba(6,78,59,.18)'
+}
+const heroActionStyle: CSSProperties = {
+  padding: '12px 18px',
+  borderRadius: 999,
+  background: '#fff',
+  color: '#064e3b',
+  fontWeight: 800
+}
+const heroSecondaryStyle: CSSProperties = {
+  padding: '12px 18px',
+  borderRadius: 999,
+  border: '1px solid rgba(255,255,255,.4)',
+  color: '#fff',
+  fontWeight: 700
+}
 
 const breakdownListStyle: CSSProperties = {
   listStyle: 'none',

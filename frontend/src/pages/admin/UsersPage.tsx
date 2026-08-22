@@ -21,7 +21,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AccountStatus, UserRole } from '@ui-contracts'
 import { changeUserRole, getAdminApiError, listUsers, lockUser, unlockUser } from '../../services/admin'
 import type { AdminAccount, ListUsersResult } from '../../types/admin'
-import { Badge, Button, Input, LoadingSpinner, Modal, variantForStatus } from '../../components/ui'
+import { Badge, Button, ContentSkeleton, Input, Modal, variantForStatus } from '../../components/ui'
+import { DataTable } from '../../components/admin/DataTable'
 import { formatStatus } from '../../utils/format'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
 
@@ -163,7 +164,7 @@ export function UsersPage() {
 
       {isLoading && (
         <div style={{ padding: 32 }}>
-          <LoadingSpinner label='Đang tải người dùng' />
+          <ContentSkeleton rows={6} label='Đang tải người dùng' />
         </div>
       )}
 
@@ -187,7 +188,7 @@ export function UsersPage() {
       {!isLoading && !isError && data && accounts.length > 0 && (
         <>
           <div style={tableWrapperStyle}>
-            <table className='admin-data-table' style={tableStyle}>
+            <DataTable style={tableStyle} accessibleLabel='Danh sách người dùng'>
               <thead>
                 <tr>
                   <th style={thStyle}>Tên</th>
@@ -234,7 +235,7 @@ export function UsersPage() {
                   )
                 })}
               </tbody>
-            </table>
+            </DataTable>
           </div>
 
           {(page > 1 || data.nextCursor) && (

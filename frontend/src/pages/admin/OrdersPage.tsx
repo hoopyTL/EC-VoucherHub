@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState, type CSSProperties } from 'react'
-import { Badge, Button, Input, LoadingSpinner, variantForStatus } from '../../components/ui'
+import { Badge, Button, ContentSkeleton, Input, variantForStatus } from '../../components/ui'
+import { DataTable } from '../../components/admin/DataTable'
 import { api } from '../../services/api'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
 import { formatCurrency, formatDate, formatStatus } from '../../utils/format'
@@ -54,14 +55,14 @@ export function OrdersPage() {
         <Button type='submit'>Tìm kiếm</Button>
       </form>
       {orders.isLoading ? (
-        <LoadingSpinner label='Đang tải đơn hàng' />
+        <ContentSkeleton rows={6} label='Đang tải đơn hàng' />
       ) : orders.isError ? (
         <div role='alert' style={{ padding: 18, color: colors.danger }}>
           Không thể tải đơn hàng. Vui lòng thử lại.
         </div>
       ) : (
         <div style={tableCardStyle}>
-          <table className='admin-data-table' style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <DataTable style={{ width: '100%', borderCollapse: 'collapse' }} accessibleLabel='Danh sách đơn hàng'>
             <thead>
               <tr>
                 {['Mã đơn', 'Khách hàng', 'Voucher', 'Ngày tạo', 'Thanh toán', 'Tổng tiền', 'Trạng thái'].map((x) => (
@@ -100,7 +101,7 @@ export function OrdersPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </DataTable>
         </div>
       )}
     </section>
@@ -116,7 +117,7 @@ function Summary({ value, label }: { value: string; label: string }) {
 }
 const eyebrowStyle: CSSProperties = {
   margin: '0 0 10px',
-  color: '#7057d9',
+  color: colors.accent,
   fontFamily: fonts.display,
   fontSize: 12,
   fontWeight: 800,

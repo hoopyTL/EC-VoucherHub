@@ -18,7 +18,8 @@ import { useState, type CSSProperties, type ReactNode } from 'react'
 import { OrderStatus } from '@ui-contracts'
 import { getAnalytics, getDashboardStats } from '../../services/admin'
 import type { AnalyticsOverview, DashboardStats } from '../../types/admin'
-import { Badge, variantForStatus, LoadingSpinner } from '../../components/ui'
+import { Badge, ContentSkeleton, variantForStatus } from '../../components/ui'
+import { DataTable } from '../../components/admin/DataTable'
 import { CountUpValue } from '../../components/ui/CountUpValue'
 import { BarList, ColumnChart, LineChart, RatioGauge } from '../../components/admin/MiniCharts'
 import { formatCurrency, formatStatus } from '../../utils/format'
@@ -47,7 +48,7 @@ export function DashboardPage() {
 
       {isLoading && (
         <div style={{ padding: 32 }}>
-          <LoadingSpinner label='Đang tải tổng quan' />
+          <ContentSkeleton rows={4} variant='cards' label='Đang tải tổng quan' />
         </div>
       )}
 
@@ -86,7 +87,7 @@ function AnalyticsSection() {
 
       {isLoading && (
         <div style={{ padding: 16 }}>
-          <LoadingSpinner label='Đang tải phân tích' />
+          <ContentSkeleton rows={5} label='Đang tải phân tích' />
         </div>
       )}
 
@@ -233,7 +234,7 @@ function DashboardContent({ stats }: { stats: DashboardStats }) {
         </div>
       ) : (
         <div style={tableWrapperStyle}>
-          <table className='admin-data-table' style={tableStyle}>
+          <DataTable style={tableStyle} accessibleLabel='Voucher hiệu quả cao'>
             <thead>
               <tr>
                 <th style={thStyle}>#</th>
@@ -254,7 +255,7 @@ function DashboardContent({ stats }: { stats: DashboardStats }) {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </DataTable>
         </div>
       )}
 
@@ -266,7 +267,7 @@ function DashboardContent({ stats }: { stats: DashboardStats }) {
         </div>
       ) : (
         <div style={tableWrapperStyle}>
-          <table className='admin-data-table' style={tableStyle}>
+          <DataTable style={tableStyle} accessibleLabel='Hiệu quả đối tác'>
             <thead>
               <tr>
                 <th style={thStyle}>Đối tác</th>
@@ -285,7 +286,7 @@ function DashboardContent({ stats }: { stats: DashboardStats }) {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </DataTable>
         </div>
       )}
     </>

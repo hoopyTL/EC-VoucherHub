@@ -23,7 +23,7 @@ import { LockKeyhole } from 'lucide-react'
 import type { CreateOrderRequest } from '@ui-contracts'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
-import { LoadingSpinner } from '../../components/ui/LoadingSpinner'
+import { ContentSkeleton } from '../../components/ui/ContentSkeleton'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
 import {
   createOrder,
@@ -89,7 +89,7 @@ export function CheckoutPage() {
   if (cartQuery.isLoading) {
     return (
       <section style={sectionStyle}>
-        <LoadingSpinner label='Đang tải giỏ hàng' />
+        <ContentSkeleton rows={3} variant='cards' label='Đang tải giỏ hàng' />
       </section>
     )
   }

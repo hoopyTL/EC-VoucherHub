@@ -729,6 +729,68 @@ body:focus-visible,
   border-spacing: 0;
   font-variant-numeric: tabular-nums;
 }
+.data-table-shell {
+  width: 100%;
+  overflow: auto;
+  border-radius: var(--radius-control);
+}
+.content-skeleton {
+  display: grid;
+  gap: var(--space-3);
+  width: 100%;
+}
+.content-skeleton__row {
+  display: grid;
+  grid-template-columns: 56px minmax(160px, 1fr) 92px;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 72px;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+}
+.content-skeleton__media,
+.content-skeleton__copy i,
+.content-skeleton__action {
+  display: block;
+  border-radius: 9px;
+  background: linear-gradient(90deg, var(--surface-muted) 25%, var(--paper) 45%, var(--surface-muted) 65%);
+  background-size: 220% 100%;
+  animation: content-shimmer 1.25s ease-in-out infinite;
+}
+.content-skeleton__media {
+  width: 56px;
+  height: 44px;
+}
+.content-skeleton__copy {
+  display: grid;
+  gap: 9px;
+}
+.content-skeleton__copy i:first-child {
+  width: min(300px, 90%);
+  height: 13px;
+}
+.content-skeleton__copy i:last-child {
+  width: min(190px, 65%);
+  height: 10px;
+}
+.content-skeleton__action {
+  width: 92px;
+  height: 34px;
+}
+@keyframes content-shimmer {
+  to {
+    background-position: -220% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .content-skeleton__media,
+  .content-skeleton__copy i,
+  .content-skeleton__action {
+    animation: none;
+  }
+}
 .admin-data-table thead th {
   position: sticky;
   top: 0;
@@ -772,6 +834,22 @@ body:focus-visible,
   gap: 8px;
   padding-bottom: 12px;
   border-bottom: 2px solid var(--hairline);
+}
+.voucher-form-steps a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: inherit;
+  text-decoration: none;
+}
+.voucher-form-section-title {
+  scroll-margin-top: 110px;
+  margin: var(--space-8) 0 var(--space-4);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--hairline);
+  color: var(--ink);
+  font: 800 18px/1.3 var(--font-sans);
+  letter-spacing: -0.01em;
 }
 .voucher-form-steps span {
   display: grid;
