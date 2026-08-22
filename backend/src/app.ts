@@ -12,6 +12,10 @@ import { ApiResponse } from '~/utils/api-response'
 import apiRouter from '~/modules'
 import cartRoutes from '~/modules/cart/cart.routes'
 import orderRoutes from '~/modules/order/order.routes'
+import adminRoutes from '~/routes/admin.routes'
+import { authenticate } from '~/middlewares/authenticate'
+import { authorize } from '~/middlewares/authorize'
+import { RoleName } from '@voucher/shared'
 
 const app = express()
 
@@ -45,6 +49,7 @@ app.get('/', (_req, res) => {
 app.use('/api', apiRouter)
 app.use('/api/cart', cartRoutes)
 app.use('/api/orders', orderRoutes)
+app.use('/api/admin', authenticate, authorize(RoleName.ADMIN), adminRoutes)
 
 // Error handling must remain after all routes.
 app.use(notFoundHandler)

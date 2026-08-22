@@ -26,6 +26,18 @@ describe('GET /', () => {
   })
 })
 
+describe('admin routes', () => {
+  it('mounts the dashboard API behind authentication', async () => {
+    const res = await request(app).get('/api/admin/dashboard/stats')
+
+    expect(res.status).toBe(401)
+    expect(res.body).toMatchObject({
+      success: false,
+      error: { code: 'UNAUTHORIZED' }
+    })
+  })
+})
+
 describe('404 handler', () => {
   it('returns NOT_FOUND for unknown routes', async () => {
     const res = await request(app).get('/nonexistent-route')
