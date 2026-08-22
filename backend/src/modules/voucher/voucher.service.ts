@@ -9,6 +9,7 @@ import type {
   AdminVoucherStatusInput,
   CreateVoucherInput,
   PartnerVoucherStatusInput,
+  PublicVoucherSearchInput,
   UpdateVoucherInput,
   VoucherApprovalInput,
   VoucherListInput
@@ -52,6 +53,47 @@ function toVoucherDto(voucher: VoucherRecord, codeCounts: VoucherCodeCounts = em
     ...codeCounts,
     createdAt: voucher.createdAt.toISOString(),
     updatedAt: voucher.updatedAt.toISOString()
+  }
+}
+
+function toPublicVoucher(voucher: VoucherRecord) {
+  const originalPrice = Number(voucher.originalPrice)
+  const salePrice = Number(voucher.salePrice)
+  return {
+    id: voucher.id,
+    title: voucher.name,
+    description: voucher.description,
+    category: voucher.category?.name ?? 'Chưa phân loại',
+    originalPrice: voucher.originalPrice.toString(),
+    salePrice: voucher.salePrice.toString(),
+    totalQuantity: voucher.totalQuantity,
+    soldQuantity: voucher.totalQuantity - voucher.remainingQuantity,
+    remainingQuantity: voucher.remainingQuantity,
+    discountPercentage: Math.round(((originalPrice - salePrice) / originalPrice) * 100),
+    salePeriodStart: voucher.saleStart.toISOString(),
+    salePeriodEnd: voucher.saleEnd.toISOString(),
+    usagePeriodStart: voucher.usageStart.toISOString(),
+    usagePeriodEnd: voucher.usageEnd.toISOString(),
+    terms: null,
+    imageUrl: voucher.imageUrl,
+    status: voucher.status,
+    partnerId: voucher.partnerId,
+    createdAt: voucher.createdAt.toISOString(),
+    updatedAt: voucher.updatedAt.toISOString(),
+    partner: { businessName: voucher.partner.legalName },
+    voucherBranches: voucher.voucherProductBranches.map(({ branch, voucherProductId, branchId }) => ({
+      id: `${voucherProductId}:${branchId}`,
+      voucherId: voucherProductId,
+      branchId: String(branchId),
+      branch: {
+        id: String(branch.id),
+        name: branch.name,
+        address: branch.address,
+        region: branch.region,
+        contact: '',
+        isActive: true
+      }
+    }))
   }
 }
 
@@ -210,6 +252,91 @@ async function updateStatusAtomically(
 }
 
 export const voucherService = {
+  async searchPublic(input: PublicVoucherSearchInput) {
+    const now = new Date()
+    const where: Prisma.VoucherProductWhereInput = {
+      status: VoucherStatus.ON_SALE,
+      remainingQuantity: { gt: 0 },
+      saleStart: { lte: now },
+      saleEnd: { gte: now },
+      ...(input.keyword && {
+        OR: [
+          { name: { contains: input.keyword, mode: 'insensitive' } },
+          { description: { contains: input.keyword, mode: 'insensitive' } }
+        ]
+      }),
+      ...(input.category && input.category !== 'Tất cả danh mục' && { category: { name: input.category } }),
+      ...(input.region && { voucherProductBranches: { some: { branch: { region: input.region } } } }),
+      ...(input.partnerId && { partnerId: input.partnerId }),
+      ...((input.minPrice !== undefined || input.maxPrice !== undefined) && {
+        salePrice: { gte: input.minPrice, lte: input.maxPrice }
+      })
+    }
+    const records = await prisma.voucherProduct.findMany({
+      where,
+      include: voucherInclude,
+      orderBy: { createdAt: 'desc' }
+    })
+    const filtered =
+      input.minDiscount === undefined
+        ? records
+        : records.filter(
+            (voucher) =>
+              Math.round(
+                ((Number(voucher.originalPrice) - Number(voucher.salePrice)) / Number(voucher.originalPrice)) * 100
+              ) >= input.minDiscount!
+          )
+    const start = (input.page - 1) * input.limit
+    return {
+      vouchers: filtered.slice(start, start + input.limit).map(toPublicVoucher),
+      pagination: { page: input.page, limit: input.limit, total: filtered.length }
+    }
+  },
+
+  async getPublic(voucherId: string) {
+    const now = new Date()
+    const voucher = await prisma.voucherProduct.findFirst({
+      where: {
+        id: voucherId,
+        status: VoucherStatus.ON_SALE,
+        remainingQuantity: { gt: 0 },
+        saleStart: { lte: now },
+        saleEnd: { gte: now }
+      },
+      include: voucherInclude
+    })
+    if (!voucher) throw AppError.notFound('Voucher')
+    return toPublicVoucher(voucher)
+  },
+
+  async getPublicFilters() {
+    const now = new Date()
+    const vouchers = await prisma.voucherProduct.findMany({
+      where: {
+        status: VoucherStatus.ON_SALE,
+        remainingQuantity: { gt: 0 },
+        saleStart: { lte: now },
+        saleEnd: { gte: now }
+      },
+      select: {
+        category: { select: { name: true } },
+        partner: { select: { id: true, legalName: true } },
+        voucherProductBranches: { select: { branch: { select: { region: true } } } }
+      }
+    })
+    return {
+      categories: [...new Set(vouchers.flatMap((voucher) => (voucher.category ? [voucher.category.name] : [])))].sort(),
+      regions: [
+        ...new Set(vouchers.flatMap((voucher) => voucher.voucherProductBranches.map(({ branch }) => branch.region)))
+      ].sort(),
+      partners: [
+        ...new Map(
+          vouchers.map((voucher) => [voucher.partner.id, { id: voucher.partner.id, name: voucher.partner.legalName }])
+        ).values()
+      ].sort((a, b) => a.name.localeCompare(b.name, 'vi'))
+    }
+  },
+
   async create(userId: string, input: CreateVoucherInput) {
     const partner = await getPartnerByOwner(userId)
     validateCompleteValues(input)

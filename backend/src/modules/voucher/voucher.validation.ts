@@ -63,6 +63,17 @@ export const voucherListSchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
   status: z.nativeEnum(VoucherStatus).optional()
 })
+export const publicVoucherSearchSchema = z.object({
+  keyword: z.string().trim().max(255).optional(),
+  category: z.string().trim().max(255).optional(),
+  region: z.string().trim().max(255).optional(),
+  partnerId: z.string().uuid().optional(),
+  minPrice: z.coerce.number().min(0).optional(),
+  maxPrice: z.coerce.number().min(0).optional(),
+  minDiscount: z.coerce.number().min(0).max(100).optional(),
+  page: positiveInt.default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20)
+})
 export const voucherApprovalSchema = z
   .object({
     action: z.enum(['approve', 'reject']),
@@ -80,6 +91,7 @@ export const adminVoucherStatusSchema = z.object({
 export type CreateVoucherInput = z.infer<typeof createVoucherSchema>
 export type UpdateVoucherInput = z.infer<typeof updateVoucherSchema>
 export type VoucherListInput = z.infer<typeof voucherListSchema>
+export type PublicVoucherSearchInput = z.infer<typeof publicVoucherSearchSchema>
 export type VoucherApprovalInput = z.infer<typeof voucherApprovalSchema>
 export type PartnerVoucherStatusInput = z.infer<typeof partnerVoucherStatusSchema>
 export type AdminVoucherStatusInput = z.infer<typeof adminVoucherStatusSchema>

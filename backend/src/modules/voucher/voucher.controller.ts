@@ -7,12 +7,23 @@ import type {
   AdminVoucherStatusInput,
   CreateVoucherInput,
   PartnerVoucherStatusInput,
+  PublicVoucherSearchInput,
   UpdateVoucherInput,
   VoucherApprovalInput,
   VoucherListInput
 } from './voucher.validation'
 
 export const voucherController = {
+  searchPublic: asyncHandler(async (req, res) => {
+    ApiResponse.success(res, await voucherService.searchPublic(req.validated?.query as PublicVoucherSearchInput))
+  }),
+  getPublicFilters: asyncHandler(async (_req, res) => {
+    ApiResponse.success(res, await voucherService.getPublicFilters())
+  }),
+  getPublic: asyncHandler(async (req, res) => {
+    const { id } = req.validated?.params as { id: string }
+    ApiResponse.success(res, await voucherService.getPublic(id))
+  }),
   uploadImage: asyncHandler(async (req, res) => {
     if (!req.file) throw AppError.validation('Ảnh voucher là bắt buộc')
     if (!hasValidImageSignature(req.file)) {
