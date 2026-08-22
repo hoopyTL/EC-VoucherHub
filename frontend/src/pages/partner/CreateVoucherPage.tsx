@@ -297,6 +297,21 @@ export function CreateVoucherPage() {
         Voucher được lưu ở trạng thái nháp. Gửi duyệt từ danh sách voucher khi nội dung đã sẵn sàng.
       </p>
 
+      <ol className='voucher-form-steps' aria-label='CÃ¡c bÆ°á»›c táº¡o voucher'>
+        <li className='is-active'>
+          <span>1</span> ThÃ´ng tin
+        </li>
+        <li>
+          <span>2</span> GiÃ¡ &amp; sá»‘ lÆ°á»£ng
+        </li>
+        <li>
+          <span>3</span> Pháº¡m vi Ã¡p dá»¥ng
+        </li>
+        <li>
+          <span>4</span> XÃ¡c nháº­n
+        </li>
+      </ol>
+
       {submitError && (
         <div role='alert' style={alertStyle}>
           {submitError}

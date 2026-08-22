@@ -754,3 +754,43 @@ body:focus-visible,
     transition: none;
   }
 }
+
+.voucher-form-steps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 24px 0 30px;
+  padding: 0;
+  list-style: none;
+  color: var(--slate);
+  font-size: 12px;
+  font-weight: 700;
+}
+.voucher-form-steps li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--hairline);
+}
+.voucher-form-steps span {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--surface-muted);
+}
+.voucher-form-steps .is-active {
+  border-color: var(--accent);
+  color: var(--ink);
+}
+.voucher-form-steps .is-active span {
+  color: var(--paper);
+  background: var(--accent);
+}
+@media (max-width: 640px) {
+  .voucher-form-steps {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
