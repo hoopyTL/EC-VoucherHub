@@ -123,7 +123,7 @@ export const partnerService = {
 
   async deleteBranch(userId: string, branchId: number) {
     const { partner, branch } = await assertBranchOwnership(userId, branchId)
-    const [linkedVouchers, usageLogs, globalVouchers] = await Promise.all([
+    const [linkedVouchers, usageLogs, globalVouchers, staffAssignments] = await Promise.all([
       prisma.voucherProductBranch.count({ where: { branchId } }),
       prisma.usageLog.count({ where: { branchId } }),
       prisma.voucherProduct.count({
@@ -134,9 +134,10 @@ export const partnerService = {
           },
           voucherProductBranches: { none: {} }
         }
-      })
+      }),
+      prisma.partnerStaffBranch.count({ where: { branchId } })
     ])
-    if (linkedVouchers > 0 || usageLogs > 0 || globalVouchers > 0) {
+    if (linkedVouchers > 0 || usageLogs > 0 || globalVouchers > 0 || staffAssignments > 0) {
       throw AppError.conflict('Chi nhánh đang được sử dụng và không thể xóa')
     }
     await prisma.branch.delete({ where: { id: branch.id } })

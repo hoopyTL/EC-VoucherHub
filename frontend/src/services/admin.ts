@@ -231,7 +231,9 @@ export async function rejectVoucher(id: string, reason: string): Promise<Voucher
 }
 
 /** List vouchers across every lifecycle state for the admin management view. */
-export async function listAdminVouchers(params: { page?: number; limit?: number } = {}): Promise<ListVouchersDto> {
+export async function listAdminVouchers(
+  params: { page?: number; limit?: number; excludeStatus?: VoucherDto['status'] } = {}
+): Promise<ListVouchersDto> {
   const { data } = await api.get<ApiEnvelope<ListVouchersDto>>('/admin/vouchers', { params })
   return data.data
 }

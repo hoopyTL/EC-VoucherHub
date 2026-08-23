@@ -159,7 +159,7 @@ Test qua HTTP boundary (supertest) với test DB Prisma riêng; reset `deleteMan
 | NFR-04 Toàn vẹn dữ liệu | toàn bộ qua Prisma + CSDL quan hệ | smoke check |
 | NFR-05 Khả năng dùng | responsive desktop + mobile | manual qua 3 viewport (Playwright) |
 | NFR-07 Kiểm toán | thao tác quản trị → audit log | P20 xanh |
-| NFR-08 Vai trò | seed đủ 3 vai trò | dữ liệu mẫu (TASK-019) |
+| NFR-08 Vai trò | seed đủ 4 vai trò, STAFF bị giới hạn theo chi nhánh | dữ liệu mẫu + kiểm tra RBAC/ownership |
 
 ## 7. Lệnh chạy
 

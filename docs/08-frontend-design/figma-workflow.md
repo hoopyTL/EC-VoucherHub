@@ -15,7 +15,7 @@ npm run dev:design --workspace=frontend -- --host 127.0.0.1
 
 Mặc định Vite mở `http://127.0.0.1:5173`. Biến
 `VITE_DESIGN_PREVIEW=true` kích hoạt adapter mock nội bộ, không gửi request tới
-backend. Route `/partner/*` nhận role Partner, `/admin/*` nhận role Admin và các
+backend. Route quản trị `/partner/*` nhận role Partner; riêng `/partner/redeem` nhận cả Partner và Staff. Route `/admin/*` nhận role Admin và các
 route khách hàng nhận role Customer. Các route đăng nhập/đăng ký vẫn ở trạng
 thái guest để capture đúng màn hình.
 

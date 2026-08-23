@@ -167,6 +167,17 @@ export async function getStripeUrl(orderId: string): Promise<string> {
   return data.data.url
 }
 
+/** Get the PayPal Sandbox approval URL for an order. */
+export async function getPayPalUrl(orderId: string): Promise<string> {
+  const { data } = await api.get<{ data: { url: string } }>(`/orders/${orderId}/paypal`)
+  return data.data.url
+}
+
+/** Capture an approved PayPal order and issue voucher codes. */
+export async function capturePayPalPayment(orderId: string, paypalOrderId: string): Promise<void> {
+  await api.post(`/orders/${orderId}/paypal/capture`, { paypalOrderId })
+}
+
 /** Fetch the authenticated customer's payment attempts for one order. */
 export async function getOrderPayments(orderId: string): Promise<PaymentTransactionResponse[]> {
   const { data } = await api.get<{ data: PaymentTransactionResponse[] }>(`/orders/${orderId}/payments`)

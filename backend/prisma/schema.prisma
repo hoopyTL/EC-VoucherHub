@@ -82,6 +82,13 @@ enum PaymentStatus {
   @@map("payment_status")
 }
 
+enum StaffStatus {
+  ACTIVE   @map("active")
+  INACTIVE @map("inactive")
+
+  @@map("staff_status")
+}
+
 // MODELS — Tài khoản & vai trò
 
 model Role {
@@ -111,6 +118,7 @@ model User {
   // Relations
   role               Role                @relation(fields: [roleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   partner            Partner?
+  staffProfile       PartnerStaff?
   cart               Cart?
   orders             Order[]
   issuedVoucherCodes IssuedVoucherCode[]
@@ -140,6 +148,7 @@ model Partner {
   owner           User             @relation(fields: [ownerUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   branches        Branch[]
   voucherProducts VoucherProduct[]
+  staff           PartnerStaff[]
 
   @@map("partners")
 }
@@ -156,10 +165,41 @@ model Branch {
   partner                Partner                @relation(fields: [partnerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   voucherProductBranches VoucherProductBranch[]
   usageLogs              UsageLog[]
+  staffAssignments       PartnerStaffBranch[]
 
   @@index([partnerId])
   @@index([region])
   @@map("branches")
+}
+
+model PartnerStaff {
+  id        String      @id @default(uuid()) @db.Uuid
+  userId    String      @unique @map("user_id") @db.Uuid
+  partnerId String      @map("partner_id") @db.Uuid
+  status    StaffStatus @default(ACTIVE)
+  createdAt DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user        User                 @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  partner     Partner              @relation(fields: [partnerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  assignments PartnerStaffBranch[]
+
+  @@index([partnerId])
+  @@index([status])
+  @@map("partner_staff")
+}
+
+model PartnerStaffBranch {
+  staffId   String   @map("staff_id") @db.Uuid
+  branchId  Int      @map("branch_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  staff  PartnerStaff @relation(fields: [staffId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  branch Branch       @relation(fields: [branchId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@id([staffId, branchId])
+  @@index([branchId])
+  @@map("partner_staff_branches")
 }
 
 // MODELS — Danh mục & voucher
@@ -289,10 +329,10 @@ model Order {
   updatedAt     DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   // Relations
-  customer             User                  @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  orderItems           OrderItem[]
-  issuedVoucherCodes   IssuedVoucherCode[]
-  paymentTransactions  PaymentTransaction[]
+  customer            User                 @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  orderItems          OrderItem[]
+  issuedVoucherCodes  IssuedVoucherCode[]
+  paymentTransactions PaymentTransaction[]
 
   @@index([customerId])
   @@index([status])
@@ -322,24 +362,24 @@ model OrderItem {
 /// Lịch sử giao dịch thanh toán. Mỗi đơn hàng có thể có nhiều lần thử thanh toán.
 /// Lưu trữ thông tin từ cổng thanh toán (VNPay, Stripe) để đối soát và tra cứu.
 model PaymentTransaction {
-  id                String        @id @default(uuid()) @db.Uuid
-  orderId           String        @map("order_id") @db.Uuid
+  id             String        @id @default(uuid()) @db.Uuid
+  orderId        String        @map("order_id") @db.Uuid
   /// Cổng thanh toán: VNPAY, STRIPE, SIMULATE...
-  gateway           String        @db.VarChar(32)
+  gateway        String        @db.VarChar(32)
   /// Mã giao dịch phía cổng thanh toán (vnp_TransactionNo, Stripe checkout session id...)
-  gatewayTransId    String?       @map("gateway_trans_id") @db.VarChar(255)
+  gatewayTransId String?       @map("gateway_trans_id") @db.VarChar(255)
   /// Số tiền thực tế gửi lên cổng (đơn vị VND hoặc cents tuỳ gateway)
-  amount            Decimal       @db.Decimal(12, 2)
+  amount         Decimal       @db.Decimal(12, 2)
   /// Mã tiền tệ: VND, USD...
-  currency          String        @default("VND") @db.VarChar(8)
-  status            PaymentStatus @default(PENDING)
+  currency       String        @default("VND") @db.VarChar(8)
+  status         PaymentStatus @default(PENDING)
   /// Raw response / metadata từ cổng thanh toán (để đối soát)
-  rawResponse       Json?         @map("raw_response") @db.JsonB
+  rawResponse    Json?         @map("raw_response") @db.JsonB
   /// Lý do thất bại (nếu có)
-  failureReason     String?       @map("failure_reason") @db.Text
-  paidAt            DateTime?     @map("paid_at") @db.Timestamptz(6)
-  refundedAt        DateTime?     @map("refunded_at") @db.Timestamptz(6)
-  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  failureReason  String?       @map("failure_reason") @db.Text
+  paidAt         DateTime?     @map("paid_at") @db.Timestamptz(6)
+  refundedAt     DateTime?     @map("refunded_at") @db.Timestamptz(6)
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
 
   // Relations
   order Order @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: Cascade)

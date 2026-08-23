@@ -61,7 +61,8 @@ export const voucherIdSchema = z.object({ id: z.string().uuid('Voucher ID không
 export const voucherListSchema = z.object({
   page: positiveInt.default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
-  status: z.nativeEnum(VoucherStatus).optional()
+  status: z.nativeEnum(VoucherStatus).optional(),
+  excludeStatus: z.nativeEnum(VoucherStatus).optional()
 })
 export const publicVoucherSearchSchema = z.object({
   keyword: z.string().trim().max(255).optional(),

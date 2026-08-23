@@ -69,7 +69,7 @@ flowchart TB
 
 | Tầng | Trách nhiệm |
 | --- | --- |
-| **Presentation (SPA)** | Render UI 3 vai trò; không chứa logic nghiệp vụ nhạy cảm |
+| **Presentation (SPA)** | Render UI 4 vai trò Customer/Partner/Staff/Admin; không chứa logic nghiệp vụ nhạy cảm |
 | **API / Controller** | Định tuyến HTTP, validate đầu vào (Zod), ánh xạ request → service |
 | **Middleware** | Xác thực JWT, RBAC, kiểm tra phạm vi sở hữu, error handler tập trung, ghi audit |
 | **Service (Domain)** | Logic thuần: máy trạng thái, tồn kho, phát hành mã, xác thực — nơi tập trung correctness |

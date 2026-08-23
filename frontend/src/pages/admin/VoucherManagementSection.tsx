@@ -2,12 +2,13 @@ import { useState, type CSSProperties, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { VoucherDto } from '@voucher/shared'
 
-import { Badge, Button, LoadingSpinner, Modal, useToast, variantForStatus } from '../../components/ui'
+import { Badge, Button, LoadingSpinner, Modal, Pagination, useToast, variantForStatus } from '../../components/ui'
 import { changeAdminVoucherStatus, getAdminApiError, listAdminVouchers, rejectVoucher } from '../../services/admin'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
 import { formatCurrency, formatDateRange, formatStatus } from '../../utils/format'
 
 const ALL_VOUCHERS_KEY = ['admin-vouchers-all'] as const
+const PAGE_LIMIT = 10
 type StatusAction = 'publish' | 'suspend' | 'resume' | 'discontinue'
 
 const ACTIONS: Partial<Record<VoucherDto['status'], Array<{ action: StatusAction; label: string }>>> = {
@@ -29,7 +30,11 @@ export function VoucherManagementSection() {
   const [revoking, setRevoking] = useState<VoucherDto | null>(null)
   const [reason, setReason] = useState('')
   const [reasonError, setReasonError] = useState<string | null>(null)
-  const query = useQuery({ queryKey: ALL_VOUCHERS_KEY, queryFn: () => listAdminVouchers({ page: 1, limit: 100 }) })
+  const [page, setPage] = useState(1)
+  const query = useQuery({
+    queryKey: [...ALL_VOUCHERS_KEY, { page }],
+    queryFn: () => listAdminVouchers({ page, limit: PAGE_LIMIT, excludeStatus: 'PENDING_REVIEW' })
+  })
   const refresh = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ALL_VOUCHERS_KEY }),
@@ -74,7 +79,10 @@ export function VoucherManagementSection() {
     if (revoking) revokeMutation.mutate({ voucher: revoking, reason: trimmed })
   }
 
+  // Keep the review queue separate even if an older/mocked backend ignores
+  // excludeStatus. The canonical backend already excludes it before paging.
   const vouchers = query.data?.vouchers.filter((voucher) => voucher.status !== 'PENDING_REVIEW') ?? []
+  const totalPages = Math.max(1, Math.ceil((query.data?.pagination.total ?? 0) / PAGE_LIMIT))
 
   return (
     <section aria-labelledby='voucher-management-title' style={sectionStyle}>
@@ -175,6 +183,12 @@ export function VoucherManagementSection() {
           )
         })}
       </div>
+
+      {!query.isLoading && !query.isError && totalPages > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+        </div>
+      )}
 
       <Modal
         isOpen={confirming !== null}

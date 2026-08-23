@@ -12,7 +12,7 @@ export interface JwtPayload {
 
 const jwtPayloadSchema = z.object({
   sub: z.string().uuid(),
-  role: z.enum([RoleName.ADMIN, RoleName.PARTNER, RoleName.CUSTOMER]),
+  role: z.enum([RoleName.ADMIN, RoleName.PARTNER, RoleName.STAFF, RoleName.CUSTOMER]),
   partnerId: z.string().uuid().optional(),
   ver: z.number().int().nonnegative().default(0)
 })

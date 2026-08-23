@@ -78,7 +78,7 @@ describe('RBAC property', () => {
 
   it('always rejects every non-admin role from an admin guard', () => {
     fc.assert(
-      fc.property(fc.constantFrom(RoleName.CUSTOMER, RoleName.PARTNER), (role) => {
+      fc.property(fc.constantFrom(RoleName.CUSTOMER, RoleName.PARTNER, RoleName.STAFF), (role) => {
         const req = { user: { sub: crypto.randomUUID(), role } } as Request
         const nextMock = vi.fn()
 

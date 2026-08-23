@@ -1,0 +1,3 @@
+INSERT INTO "roles" ("name")
+VALUES ('STAFF')
+ON CONFLICT ("name") DO NOTHING;

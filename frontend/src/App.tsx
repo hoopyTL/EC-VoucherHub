@@ -43,6 +43,7 @@ import { BranchesPage as PartnerBranchesPage } from './pages/partner/BranchesPag
 import { RedeemCodePage } from './pages/partner/RedeemCodePage'
 import { ProfilePage as PartnerProfilePage } from './pages/partner/ProfilePage'
 import { PartnerReportsPage } from './pages/partner/PartnerReportsPage'
+import { StaffPage as PartnerStaffPage } from './pages/partner/StaffPage'
 import { DashboardPage as AdminDashboardPage } from './pages/admin/DashboardPage'
 import { UsersPage as AdminUsersPage } from './pages/admin/UsersPage'
 import { PartnerApprovalsPage as AdminPartnerApprovalsPage } from './pages/admin/PartnerApprovalsPage'
@@ -180,19 +181,76 @@ export function AppRoutes() {
       <Route
         path='partner'
         element={
-          <ProtectedRoute allowedRoles={['PARTNER']}>
+          <ProtectedRoute allowedRoles={['PARTNER', 'STAFF']}>
             <WorkspaceLayout variant='partner' />
           </ProtectedRoute>
         }
       >
-        <Route index element={<PartnerDashboardPage />} />
-        <Route path='profile' element={<PartnerProfilePage />} />
-        <Route path='branches' element={<PartnerBranchesPage />} />
-        <Route path='vouchers' element={<PartnerVouchersPage />} />
-        <Route path='vouchers/new' element={<PartnerCreateVoucherPage />} />
-        <Route path='vouchers/:id/edit' element={<PartnerCreateVoucherPage />} />
+        <Route
+          index
+          element={
+            <ProtectedRoute allowedRoles={['PARTNER']}>
+              <PartnerDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='profile'
+          element={
+            <ProtectedRoute allowedRoles={['PARTNER']}>
+              <PartnerProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='branches'
+          element={
+            <ProtectedRoute allowedRoles={['PARTNER']}>
+              <PartnerBranchesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='vouchers'
+          element={
+            <ProtectedRoute allowedRoles={['PARTNER']}>
+              <PartnerVouchersPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='vouchers/new'
+          element={
+            <ProtectedRoute allowedRoles={['PARTNER']}>
+              <PartnerCreateVoucherPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='vouchers/:id/edit'
+          element={
+            <ProtectedRoute allowedRoles={['PARTNER']}>
+              <PartnerCreateVoucherPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='staff'
+          element={
+            <ProtectedRoute allowedRoles={['PARTNER']}>
+              <PartnerStaffPage />
+            </ProtectedRoute>
+          }
+        />
         <Route path='redeem' element={<RedeemCodePage />} />
-        <Route path='reports' element={<PartnerReportsPage />} />
+        <Route
+          path='reports'
+          element={
+            <ProtectedRoute allowedRoles={['PARTNER']}>
+              <PartnerReportsPage />
+            </ProtectedRoute>
+          }
+        />
       </Route>
 
       {/* Admin console */}

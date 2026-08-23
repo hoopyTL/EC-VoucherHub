@@ -70,8 +70,8 @@ export function Header() {
   // from the persisted profile while `isAuthenticated` is still false — gating
   // on `isAuthenticated` prevents showing Cart/Orders/My Codes to a visitor who
   // is not (yet) logged in.
-  if (isAuthenticated && user?.role === 'PARTNER') {
-    roleLinks.push({ to: '/partner', label: t('nav.partnerWorkspace') })
+  if (isAuthenticated && (user?.role === 'PARTNER' || user?.role === 'STAFF')) {
+    roleLinks.push({ to: user.role === 'STAFF' ? '/partner/redeem' : '/partner', label: t('nav.partnerWorkspace') })
   } else if (isAuthenticated && user?.role === 'ADMIN') {
     roleLinks.push({ to: '/admin', label: t('nav.adminConsole') })
   }

@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import type { CSSProperties } from 'react'
+import { useAuth } from '../../hooks/useAuth'
 import {
   Building2,
   CheckCircle2,
@@ -8,6 +9,7 @@ import {
   MapPin,
   PackageCheck,
   TrendingUp,
+  UserCog,
   UserRound,
   Users,
   type LucideIcon
@@ -31,6 +33,7 @@ const PARTNER_ITEMS: SidebarItem[] = [
   { to: '/partner/profile', label: 'Hồ sơ doanh nghiệp', icon: UserRound },
   { to: '/partner/branches', label: 'Chi nhánh', icon: MapPin },
   { to: '/partner/vouchers', label: 'Kho voucher', icon: PackageCheck },
+  { to: '/partner/staff', label: 'Nhân viên', icon: UserCog },
   { to: '/partner/redeem', label: 'Xác nhận sử dụng', icon: CheckCircle2 },
   { to: '/partner/reports', label: 'Báo cáo', icon: TrendingUp }
 ]
@@ -38,7 +41,13 @@ export interface SidebarProps {
   variant: SidebarVariant
 }
 export function Sidebar({ variant }: SidebarProps) {
-  const items = variant === 'admin' ? ADMIN_ITEMS : PARTNER_ITEMS
+  const { user } = useAuth()
+  const items =
+    variant === 'admin'
+      ? ADMIN_ITEMS
+      : user?.role === 'STAFF'
+        ? PARTNER_ITEMS.filter((item) => item.to === '/partner/redeem')
+        : PARTNER_ITEMS
   const accent = 'var(--accent)'
   return (
     <aside

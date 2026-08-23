@@ -15,7 +15,14 @@
  * _Requirements: 7.1, 7.2, 7.3, 7.4_
  */
 import { api } from './api'
-import type { ListVouchersDto, PartnerDto, UpdatePartnerDto } from '@voucher/shared'
+import type {
+  CreatePartnerStaffDto,
+  ListVouchersDto,
+  PartnerDto,
+  PartnerStaffDto,
+  UpdatePartnerDto,
+  UpdatePartnerStaffDto
+} from '@voucher/shared'
 import type { Branch, BranchFormValues, PartnerVouchersResponse } from '../types/partner'
 
 interface ApiEnvelope<T> {
@@ -25,6 +32,21 @@ interface ApiEnvelope<T> {
 
 export interface PartnerProfile extends PartnerDto {
   owner: { email: string | null; phone: string | null; fullName: string }
+}
+
+export type PartnerStaff = PartnerStaffDto
+export type StaffInput = UpdatePartnerStaffDto
+export async function listStaff(): Promise<PartnerStaffDto[]> {
+  const { data } = await api.get<ApiEnvelope<PartnerStaffDto[]>>('/partner/staff')
+  return data.data
+}
+export async function createStaff(body: CreatePartnerStaffDto): Promise<PartnerStaffDto> {
+  const { data } = await api.post<ApiEnvelope<PartnerStaffDto>>('/partner/staff', body)
+  return data.data
+}
+export async function updateStaff(id: string, body: UpdatePartnerStaffDto): Promise<PartnerStaffDto> {
+  const { data } = await api.patch<ApiEnvelope<PartnerStaffDto>>(`/partner/staff/${id}`, body)
+  return data.data
 }
 
 export async function getPartnerProfile(): Promise<PartnerProfile> {

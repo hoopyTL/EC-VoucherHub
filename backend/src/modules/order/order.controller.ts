@@ -6,6 +6,8 @@ import * as orderService from './order.service'
 import prisma from '../../configs/prisma'
 import stripe from '../../utils/stripe'
 import { AppError as ApiError } from '../../utils/app-error'
+import { capturePayPalOrder, createPayPalOrder } from '../../utils/paypal'
+import { paymentService } from '../payment/payment.service'
 
 /**
  * POST /api/orders — Tạo đơn từ giỏ hàng
@@ -48,6 +50,78 @@ export const createStripePayment = asyncHandler(async (req: Request, res: Respon
   }
   const result = await orderService.createStripeCheckoutSession(req.user!.sub, String(req.params.id))
   successResponse(res, result)
+})
+
+export const createPayPalPayment = asyncHandler(async (req: Request, res: Response) => {
+  const orderId = String(req.params.id)
+  const order = await orderService.getOrderDetail(req.user!.sub, orderId)
+  if (order.status !== OrderStatus.PENDING_PAYMENT) {
+    throw ApiError.conflict('Đơn hàng không ở trạng thái chờ thanh toán.')
+  }
+
+  try {
+    const paypal = await createPayPalOrder({ orderId, amountVnd: Number(order.totalAmount) })
+    const transaction = await paymentService.create({
+      orderId,
+      gateway: 'PAYPAL',
+      amount: Number(order.totalAmount),
+      currency: 'VND'
+    })
+    await prisma.paymentTransaction.update({
+      where: { id: transaction.id },
+      data: {
+        gatewayTransId: paypal.paypalOrderId,
+        rawResponse: { paypalAmount: paypal.amountUsd, paypalCurrency: 'USD' }
+      }
+    })
+    successResponse(res, { url: paypal.approvalUrl })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Không thể kết nối PayPal Sandbox.'
+    throw ApiError.badRequest(message)
+  }
+})
+
+export const capturePayPalPayment = asyncHandler(async (req: Request, res: Response) => {
+  const orderId = String(req.params.id)
+  const paypalOrderId = typeof req.body?.paypalOrderId === 'string' ? req.body.paypalOrderId.trim() : ''
+  if (!paypalOrderId) throw ApiError.badRequest('Thiếu mã PayPal Order.')
+
+  const order = await orderService.getOrderDetail(req.user!.sub, orderId)
+  const transaction = await prisma.paymentTransaction.findFirst({
+    where: { orderId, gateway: 'PAYPAL', gatewayTransId: paypalOrderId, status: 'PENDING' },
+    orderBy: { createdAt: 'desc' }
+  })
+  if (!transaction) throw ApiError.badRequest('Không tìm thấy giao dịch PayPal đang chờ xử lý.')
+
+  try {
+    const capture = await capturePayPalOrder(paypalOrderId)
+    if (capture.status !== 'COMPLETED') {
+      await paymentService.updateStatus(transaction.id, {
+        status: 'FAILED',
+        gatewayTransId: capture.captureId ?? paypalOrderId,
+        rawResponse: capture.rawResponse as unknown as Record<string, unknown>,
+        failureReason: `PayPal status: ${capture.status}`
+      })
+      throw ApiError.badRequest('Giao dịch PayPal chưa hoàn tất.')
+    }
+
+    const result = await orderService.processPayment(
+      order.customerId,
+      orderId,
+      { outcome: 'SUCCESS' },
+      {
+        paymentId: transaction.id,
+        gateway: 'PAYPAL',
+        gatewayTransId: capture.captureId ?? paypalOrderId,
+        rawResponse: capture.rawResponse as unknown as Record<string, unknown>
+      }
+    )
+    successResponse(res, result)
+  } catch (error) {
+    if (error instanceof ApiError) throw error
+    const message = error instanceof Error ? error.message : 'Không thể xác nhận giao dịch PayPal.'
+    throw ApiError.badRequest(message)
+  }
 })
 import { createVNPayUrl, verifyVNPayReturn } from '../../utils/vnpay'
 

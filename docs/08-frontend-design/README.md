@@ -1,6 +1,6 @@
 # Thiết kế Frontend (Frontend Design)
 
-> SPA responsive — React + Vite, 3 vai trò (Khách_hàng, Đối_tác/Nhân_viên, Quản_trị_viên).
+> SPA responsive — React + Vite, 4 vai trò (Khách_hàng, Đối_tác, Nhân_viên_đối_tác, Quản_trị_viên).
 > Nguồn: `docs/02-srs/` (FR/FLOW), `docs/07-api-design/`. Selectors dùng `data-testid` để E2E (`docs/09-testing/`) bám theo.
 
 > Trạng thái migration: React là nguồn chuẩn. Figma phục vụ đề xuất, thảo luận
@@ -53,10 +53,13 @@
 | Đăng ký đối tác | `/partner/register` | FR-11 / FLOW-005 |
 | Dashboard đối tác | `/partner` | FR-16 / FLOW-008 |
 | Hồ sơ + chi nhánh | `/partner/profile` | FR-11 |
+| Quản lý nhân viên và phân công chi nhánh | `/partner/staff` | FR-11, FR-15 |
 | Danh sách voucher của tôi | `/partner/vouchers` | FR-12 / FLOW-006 |
 | Tạo / sửa voucher | `/partner/vouchers/new`, `/partner/vouchers/:id/edit` | FR-12, FR-13 / FLOW-006 |
 | Kiểm tra & xác nhận sử dụng | `/partner/redeem` | FR-14, FR-15 / FLOW-007 |
 | Báo cáo đối tác | `/partner/reports` | FR-16 / FLOW-008 |
+
+Chủ đối tác (`PARTNER`) truy cập toàn bộ workspace. Nhân viên (`STAFF`) đăng nhập chung nhưng chỉ được điều hướng tới `/partner/redeem`; danh sách chi nhánh trên màn hình này đã được backend giới hạn theo phân công.
 
 ### Quản trị viên
 | Màn hình | Route | FR/FLOW |

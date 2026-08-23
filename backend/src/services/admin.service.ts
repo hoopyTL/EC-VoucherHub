@@ -40,6 +40,12 @@ const orderInclude = {
       remainingUses: true,
       expiresAt: true
     }
+  },
+  paymentTransactions: {
+    where: { status: 'SUCCESS' as const },
+    orderBy: { paidAt: 'desc' as const },
+    take: 1,
+    select: { gateway: true }
   }
 } satisfies Prisma.OrderInclude
 
@@ -174,7 +180,7 @@ function mapOrder(order: Prisma.OrderGetPayload<{ include: typeof orderInclude }
     id: order.id,
     status: order.status,
     totalAmount: toNumber(order.totalAmount),
-    paymentMethod: order.paymentMethod,
+    paymentMethod: order.paymentTransactions[0]?.gateway ?? order.paymentMethod,
     paidAt: order.paidAt,
     createdAt: order.createdAt,
     updatedAt: order.updatedAt,
@@ -439,9 +445,17 @@ export async function getAdminDashboardStats() {
   const startMonth = new Date(now.getFullYear(), now.getMonth(), 1)
 
   const [revenueRows, statusRows, topRows, partners] = await Promise.all([
-    prisma.order.findMany({ where: { status: OrderStatus.PAID }, select: { totalAmount: true, paidAt: true, createdAt: true } }),
+    prisma.order.findMany({
+      where: { status: OrderStatus.PAID },
+      select: { totalAmount: true, paidAt: true, createdAt: true }
+    }),
     prisma.order.groupBy({ by: ['status'], _count: { _all: true } }),
-    prisma.orderItem.groupBy({ by: ['voucherProductId'], _sum: { quantity: true }, orderBy: { _sum: { quantity: 'desc' } }, take: 5 }),
+    prisma.orderItem.groupBy({
+      by: ['voucherProductId'],
+      _sum: { quantity: true },
+      orderBy: { _sum: { quantity: 'desc' } },
+      take: 5
+    }),
     prisma.partner.findMany({
       select: {
         id: true,
@@ -456,10 +470,11 @@ export async function getAdminDashboardStats() {
     })
   ])
 
-  const sumSince = (from?: Date) => revenueRows.reduce((sum, row) => {
-    const date = row.paidAt ?? row.createdAt
-    return !from || date >= from ? sum + Number(row.totalAmount) : sum
-  }, 0)
+  const sumSince = (from?: Date) =>
+    revenueRows.reduce((sum, row) => {
+      const date = row.paidAt ?? row.createdAt
+      return !from || date >= from ? sum + Number(row.totalAmount) : sum
+    }, 0)
   const ids = topRows.map((row) => row.voucherProductId)
   const products = await prisma.voucherProduct.findMany({
     where: { id: { in: ids } },
@@ -470,22 +485,37 @@ export async function getAdminDashboardStats() {
   for (const row of statusRows) ordersByStatus[row.status] = row._count._all
 
   return {
-    revenue: { today: sumSince(startToday), thisWeek: sumSince(startWeek), thisMonth: sumSince(startMonth), total: sumSince() },
+    revenue: {
+      today: sumSince(startToday),
+      thisWeek: sumSince(startWeek),
+      thisMonth: sumSince(startMonth),
+      total: sumSince()
+    },
     ordersByStatus,
     topVouchers: topRows.map((row) => {
       const product = productMap.get(row.voucherProductId)
-      return { voucherId: row.voucherProductId, title: product?.name ?? 'Voucher', soldQuantity: row._sum.quantity ?? 0, salePrice: Number(product?.salePrice ?? 0), partnerName: product?.partner.legalName ?? 'Đối tác' }
-    }),
-    partnerPerformance: partners.map((partner) => {
-      const paidItems = partner.voucherProducts.flatMap((voucher) => voucher.orderItems).filter((item) => item.order.status === OrderStatus.PAID)
       return {
-        partnerId: partner.id,
-        businessName: partner.legalName,
-        voucherCount: partner._count.voucherProducts,
-        orderCount: paidItems.length,
-        revenue: paidItems.reduce((sum, item) => sum + item.quantity * Number(item.unitPrice), 0)
+        voucherId: row.voucherProductId,
+        title: product?.name ?? 'Voucher',
+        soldQuantity: row._sum.quantity ?? 0,
+        salePrice: Number(product?.salePrice ?? 0),
+        partnerName: product?.partner.legalName ?? 'Đối tác'
       }
-    }).sort((a, b) => b.revenue - a.revenue)
+    }),
+    partnerPerformance: partners
+      .map((partner) => {
+        const paidItems = partner.voucherProducts
+          .flatMap((voucher) => voucher.orderItems)
+          .filter((item) => item.order.status === OrderStatus.PAID)
+        return {
+          partnerId: partner.id,
+          businessName: partner.legalName,
+          voucherCount: partner._count.voucherProducts,
+          orderCount: paidItems.length,
+          revenue: paidItems.reduce((sum, item) => sum + item.quantity * Number(item.unitPrice), 0)
+        }
+      })
+      .sort((a, b) => b.revenue - a.revenue)
   }
 }
 
@@ -495,7 +525,10 @@ export async function getAdminAnalytics(daysInput = 30) {
   start.setHours(0, 0, 0, 0)
   start.setDate(start.getDate() - days + 1)
   const [orders, signups, categoryRows, totals] = await Promise.all([
-    prisma.order.findMany({ where: { createdAt: { gte: start } }, select: { status: true, totalAmount: true, createdAt: true, paidAt: true } }),
+    prisma.order.findMany({
+      where: { createdAt: { gte: start } },
+      select: { status: true, totalAmount: true, createdAt: true, paidAt: true }
+    }),
     prisma.user.findMany({ where: { createdAt: { gte: start } }, select: { createdAt: true } }),
     prisma.orderItem.findMany({
       where: { order: { status: OrderStatus.PAID } },
@@ -513,7 +546,10 @@ export async function getAdminAnalytics(daysInput = 30) {
   for (const order of orders) {
     if (order.status !== OrderStatus.PAID) continue
     const point = revenue.get((order.paidAt ?? order.createdAt).toISOString().slice(0, 10))
-    if (point) { point.revenue += Number(order.totalAmount); point.orders += 1 }
+    if (point) {
+      point.revenue += Number(order.totalAmount)
+      point.orders += 1
+    }
   }
   for (const user of signups) {
     const point = signup.get(user.createdAt.toISOString().slice(0, 10))
@@ -535,7 +571,12 @@ export async function getAdminAnalytics(daysInput = 30) {
     revenueSeries: [...revenue.values()],
     signupSeries: [...signup.values()],
     categoryBreakdown: [...categories.values()].sort((a, b) => b.revenue - a.revenue),
-    funnel: { ordersCreated: created, ordersPaid: paid, ordersCancelled: count(OrderStatus.CANCELLED), paidConversionRate: created ? paid / created : 0 }
+    funnel: {
+      ordersCreated: created,
+      ordersPaid: paid,
+      ordersCancelled: count(OrderStatus.CANCELLED),
+      paidConversionRate: created ? paid / created : 0
+    }
   }
 }
 

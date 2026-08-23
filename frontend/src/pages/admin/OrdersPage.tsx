@@ -20,6 +20,17 @@ async function loadOrders(q: string): Promise<AdminOrder[]> {
   return response.data.data.items
 }
 
+function paymentMethodLabel(method: string): string {
+  return (
+    {
+      PAYPAL: 'PayPal',
+      VNPAY: 'VNPay',
+      STRIPE: 'Thẻ quốc tế · Stripe',
+      SIMULATED: 'Mô phỏng'
+    }[method.toUpperCase()] ?? method
+  )
+}
+
 export function OrdersPage() {
   const [input, setInput] = useState('')
   const [query, setQuery] = useState('')
@@ -89,7 +100,7 @@ export function OrdersPage() {
                     </small>
                   </td>
                   <td style={tdStyle}>{formatDate(order.createdAt)}</td>
-                  <td style={tdStyle}>{order.paymentMethod}</td>
+                  <td style={tdStyle}>{paymentMethodLabel(order.paymentMethod)}</td>
                   <td style={tdStyle}>
                     <strong>{formatCurrency(order.totalAmount)}</strong>
                   </td>

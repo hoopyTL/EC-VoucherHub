@@ -83,6 +83,7 @@ describe('roleHomePath', () => {
   it('maps each role to its workspace home', () => {
     expect(roleHomePath('ADMIN')).toBe('/admin')
     expect(roleHomePath('PARTNER')).toBe('/partner')
+    expect(roleHomePath('STAFF')).toBe('/partner/redeem')
     expect(roleHomePath('CUSTOMER')).toBe('/')
   })
 })

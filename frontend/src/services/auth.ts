@@ -55,7 +55,7 @@ export interface AuthProfile {
   fullName: string
   address: string | null
   status: string
-  role: { name: 'ADMIN' | 'PARTNER' | 'CUSTOMER' }
+  role: { name: 'ADMIN' | 'PARTNER' | 'STAFF' | 'CUSTOMER' }
   createdAt: string
   updatedAt: string
 }

@@ -12,6 +12,8 @@ async function resetDatabase() {
   await prisma.auditLog.deleteMany()
   await prisma.contentItem.deleteMany()
   await prisma.usageLog.deleteMany()
+  await prisma.partnerStaffBranch.deleteMany()
+  await prisma.partnerStaff.deleteMany()
   await prisma.issuedVoucherCode.deleteMany()
   await prisma.orderItem.deleteMany()
   await prisma.order.deleteMany()
@@ -45,6 +47,11 @@ async function main() {
     where: { name: SEED_ROLES.CUSTOMER },
     update: {},
     create: { name: SEED_ROLES.CUSTOMER }
+  })
+  const staffRole = await prisma.role.upsert({
+    where: { name: SEED_ROLES.STAFF },
+    update: {},
+    create: { name: SEED_ROLES.STAFF }
   })
 
   const foodCat = await prisma.category.create({ data: { name: SEED_CATEGORIES.FOOD } })
@@ -178,6 +185,25 @@ async function main() {
       name: 'Lotus Spa Thao Dien',
       address: '12 Quoc Huong, Thu Duc, TP HCM',
       region: 'TP HCM'
+    }
+  })
+
+  const highlandsStaffUser = await prisma.user.create({
+    data: {
+      email: 'staff@highlands.example',
+      phone: '0904000000',
+      passwordHash,
+      roleId: staffRole.id,
+      fullName: 'Highlands Staff Demo',
+      status: 'ACTIVE'
+    }
+  })
+  await prisma.partnerStaff.create({
+    data: {
+      userId: highlandsStaffUser.id,
+      partnerId: highlands.id,
+      status: 'ACTIVE',
+      assignments: { create: [{ branchId: hanoiBranch.id }, { branchId: hcmBranch.id }] }
     }
   })
 

@@ -15,7 +15,7 @@ cp frontend/.env.example frontend/.env
 # Tạo schema + chạy migration
 npm run db:migrate
 
-# Nạp dữ liệu mẫu (TASK-019 — phủ mọi trạng thái + 3 vai trò)
+# Nạp dữ liệu mẫu (TASK-019 — phủ mọi trạng thái + 4 vai trò)
 npm run db:seed
 
 # Khởi động backend + frontend

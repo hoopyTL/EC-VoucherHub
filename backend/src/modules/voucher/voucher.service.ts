@@ -467,7 +467,11 @@ export const voucherService = {
   },
 
   async listAdmin(input: VoucherListInput) {
-    const where = input.status ? { status: input.status } : undefined
+    const where = input.status
+      ? { status: input.status }
+      : input.excludeStatus
+        ? { status: { not: input.excludeStatus } }
+        : undefined
     return listVouchers(input, where, { updatedAt: 'desc' })
   },
 

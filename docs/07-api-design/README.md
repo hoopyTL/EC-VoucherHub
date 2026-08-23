@@ -33,7 +33,7 @@ Client luôn kiểm tra `success` trước khi đọc `data`. Không bao giờ t
 
 - Header: `Authorization: Bearer <JWT>`. Không bao giờ truyền token qua query string.
 - JWT payload: `{ sub: userId, role, partnerId? }`. Middleware kiểm tra vai trò; phạm vi sở hữu được kiểm tra tại service (FR-03).
-- Role sử dụng thống nhất trong API và database: `ADMIN`, `PARTNER`, `CUSTOMER`.
+- Role sử dụng thống nhất trong API và database: `ADMIN`, `PARTNER`, `STAFF`, `CUSTOMER`.
 - Endpoint công khai (không cần token): `POST /auth/register`, `POST /auth/login`, `POST /auth/password-reset`, `POST /partners`, `GET /vouchers`, `GET /vouchers/:id`.
 
 ### 1.4 Phân trang, lọc
@@ -109,6 +109,7 @@ Client luôn kiểm tra `success` trước khi đọc `data`. Không bao giờ t
 | Method | Path | Mô tả | Auth | FR |
 | --- | --- | --- | --- | --- |
 | GET | `/voucher-codes/:code` | Kiểm tra mã (validate) | Đối tác/NV | FR-14 |
+| GET | `/voucher-code-branches` | Danh sách chi nhánh được phép xác nhận | Đối tác/NV | FR-14 |
 | POST | `/voucher-codes/:code/redemption` | Xác nhận sử dụng | Đối tác/NV | FR-15 |
 
 ### 2.5 Reviews, Reports, Content, Dashboard, Audit
@@ -124,6 +125,9 @@ Client luôn kiểm tra `success` trước khi đọc `data`. Không bao giờ t
 | POST | `/partner/branches` | Thêm chi nhánh | Đối tác | FR-11 |
 | PATCH | `/partner/branches/:id` | Sửa chi nhánh | Đối tác | FR-11 |
 | DELETE | `/partner/branches/:id` | Xoá chi nhánh chưa được tham chiếu | Đối tác | FR-11 |
+| GET | `/partner/staff` | Danh sách nhân viên thuộc đối tác | Chủ đối tác | FR-11, FR-15 |
+| POST | `/partner/staff` | Tạo nhân viên và phân công chi nhánh | Chủ đối tác | FR-11, FR-15 |
+| PATCH | `/partner/staff/:id` | Sửa, phân công, khóa hoặc ngừng nhân viên | Chủ đối tác | FR-11, FR-15 |
 | GET | `/admin/partners` | Danh sách hồ sơ đối tác | Admin | FR-18 |
 | GET | `/admin/partners/pending` | Danh sách hồ sơ chờ duyệt | Admin | FR-18 |
 | PATCH | `/admin/partners/:id/approval` | Duyệt/từ chối đối tác | Admin | FR-18 |

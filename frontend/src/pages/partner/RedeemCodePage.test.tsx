@@ -44,7 +44,7 @@ const validCode = {
 
 function mockApiGet(branches: PartnerBranch[] = [makeBranch()]) {
   return vi.spyOn(api, 'get').mockImplementation((url) => {
-    if (url === '/partner/branches') return Promise.resolve({ data: branches }) as never
+    if (url === '/voucher-code-branches') return Promise.resolve({ data: branches }) as never
     return Promise.resolve({ data: validCode }) as never
   })
 }

@@ -325,7 +325,13 @@ export const getOrderDetail = async (customerId: string, orderId: string): Promi
 export const processPayment = async (
   customerId: string,
   orderId: string,
-  dto: PaymentOutcomeDto
+  dto: PaymentOutcomeDto,
+  paymentContext?: {
+    paymentId?: string
+    gateway?: string
+    gatewayTransId?: string
+    rawResponse?: Record<string, unknown>
+  }
 ): Promise<PaymentResponse> => {
   // 1. Tìm đơn hàng
   const order = await prisma.order.findUnique({
@@ -442,7 +448,8 @@ export const processPayment = async (
       where: { id: order.id },
       data: {
         status: 'PAID',
-        paidAt
+        paidAt,
+        paymentMethod: paymentContext?.gateway ?? order.paymentMethod
       }
     })
 
@@ -458,19 +465,23 @@ export const processPayment = async (
     })
 
     // 4e. Ghi log thanh toán thành công
-    const pt = await paymentService.create(
-      {
-        orderId: order.id,
-        gateway: order.paymentMethod,
-        amount: order.totalAmount,
-        currency: 'VND'
-      },
-      tx
-    )
+    const pt = paymentContext?.paymentId
+      ? { id: paymentContext.paymentId }
+      : await paymentService.create(
+          {
+            orderId: order.id,
+            gateway: paymentContext?.gateway ?? order.paymentMethod,
+            amount: order.totalAmount,
+            currency: 'VND'
+          },
+          tx
+        )
     await paymentService.updateStatus(
       pt.id,
       {
         status: 'SUCCESS',
+        gatewayTransId: paymentContext?.gatewayTransId,
+        rawResponse: paymentContext?.rawResponse,
         paidAt
       },
       tx

@@ -21,6 +21,7 @@ import {
   Clock3,
   CreditCard,
   Landmark,
+  Wallet,
   ReceiptText,
   ShieldCheck,
   WalletCards,
@@ -255,6 +256,23 @@ export function OrderDetailPage() {
             </Button>
 
             <Button
+              variant='primary'
+              leftIcon={<Wallet size={19} aria-hidden='true' />}
+              style={{ backgroundColor: '#0070ba', borderColor: '#0070ba' }}
+              onClick={async () => {
+                try {
+                  const { getPayPalUrl } = await import('../../services/orders')
+                  const url = await getPayPalUrl(order.id)
+                  window.location.href = url
+                } catch (error: any) {
+                  toast.error(error?.response?.data?.error?.message || 'Không thể mở PayPal Sandbox. Vui lòng thử lại.')
+                }
+              }}
+            >
+              Thanh toán qua PayPal
+            </Button>
+
+            <Button
               variant='secondary'
               leftIcon={<XCircle size={18} aria-hidden='true' />}
               style={{ color: colors.danger, borderColor: colors.danger }}
@@ -390,6 +408,7 @@ function gatewayLabel(gateway: string): string {
   const labels: Record<string, string> = {
     VNPAY: 'VNPay',
     STRIPE: 'Thẻ quốc tế · Stripe',
+    PAYPAL: 'PayPal',
     SIMULATE: 'Thanh toán mô phỏng'
   }
   return labels[gateway.toUpperCase()] || gateway

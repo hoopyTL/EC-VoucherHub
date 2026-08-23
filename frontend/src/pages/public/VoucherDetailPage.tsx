@@ -29,6 +29,13 @@ import { colors, fonts, radius, shadows } from '../../theme/tokens'
 /** Per-voucher cart quantity ceiling (mirrors the backend limit). */
 const MAX_QUANTITY = 10
 
+/** Resolve the same cell from the demo catalogue sprite that VoucherCard uses. */
+function spritePosition(imageUrl: string): string {
+  const cell = Number(new URL(imageUrl, window.location.origin).searchParams.get('cell'))
+  if (!Number.isFinite(cell) || cell < 0) return '0% 0%'
+  return `${((cell % 10) * 100) / 9}% ${(Math.floor(cell / 10) * 100) / 6}%`
+}
+
 /** Returns true when the error represents a 404 (voucher not found/published). */
 function isNotFound(error: unknown): boolean {
   const status = (error as { response?: { status?: number } })?.response?.status
@@ -319,17 +326,32 @@ export function VoucherDetailPage() {
             background: colors.surfaceMuted
           }}
         >
-          <img
-            src={voucher.imageUrl}
-            alt={voucher.title}
-            style={{
-              display: 'block',
-              width: '100%',
-              height: '100%',
-              minHeight: 440,
-              objectFit: 'cover'
-            }}
-          />
+          {voucher.imageUrl.startsWith('/assets/voucher-catalogue-sprite.png') ? (
+            <div
+              role='img'
+              aria-label={voucher.title}
+              style={{
+                width: '100%',
+                minHeight: 440,
+                backgroundImage: "url('/assets/voucher-catalogue-sprite.png')",
+                backgroundSize: '1000% auto',
+                backgroundPosition: spritePosition(voucher.imageUrl),
+                backgroundRepeat: 'no-repeat'
+              }}
+            />
+          ) : (
+            <img
+              src={voucher.imageUrl}
+              alt={voucher.title}
+              style={{
+                display: 'block',
+                width: '100%',
+                height: '100%',
+                minHeight: 440,
+                objectFit: 'cover'
+              }}
+            />
+          )}
         </div>
       )}
 

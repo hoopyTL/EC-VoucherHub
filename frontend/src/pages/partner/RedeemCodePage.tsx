@@ -69,7 +69,7 @@ interface ApiEnvelope<T> {
 }
 
 async function fetchBranches(): Promise<PartnerBranch[]> {
-  const { data } = await api.get<ApiEnvelope<PartnerBranch[]> | PartnerBranch[]>('/partner/branches')
+  const { data } = await api.get<ApiEnvelope<PartnerBranch[]> | PartnerBranch[]>('/voucher-code-branches')
   return 'data' in data ? data.data : data
 }
 

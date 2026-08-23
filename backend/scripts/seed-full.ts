@@ -96,7 +96,7 @@ async function verifyRelations(): Promise<void> {
 async function verifyMinimumCounts(): Promise<void> {
   console.log('\n[Bước 10/10] Đếm và xác nhận ngưỡng dữ liệu')
   const rows = [
-    { table: 'roles', count: await prisma.role.count(), minimum: 3 },
+    { table: 'roles', count: await prisma.role.count(), minimum: 4 },
     { table: 'users', count: await prisma.user.count(), minimum: 0 },
     { table: 'partners', count: await prisma.partner.count(), minimum: 20 },
     { table: 'branches', count: await prisma.branch.count(), minimum: 0 },

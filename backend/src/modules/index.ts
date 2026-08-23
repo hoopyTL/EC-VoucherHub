@@ -6,12 +6,14 @@ import { userRoutes } from './user/user.routes'
 import { voucherRoutes } from './voucher/voucher.routes'
 import { redemptionRoutes } from './redemption/redemption.routes'
 import { partnerReportRoutes } from './report/partner-report.routes'
+import { staffRoutes } from './staff/staff.routes'
 
 const apiRouter = Router()
 
 apiRouter.use(authRoutes)
 apiRouter.use(categoryRoutes)
 apiRouter.use(partnerRoutes)
+apiRouter.use(staffRoutes)
 apiRouter.use(voucherRoutes)
 apiRouter.use(redemptionRoutes)
 apiRouter.use(partnerReportRoutes)

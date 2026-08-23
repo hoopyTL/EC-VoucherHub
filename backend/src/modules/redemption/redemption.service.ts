@@ -12,10 +12,15 @@ const codeInclude = {
   }
 } as const
 
-async function getPartner(userId: string) {
-  const partner = await prisma.partner.findUnique({ where: { ownerUserId: userId }, select: { id: true } })
-  if (!partner) throw AppError.forbidden('Tài khoản không thuộc đối tác')
-  return partner
+async function getActorScope(client: typeof prisma, userId: string) {
+  const partner = await client.partner.findUnique({ where: { ownerUserId: userId }, select: { id: true } })
+  if (partner) return { partnerId: partner.id, assignedBranchIds: null as number[] | null }
+  const staff = await client.partnerStaff.findUnique({
+    where: { userId },
+    select: { partnerId: true, status: true, assignments: { select: { branchId: true } } }
+  })
+  if (!staff || staff.status !== 'ACTIVE') throw AppError.forbidden('Tài khoản không thuộc đối tác đang hoạt động')
+  return { partnerId: staff.partnerId, assignedBranchIds: staff.assignments.map((item) => item.branchId) }
 }
 
 function codeState(code: { status: VoucherCodeStatus; expiresAt: Date }) {
@@ -29,14 +34,15 @@ function codeState(code: { status: VoucherCodeStatus; expiresAt: Date }) {
 }
 
 async function findScopedCode(userId: string, rawCode: string) {
-  const partner = await getPartner(userId)
+  const scope = await getActorScope(prisma, userId)
   const code = await prisma.issuedVoucherCode.findUnique({
     where: { code: rawCode.trim() },
     include: codeInclude
   })
   if (!code) throw AppError.notFound('Mã voucher không hợp lệ')
-  if (code.voucherProduct.partnerId !== partner.id) throw AppError.forbidden('Mã voucher nằm ngoài phạm vi đối tác')
-  return { partner, code }
+  if (code.voucherProduct.partnerId !== scope.partnerId)
+    throw AppError.forbidden('Mã voucher nằm ngoài phạm vi đối tác')
+  return { scope, code }
 }
 
 function toValidationResult(code: Awaited<ReturnType<typeof findScopedCode>>['code']) {
@@ -61,19 +67,33 @@ export async function validateVoucherCode(userId: string, rawCode: string) {
   return toValidationResult(code)
 }
 
+export async function listRedemptionBranches(userId: string) {
+  const scope = await getActorScope(prisma, userId)
+  return prisma.branch.findMany({
+    where: {
+      partnerId: scope.partnerId,
+      ...(scope.assignedBranchIds ? { id: { in: scope.assignedBranchIds } } : {})
+    },
+    orderBy: { id: 'asc' }
+  })
+}
+
 export async function redeemVoucherCode(userId: string, rawCode: string, branchId: number) {
   return prisma.$transaction(async (tx) => {
-    const partner = await tx.partner.findUnique({ where: { ownerUserId: userId }, select: { id: true } })
-    if (!partner) throw AppError.forbidden('Tài khoản không thuộc đối tác')
+    const scope = await getActorScope(tx as typeof prisma, userId)
     const branch = await tx.branch.findUnique({ where: { id: branchId }, select: { id: true, partnerId: true } })
-    if (!branch || branch.partnerId !== partner.id) throw AppError.forbidden('Chi nhánh nằm ngoài phạm vi đối tác')
+    if (!branch || branch.partnerId !== scope.partnerId) throw AppError.forbidden('Chi nhánh nằm ngoài phạm vi đối tác')
+    if (scope.assignedBranchIds && !scope.assignedBranchIds.includes(branchId)) {
+      throw AppError.forbidden('Nhân viên chưa được phân công tại chi nhánh này')
+    }
 
     const code = await tx.issuedVoucherCode.findUnique({
       where: { code: rawCode.trim() },
       include: codeInclude
     })
     if (!code) throw AppError.notFound('Mã voucher không hợp lệ')
-    if (code.voucherProduct.partnerId !== partner.id) throw AppError.forbidden('Mã voucher nằm ngoài phạm vi đối tác')
+    if (code.voucherProduct.partnerId !== scope.partnerId)
+      throw AppError.forbidden('Mã voucher nằm ngoài phạm vi đối tác')
     const applicableBranches = code.voucherProduct.voucherProductBranches.map(({ branchId: id }) => id)
     if (applicableBranches.length > 0 && !applicableBranches.includes(branch.id)) {
       throw AppError.forbidden('Voucher không áp dụng tại chi nhánh này')
