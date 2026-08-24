@@ -53,6 +53,7 @@ import { PartnerApprovalsPage as AdminPartnerApprovalsPage } from './pages/admin
 import { VoucherApprovalsPage as AdminVoucherApprovalsPage } from './pages/admin/VoucherApprovalsPage'
 import { OrdersPage as AdminOrdersPage } from './pages/admin/OrdersPage'
 import { ContentManagementPage as AdminContentManagementPage } from './pages/admin/ContentManagementPage'
+import { AuditLogsPage as AdminAuditLogsPage } from './pages/admin/AuditLogsPage'
 import { ToastProvider } from './components/ui'
 
 /* -------------------------------------------------------------------------- */
@@ -275,6 +276,7 @@ export function AppRoutes() {
         <Route path='vouchers' element={<AdminVoucherApprovalsPage />} />
         <Route path='orders' element={<AdminOrdersPage />} />
         <Route path='content' element={<AdminContentManagementPage />} />
+        <Route path='audit-logs' element={<AdminAuditLogsPage />} />
       </Route>
 
       {/* Fallbacks */}

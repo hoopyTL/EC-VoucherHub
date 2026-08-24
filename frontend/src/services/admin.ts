@@ -370,7 +370,7 @@ export interface AdminAuditLogItem {
   action: string
   entityType: string
   entityId: string | null
-  details: Record<string, unknown> | null
+  metadata: Record<string, unknown> | null
   createdAt: string
   actor?: {
     email: string | null

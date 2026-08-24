@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   MapPin,
   PackageCheck,
+  ScrollText,
   TrendingUp,
   UserCog,
   UserRound,
@@ -28,7 +29,8 @@ const ADMIN_ITEMS: SidebarItem[] = [
   { to: '/admin/partners', label: 'Duyệt đối tác', icon: Building2 },
   { to: '/admin/vouchers', label: 'Duyệt voucher', icon: PackageCheck },
   { to: '/admin/orders', label: 'Đơn hàng', icon: ClipboardList },
-  { to: '/admin/content', label: 'Quản lý nội dung', icon: FileText }
+  { to: '/admin/content', label: 'Quản lý nội dung', icon: FileText },
+  { to: '/admin/audit-logs', label: 'Nhật ký hệ thống', icon: ScrollText }
 ]
 const PARTNER_ITEMS: SidebarItem[] = [
   { to: '/partner', label: 'Tổng quan', icon: LayoutDashboard },
