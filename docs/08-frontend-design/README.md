@@ -101,7 +101,7 @@ flowchart TD
 
 > Mỗi phần tử tương tác có `data-testid` để E2E selector ổn định (ưu tiên 1 theo `testing.md`).
 
-### Chi tiết voucher `/vouchers/:id` (FR-05)
+### Chi tiết voucher `/vouchers/:id` (FR-05, FR-10)
 | Component | data-testid | Ghi chú |
 | --- | --- | --- |
 | Tên + ảnh | `voucher-title`, `voucher-image` | |
@@ -109,6 +109,10 @@ flowchart TD
 | Điều kiện + thời hạn + chi nhánh | `voucher-terms`, `voucher-usage-period`, `voucher-branches` | |
 | Số lượng còn lại | `voucher-remaining` | =0 → badge "Hết hàng" |
 | Nút thêm giỏ | `add-to-cart-btn` | disabled khi `remaining=0` (AC2) |
+| Khối đánh giá & phản hồi | `voucher-review-section` | summary điểm TB + phân bố sao + danh sách nhận xét (FR-10) |
+| Form viết đánh giá | `review-form` | StarRating tương tác (1–5) + textarea nhận xét |
+| Nút mở form / sửa | `write-review-btn`, `edit-review-:id` | chỉ hiện cho khách đã mua |
+| Nút xóa đánh giá | `delete-review-:id` | chính chủ hoặc Admin |
 
 ### Giỏ hàng `/cart` (FR-06)
 | Component | data-testid | Ghi chú |
@@ -127,6 +131,11 @@ flowchart TD
 | Nút thanh toán | `pay-btn` | → loading trong khi TX |
 | Kết quả + danh sách mã | `payment-result`, `voucher-code-:id` | mã chỉ hiện khi `da_thanh_toan` (AC8) |
 | Thông báo lỗi tồn kho | `oversell-error` | khi AC5/AC7 |
+
+### Đơn hàng của tôi `/orders/:id` (FR-09, FR-10)
+| Component | data-testid | Ghi chú |
+| --- | --- | --- |
+| Nút đánh giá nhanh | `review-link-:id` | chuyển đến `#reviews` của voucher khi đơn `PAID` |
 
 ### Xác nhận sử dụng `/partner/redeem` (FR-14, FR-15)
 | Component | data-testid | Ghi chú |
@@ -167,6 +176,6 @@ Mỗi màn hình gọi API phải xử lý đủ:
 | Nhóm | Màn hình | FR | FLOW |
 | --- | --- | --- | --- |
 | Auth | register, login, profile | FR-01..03 | FLOW-001 |
-| Khách | home, search, detail, cart, checkout, orders | FR-04..09 | FLOW-002..003 |
+| Khách | home, search, detail, cart, checkout, orders, reviews | FR-04..10 | FLOW-002..004 |
 | Đối tác | register, vouchers, editor, redeem, reports | FR-11..16 | FLOW-005..008 |
 | Admin | dashboard, users, partners, vouchers, orders | FR-17..20, FR-22 | FLOW-005, FLOW-006, FLOW-009..011 |

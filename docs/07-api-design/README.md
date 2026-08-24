@@ -112,11 +112,21 @@ Client luôn kiểm tra `success` trước khi đọc `data`. Không bao giờ t
 | GET | `/voucher-code-branches` | Danh sách chi nhánh được phép xác nhận | Đối tác/NV | FR-14 |
 | POST | `/voucher-codes/:code/redemption` | Xác nhận sử dụng | Đối tác/NV | FR-15 |
 
-### 2.5 Reviews, Reports, Content, Dashboard, Audit
+### 2.5 Reviews & Ratings (Đánh giá & Phản hồi — FR-10 / FLOW-004)
 
 | Method | Path | Mô tả | Auth | FR |
 | --- | --- | --- | --- | --- |
-| POST | `/vouchers/:id/reviews` | Gửi đánh giá/phản hồi | Khách hàng | FR-10 |
+| GET | `/vouchers/:id/reviews` | Danh sách đánh giá + thống kê điểm TB + phân bố sao | công khai | FR-10 |
+| POST | `/reviews` | Tạo đánh giá mới (yêu cầu đã mua đơn PAID) | Khách hàng | FR-10 |
+| GET | `/reviews/me` | Danh sách đánh giá của chính mình | Khách hàng | FR-10 |
+| GET | `/reviews/eligible` | Danh sách voucher đã mua đủ điều kiện đánh giá | Khách hàng | FR-10 |
+| PATCH | `/reviews/:id` | Chỉnh sửa số sao & nhận xét | Khách hàng (chính chủ) | FR-10 |
+| DELETE | `/reviews/:id` | Xóa đánh giá | Khách hàng / Admin | FR-10 |
+
+### 2.6 Partner Management, Content, Dashboard, Audit
+
+| Method | Path | Mô tả | Auth | FR |
+| --- | --- | --- | --- | --- |
 | GET | `/partner/reports` | Báo cáo đối tác | Đối tác | FR-16 |
 | GET | `/partner` | Hồ sơ đối tác | Đối tác | FR-11 |
 | POST | `/partners` | Đăng ký tài khoản + hồ sơ + chi nhánh ban đầu | công khai | FR-11 |
@@ -131,11 +141,11 @@ Client luôn kiểm tra `success` trước khi đọc `data`. Không bao giờ t
 | GET | `/admin/partners` | Danh sách hồ sơ đối tác | Admin | FR-18 |
 | GET | `/admin/partners/pending` | Danh sách hồ sơ chờ duyệt | Admin | FR-18 |
 | PATCH | `/admin/partners/:id/approval` | Duyệt/từ chối đối tác | Admin | FR-18 |
-| PATCH | `/admin/partners/:id/lock` | Khoá/mở khoá đối tác | Admin | FR-18 |
+| PATCH | `/admin/partners/:id/operating-status` | Khoá/mở khoá đối tác | Admin | FR-18 |
 | PATCH | `/admin/partners/:partnerId/branches/:id` | Sửa chi nhánh trong phạm vi đối tác | Admin | FR-18 |
-| GET/POST/PATCH/DELETE | `/admin/content/:type` | CRUD nội dung | Admin | FR-21 |
+| GET/POST/PATCH/DELETE | `/admin/content` | CRUD nội dung vận hành | Admin | FR-21 |
 | GET | `/admin/dashboard` | Dashboard tổng quan | Admin | FR-22 |
-| GET | `/admin/audit-logs` | Tra cứu nhật ký | Admin | FR-23 |
+| GET | `/admin/audit-logs` | Tra cứu nhật ký kiểm toán | Admin | FR-23 |
 
 ## 3. Chi tiết các endpoint lõi
 

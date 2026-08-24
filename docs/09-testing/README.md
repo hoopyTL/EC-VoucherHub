@@ -32,7 +32,7 @@ Mỗi FR phủ tối thiểu 3 trường hợp: **happy** (đường thành côn
 | FR-07 Tạo đơn | đơn `cho_thanh_toan` | giỏ rỗng → từ chối | mục vượt tồn kho → từ chối | TASK-009 | `order/create.test.ts` |
 | FR-08 Thanh toán & phát hành | TX: trừ kho + phát mã | thanh toán fail → giữ `cho_thanh_toan` | đụng độ mã → retry | TASK-010 | `payment/issue.test.ts` |
 | FR-09 Nhận mã & lịch sử | xem mã đơn đã trả | — | đơn khách khác → từ chối | TASK-012 | `order/codes.test.ts` |
-| ~~FR-10 Đánh giá~~ | ~~đã mua → gửi sao~~ | ~~chưa mua → từ chối~~ | ~~điểm ngoài [1,5] → reject~~ | ~~TASK-014 [OUT]~~ | ~~review/review.test.ts~~ |
+| FR-10 Đánh giá & Phản hồi | đã mua → gửi sao (1–5) + sửa | chưa mua → từ chối 403 | điểm ngoài [1,5] / trùng lặp → reject | TASK-014 | `modules/review/review.service.test.ts`, `components/voucher/ReviewSection.test.tsx` |
 | FR-11 Hồ sơ Đối tác | đăng ký → `PENDING` | thiếu pháp lý/trùng định danh → từ chối | CRUD + ownership chi nhánh | TASK-006 | `modules/partner/partner.test.ts` |
 | FR-12 Tạo/quản lý voucher | tạo → `nhap` | giá bán ≥ gốc → từ chối | branch ngoài ownership → rollback | TASK-007 | `modules/voucher/voucher.test.ts` |
 | FR-13 Gửi duyệt voucher | `nhap` → `cho_duyet` | transition sai → 422 | re-submit: `tu_choi` → `nhap` → `cho_duyet` | TASK-007 | `modules/voucher/voucher.test.ts` |
@@ -43,9 +43,9 @@ Mỗi FR phủ tối thiểu 3 trường hợp: **happy** (đường thành côn
 | FR-18 Quản lý Đối tác | duyệt → `APPROVED` | non-admin → 403, review lặp → 409 | khóa chặn token cũ | TASK-006 | `modules/partner/partner.test.ts` |
 | FR-19 Duyệt voucher | duyệt/công bố | công bố khi chưa `da_duyet` → từ chối | tạm ngưng/mở lại/ngừng bán | TASK-007 | `modules/voucher/voucher.test.ts` |
 | FR-20 Quản lý đơn | tra cứu/hủy/hoàn tiền | hủy đơn đã trả → từ chối | hoàn tiền → mã `bi_huy` + hoàn kho | TASK-015 | `admin/orders.test.ts` |
-| ~~FR-21 Quản lý nội dung~~ | ~~CRUD nội dung~~ | ~~non-admin → 403~~ | ~~xóa mục không tồn tại~~ | ~~TASK-017 [OUT]~~ | ~~admin/content.test.ts~~ |
+| FR-21 Quản lý nội dung | CRUD banner, bài viết, popup | non-admin → 403 | xóa mục không tồn tại | TASK-017 | `pages/admin/ContentManagementPage.test.tsx` |
 | FR-22 Dashboard | tổng hợp toàn hệ thống | non-admin → 403 | hệ thống rỗng → số 0 | TASK-016 | `admin/dashboard.test.ts` |
-| ~~FR-23 Nhật ký hệ thống~~ | ~~ghi + tra cứu log~~ | ~~non-admin → 403~~ | ~~tra cứu rỗng~~ | ~~TASK-018 [OUT]~~ | ~~admin/audit.test.ts~~ |
+| FR-23 Nhật ký hệ thống | ghi + tra cứu log + bộ lọc | non-admin → 403 | tra cứu rỗng | TASK-018 | `pages/admin/AuditLogsPage.test.tsx` |
 
 ## 3. Property-based tests (22 bất biến)
 
@@ -69,10 +69,10 @@ Mỗi property = **một** test fast-check ≥100 vòng. Cột Property ↔ TASK
 | P14 | Bất biến máy trạng thái voucher sản phẩm | 3.1, 3.3, 11.2, 11.5, 12.1, 18.* | TASK-007 |
 | P15 | Bất biến máy trạng thái đơn hàng | 6.1, 7.1, 19.2, 19.3 | TASK-015 |
 | P16 | Bộ lọc trả kết quả thỏa mọi tiêu chí | 3.1, 3.2, 3.3 | TASK-008 |
-| ~~P17~~ | ~~Điều kiện đánh giá theo mua/dùng~~ | ~~9.1, 9.2~~ | ~~TASK-014 [OUT]~~ |
+| P17 | Điều kiện đánh giá theo mua/dùng | 9.1, 9.2 | TASK-014 |
 | P18 | Mật khẩu luôn lưu băm | 1.4, 2.6 | TASK-004 |
 | P19 | Duy nhất định danh tài khoản | 1.2 | TASK-004 |
-| ~~P20~~ | ~~Ghi audit cho thao tác quản trị quan trọng~~ | ~~22.1~~ | ~~TASK-018 [OUT]~~ |
+| P20 | Ghi audit cho thao tác quản trị quan trọng | 22.1 | TASK-018 |
 | P21 | Tính nguyên tử khi xử lý lỗi (rollback) | 24.3 | TASK-010 |
 | P22 | Round-trip khóa/mở khóa + chặn đăng nhập | 2.3, 16.2, 16.3 | TASK-004 |
 
@@ -85,15 +85,15 @@ Mỗi FLOW trong `docs/02-srs` → một test Playwright tag `@FLOW-XXX`, chạy
 | FLOW-001 | Đăng ký & đăng nhập KH | `e2e/auth.spec.ts` | `@FLOW-001` |
 | FLOW-002 | Tìm kiếm → chi tiết | `e2e/browse.spec.ts` | `@FLOW-002` |
 | FLOW-003 | Giỏ → đơn → thanh toán → nhận mã | `e2e/purchase.spec.ts` | `@FLOW-003` |
-| ~~FLOW-004~~ | ~~Đánh giá voucher~~ | ~~e2e/review.spec.ts~~ | ~~@FLOW-004 [OUT]~~ |
+| FLOW-004 | Đánh giá voucher | `e2e/review.spec.ts` | `@FLOW-004` |
 | FLOW-005 | Đăng ký Đối tác → duyệt → CRUD chi nhánh | `e2e/task006-partner-onboarding.spec.ts` | `@FLOW-005` |
 | FLOW-006 | Tạo → gửi duyệt → duyệt → công bố | `e2e/voucher-lifecycle.spec.ts` | `@FLOW-006` |
 | FLOW-007 | Kiểm tra → xác nhận sử dụng | `e2e/redeem.spec.ts` | `@FLOW-007` |
 | FLOW-008 | Báo cáo Đối tác | `e2e/partner-report.spec.ts` | `@FLOW-008` |
 | FLOW-009 | Quản lý & phân quyền người dùng | `e2e/admin-users.spec.ts` | `@FLOW-009` |
 | FLOW-010 | Hủy / hoàn tiền đơn | `e2e/admin-orders.spec.ts` | `@FLOW-010` |
-| ~~FLOW-011~~ | ~~Quản lý nội dung & dashboard~~ | ~~e2e/admin-content.spec.ts~~ | ~~@FLOW-011 [OUT]~~ |
-| ~~FLOW-012~~ | ~~Ghi & tra cứu nhật ký~~ | ~~e2e/admin-audit.spec.ts~~ | ~~@FLOW-012 [OUT]~~ |
+| FLOW-011 | Quản lý nội dung & dashboard | `e2e/admin-content.spec.ts` | `@FLOW-011` |
+| FLOW-012 | Ghi & tra cứu nhật ký | `e2e/admin-audit.spec.ts` | `@FLOW-012` |
 
 Chạy một flow: `npm run test:e2e -- --grep @FLOW-003`.
 
