@@ -49,6 +49,36 @@ export function PaymentResultPage() {
         return
       }
 
+      const onepayResponseCode = searchParams.get('vpc_TxnResponseCode')
+      const onepayMerchTxnRef = searchParams.get('vpc_MerchTxnRef')
+
+      if (onepayResponseCode !== null && onepayMerchTxnRef) {
+        try {
+          await fetch('/api/orders/onepay-ipn' + window.location.search)
+        } catch (error) {
+          console.error('Không thể đồng bộ OnePay IPN:', error)
+        }
+
+        if (onepayResponseCode === '0') {
+          try {
+            const { api } = await import('../../services/api')
+            const { data } = await api.get('/orders?limit=1')
+            const latestOrder = data?.data?.items?.[0]
+            if (latestOrder?.id) {
+              navigate(`/orders/${latestOrder.id}`, { replace: true })
+              return
+            }
+          } catch (err) {
+            console.error('Không thể lấy thông tin đơn hàng mới nhất:', err)
+          }
+          navigate('/orders', { replace: true })
+        } else {
+          alert(`Thanh toán OnePay không thành công hoặc đã bị hủy (Mã phản hồi: ${onepayResponseCode})`)
+          navigate('/orders', { replace: true })
+        }
+        return
+      }
+
       // ----------------------------------------------------------------------
       // BƯỚC 1: ĐỒNG BỘ IPN CỤC BỘ (Fallback cho Localhost)
       // Do VNPay ngoài Internet không thể chọc API vào localhost, Frontend sẽ

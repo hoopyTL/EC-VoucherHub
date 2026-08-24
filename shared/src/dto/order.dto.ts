@@ -23,7 +23,8 @@ export type CreateOrderDto = z.infer<typeof createOrderSchema>
 export const paymentOutcomeSchema = z.object({
   outcome: z.enum(['SUCCESS', 'FAILURE'], {
     error: 'outcome phải là SUCCESS hoặc FAILURE'
-  })
+  }),
+  gateway: z.string().optional()
 })
 export type PaymentOutcomeDto = z.infer<typeof paymentOutcomeSchema>
 

@@ -7,6 +7,7 @@ import prisma from '../../configs/prisma'
 import stripe from '../../utils/stripe'
 import { AppError as ApiError } from '../../utils/app-error'
 import { capturePayPalOrder, createPayPalOrder } from '../../utils/paypal'
+import { createOnePayUrl, verifyOnePayReturn, restoreOrderIdFromTxnRef } from '../../utils/onepay'
 import { paymentService } from '../payment/payment.service'
 
 /**
@@ -39,7 +40,8 @@ export const getOrderDetail = asyncHandler(async (req: Request, res: Response) =
  * POST /api/orders/:id/payment — Thanh toán mô phỏng cho đơn hàng
  */
 export const processPayment = asyncHandler(async (req: Request, res: Response) => {
-  const result = await orderService.processPayment(req.user!.sub, req.params.id as string, req.body)
+  const paymentContext = req.body?.gateway ? { gateway: String(req.body.gateway) } : undefined
+  const result = await orderService.processPayment(req.user!.sub, req.params.id as string, req.body, paymentContext)
   successResponse(res, result)
 })
 
@@ -124,6 +126,88 @@ export const capturePayPalPayment = asyncHandler(async (req: Request, res: Respo
   }
 })
 import { createVNPayUrl, verifyVNPayReturn } from '../../utils/vnpay'
+
+/**
+ * GET /api/orders/:id/onepay — Khởi tạo URL Thanh toán OnePay Sandbox (Napas ATM / Domestic)
+ */
+export const createOnePayPayment = asyncHandler(async (req: Request, res: Response) => {
+  const orderId = req.params.id as string
+  const order = await orderService.getOrderDetail(req.user!.sub, orderId)
+
+  if (order.status !== OrderStatus.PENDING_PAYMENT) {
+    throw ApiError.conflict('Đơn hàng không ở trạng thái chờ thanh toán.')
+  }
+
+  const amount = typeof order.totalAmount === 'number' ? order.totalAmount : Number(order.totalAmount)
+  const ipAddr = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1'
+
+  const url = createOnePayUrl({
+    orderId,
+    amount,
+    ipAddr: String(ipAddr)
+  })
+
+  await paymentService.create({
+    orderId,
+    gateway: 'ONEPAY',
+    amount,
+    currency: 'VND'
+  })
+
+  successResponse(res, { url })
+})
+
+/**
+ * GET /api/orders/onepay-ipn — Điểm nhận IPN callback từ OnePay
+ */
+export const onepayIpn = asyncHandler(async (req: Request, res: Response) => {
+  const query = req.query as Record<string, string>
+  const isValid = verifyOnePayReturn(query)
+
+  console.info('[OnePay IPN] Callback received', { signatureValid: isValid })
+
+  if (!isValid) {
+    console.warn('[OnePay IPN] Invalid signature')
+    return res.send('responsecode=1&desc=confirm-fail')
+  }
+
+  try {
+    const rawTxnRef = String(query.vpc_MerchTxnRef || '')
+    const orderId = restoreOrderIdFromTxnRef(rawTxnRef)
+    const txnResponseCode = String(query.vpc_TxnResponseCode || '')
+
+    const order = await prisma.order.findUnique({ where: { id: orderId } })
+
+    if (!order) {
+      return res.send('responsecode=0&desc=confirm-success')
+    }
+
+    if (order.status !== OrderStatus.PENDING_PAYMENT) {
+      return res.send('responsecode=0&desc=confirm-success')
+    }
+
+    if (txnResponseCode === '0') {
+      await orderService.processPayment(
+        order.customerId,
+        order.id,
+        { outcome: 'SUCCESS' },
+        { gateway: 'ONEPAY', gatewayTransId: String(query.vpc_TransactionNo || rawTxnRef), rawResponse: query }
+      )
+    } else {
+      await orderService.processPayment(
+        order.customerId,
+        order.id,
+        { outcome: 'FAILURE' },
+        { gateway: 'ONEPAY', gatewayTransId: String(query.vpc_TransactionNo || rawTxnRef), rawResponse: query }
+      )
+    }
+
+    return res.send('responsecode=0&desc=confirm-success')
+  } catch (err) {
+    console.error('[OnePay IPN] LỖI HỆ THỐNG:', err)
+    return res.send('responsecode=0&desc=confirm-success')
+  }
+})
 
 /**
  * GET /api/orders/:id/vnpay — Khởi tạo URL Thanh toán VNPay

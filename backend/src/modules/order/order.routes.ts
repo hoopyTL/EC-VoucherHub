@@ -1,6 +1,6 @@
 import { Router } from 'express'
-import { authenticate } from '~/middlewares/authenticate'
-import { authorize } from '~/middlewares/authorize'
+import { authenticate } from '../../middlewares/authenticate'
+import { authorize } from '../../middlewares/authorize'
 import { RoleName } from '@voucher/shared'
 import { validate } from '../../middleware/validate'
 import { createOrderSchema, paymentOutcomeSchema } from '@voucher/shared'
@@ -12,6 +12,9 @@ const router = Router()
 // Route ngầm IPN cho Server VNPay gọi vào (không có Bearer token)
 router.get('/vnpay-ipn', orderController.vnpayIpn)
 
+// Route ngầm IPN cho Server OnePay gọi vào (không có Bearer token)
+router.get('/onepay-ipn', orderController.onepayIpn)
+
 // Route ngầm Webhook cho Stripe Server bắn tín hiệu về (Kiểm soát bằng chữ ký số trong Controller)
 router.post('/webhook/stripe', orderController.stripeWebhookHandler)
 
@@ -21,6 +24,7 @@ router.use(authenticate, authorize(RoleName.CUSTOMER))
 router.post('/', validate(createOrderSchema), orderController.createOrder)
 router.get('/', orderController.getMyOrders)
 router.get('/:id/vnpay', orderController.createVNPayPayment)
+router.get('/:id/onepay', orderController.createOnePayPayment)
 router.get('/:id/stripe', orderController.createStripePayment)
 router.get('/:id/paypal', orderController.createPayPalPayment)
 router.post('/:id/paypal/capture', orderController.capturePayPalPayment)

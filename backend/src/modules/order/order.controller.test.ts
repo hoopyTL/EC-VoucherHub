@@ -5,6 +5,7 @@ import prisma from '../../configs/prisma'
 import orderRoutes from './order.routes'
 import * as orderService from './order.service'
 import { createVNPayUrl, verifyVNPayReturn } from '../../utils/vnpay'
+import { createOnePayUrl, verifyOnePayReturn } from '../../utils/onepay'
 
 vi.mock('../../middlewares/authenticate', () => ({
   authenticate: (req: any, _res: any, next: any) => {
@@ -22,15 +23,32 @@ vi.mock('./order.service', () => ({
   processPayment: vi.fn(),
   cancelOrder: vi.fn()
 }))
+vi.mock('../payment/payment.service', () => ({
+  paymentService: {
+    create: vi.fn().mockResolvedValue({ id: 'pay-tx-1' }),
+    updateStatus: vi.fn()
+  }
+}))
 vi.mock('../../utils/vnpay', () => ({ createVNPayUrl: vi.fn(), verifyVNPayReturn: vi.fn() }))
+vi.mock('../../utils/onepay', () => ({
+  createOnePayUrl: vi.fn(),
+  verifyOnePayReturn: vi.fn(),
+  restoreOrderIdFromTxnRef: (id: string) => id.split('_')[0]
+}))
 vi.mock('../../configs/prisma', () => ({
-  default: { order: { findUnique: vi.fn() }, $disconnect: vi.fn() }
+  default: {
+    order: { findUnique: vi.fn() },
+    paymentTransaction: { update: vi.fn() },
+    $disconnect: vi.fn()
+  }
 }))
 
 const prismaMock = prisma as any
 const serviceMock = vi.mocked(orderService)
 const createUrlMock = vi.mocked(createVNPayUrl)
 const verifyReturnMock = vi.mocked(verifyVNPayReturn)
+const createOnePayUrlMock = vi.mocked(createOnePayUrl)
+const verifyOnePayReturnMock = vi.mocked(verifyOnePayReturn)
 const app = express()
 app.use(express.json())
 app.use('/api/orders', orderRoutes)
@@ -107,10 +125,51 @@ describe('order controller routes', () => {
     expect(serviceMock.processPayment).toHaveBeenCalledWith('customer-1', 'order-1', { outcome })
   })
 
-  it('acknowledges an unexpected IPN processing error', async () => {
-    verifyReturnMock.mockReturnValue(true)
-    prismaMock.order.findUnique.mockRejectedValue(new Error('database unavailable'))
-    const response = await request(app).get('/api/orders/vnpay-ipn?vnp_TxnRef=order-1_123')
-    expect(response.body).toEqual({ RspCode: '99', Message: 'Unknown error' })
+  it('creates OnePay payment URL and persists transaction', async () => {
+    serviceMock.getOrderDetail.mockResolvedValue({
+      id: 'order-1',
+      totalAmount: '150000',
+      status: 'PENDING_PAYMENT'
+    } as any)
+    createOnePayUrlMock.mockReturnValue('https://mtf.onepay.vn/paygate/vpcpay.op?test=1')
+
+    const response = await request(app).get('/api/orders/order-1/onepay')
+
+    expect(response.status).toBe(200)
+    expect(response.body.data.url).toBe('https://mtf.onepay.vn/paygate/vpcpay.op?test=1')
+    expect(createOnePayUrlMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderId: 'order-1',
+        amount: 150000
+      })
+    )
+  })
+
+  it('rejects an invalid OnePay IPN callback signature', async () => {
+    verifyOnePayReturnMock.mockReturnValue(false)
+    const response = await request(app).get('/api/orders/onepay-ipn?vpc_MerchTxnRef=order-1_123')
+    expect(response.text).toBe('responsecode=1&desc=confirm-fail')
+  })
+
+  it('processes a successful OnePay IPN callback (vpc_TxnResponseCode=0)', async () => {
+    verifyOnePayReturnMock.mockReturnValue(true)
+    prismaMock.order.findUnique.mockResolvedValue({
+      id: 'order-1',
+      customerId: 'customer-1',
+      status: 'PENDING_PAYMENT'
+    })
+    serviceMock.processPayment.mockResolvedValue({ orderId: 'order-1', status: 'PAID', codes: [] })
+
+    const response = await request(app).get(
+      '/api/orders/onepay-ipn?vpc_MerchTxnRef=order-1_123&vpc_TxnResponseCode=0&vpc_TransactionNo=999999'
+    )
+
+    expect(response.text).toBe('responsecode=0&desc=confirm-success')
+    expect(serviceMock.processPayment).toHaveBeenCalledWith(
+      'customer-1',
+      'order-1',
+      { outcome: 'SUCCESS' },
+      expect.objectContaining({ gateway: 'ONEPAY', gatewayTransId: '999999' })
+    )
   })
 })
