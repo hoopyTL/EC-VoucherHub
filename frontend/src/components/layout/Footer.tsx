@@ -53,6 +53,12 @@ export function Footer() {
           <Link to='/search' style={{ color: 'inherit' }}>
             Khám phá voucher
           </Link>
+          <Link to='/policy' style={{ color: 'inherit' }}>
+            Chính sách & Quy định
+          </Link>
+          <Link to='/faq' style={{ color: 'inherit' }}>
+            Hỏi đáp (FAQ)
+          </Link>
           <Link to='/login' style={{ color: 'inherit' }}>
             Đăng nhập đối tác
           </Link>

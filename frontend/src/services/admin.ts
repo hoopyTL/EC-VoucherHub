@@ -291,3 +291,102 @@ export function getAdminApiError(err: unknown, fallback: string): string {
 
   return response.data?.error?.message ?? fallback
 }
+
+/* -------------------------------------------------------------------------- */
+/* Content Management (FR-21 / FLOW-011)                                      */
+/* -------------------------------------------------------------------------- */
+
+export type ContentType = 'banner' | 'announcement' | 'policy' | 'faq'
+export type ContentStatus = 'draft' | 'published' | 'archived'
+
+export interface AdminContentItem {
+  id: string
+  type: ContentType
+  title: string
+  body: string
+  status: ContentStatus
+  displayFrom: string | null
+  displayTo: string | null
+  createdAt: string
+  updatedAt: string
+  author?: {
+    email: string | null
+    phone: string | null
+    fullName: string
+  } | null
+}
+
+export interface ListAdminContentParams {
+  type?: ContentType | string
+  status?: ContentStatus | string
+  q?: string
+  limit?: number
+}
+
+export interface CreateAdminContentDto {
+  type: ContentType
+  title: string
+  body: string
+  status?: ContentStatus
+  displayFrom?: string | null
+  displayTo?: string | null
+}
+
+export interface UpdateAdminContentDto {
+  type?: ContentType
+  title?: string
+  body?: string
+  status?: ContentStatus
+  displayFrom?: string | null
+  displayTo?: string | null
+}
+
+export async function listAdminContent(params: ListAdminContentParams = {}): Promise<AdminContentItem[]> {
+  const { data } = await api.get<ApiEnvelope<{ items: AdminContentItem[] }>>('/admin/content', { params })
+  return data.data.items
+}
+
+export async function createAdminContent(input: CreateAdminContentDto): Promise<AdminContentItem> {
+  const { data } = await api.post<ApiEnvelope<AdminContentItem>>('/admin/content', input)
+  return data.data
+}
+
+export async function updateAdminContent(id: string, input: UpdateAdminContentDto): Promise<AdminContentItem> {
+  const { data } = await api.patch<ApiEnvelope<AdminContentItem>>(`/admin/content/${id}`, input)
+  return data.data
+}
+
+export async function archiveAdminContent(id: string): Promise<AdminContentItem> {
+  const { data } = await api.delete<ApiEnvelope<AdminContentItem>>(`/admin/content/${id}`)
+  return data.data
+}
+
+/* -------------------------------------------------------------------------- */
+/* Audit Logs (FR-23 / FLOW-012)                                              */
+/* -------------------------------------------------------------------------- */
+
+export interface AdminAuditLogItem {
+  id: string
+  action: string
+  entityType: string
+  entityId: string | null
+  details: Record<string, unknown> | null
+  createdAt: string
+  actor?: {
+    email: string | null
+    phone: string | null
+    fullName: string
+  } | null
+}
+
+export interface ListAdminAuditLogsParams {
+  action?: string
+  entityType?: string
+  q?: string
+  limit?: number
+}
+
+export async function listAdminAuditLogs(params: ListAdminAuditLogsParams = {}): Promise<AdminAuditLogItem[]> {
+  const { data } = await api.get<ApiEnvelope<{ items: AdminAuditLogItem[] }>>('/admin/audit-logs', { params })
+  return data.data.items
+}

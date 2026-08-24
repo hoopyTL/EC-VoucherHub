@@ -5,6 +5,7 @@ import {
   Building2,
   CheckCircle2,
   ClipboardList,
+  FileText,
   LayoutDashboard,
   MapPin,
   PackageCheck,
@@ -26,7 +27,8 @@ const ADMIN_ITEMS: SidebarItem[] = [
   { to: '/admin/users', label: 'Người dùng', icon: Users },
   { to: '/admin/partners', label: 'Duyệt đối tác', icon: Building2 },
   { to: '/admin/vouchers', label: 'Duyệt voucher', icon: PackageCheck },
-  { to: '/admin/orders', label: 'Đơn hàng', icon: ClipboardList }
+  { to: '/admin/orders', label: 'Đơn hàng', icon: ClipboardList },
+  { to: '/admin/content', label: 'Quản lý nội dung', icon: FileText }
 ]
 const PARTNER_ITEMS: SidebarItem[] = [
   { to: '/partner', label: 'Tổng quan', icon: LayoutDashboard },

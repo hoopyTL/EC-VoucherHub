@@ -18,6 +18,7 @@
  */
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './store/AuthContext'
+import { AnnouncementBar } from './components/layout/AnnouncementBar'
 import { Header } from './components/layout/Header'
 import { Footer } from './components/layout/Footer'
 import { Sidebar, type SidebarVariant } from './components/layout/Sidebar'
@@ -29,6 +30,8 @@ import { LoginPage } from './pages/public/LoginPage'
 import { ForgotPasswordPage } from './pages/public/ForgotPasswordPage'
 import { AccountPage } from './pages/public/AccountPage'
 import { HomePage } from './pages/public/HomePage'
+import { PolicyPage } from './pages/public/PolicyPage'
+import { FAQPage } from './pages/public/FAQPage'
 import { RegisterChooserPage } from './pages/public/RegisterChooserPage'
 import { VoucherBrowsePage } from './pages/public/VoucherBrowsePage'
 import { VoucherDetailPage } from './pages/public/VoucherDetailPage'
@@ -49,6 +52,7 @@ import { UsersPage as AdminUsersPage } from './pages/admin/UsersPage'
 import { PartnerApprovalsPage as AdminPartnerApprovalsPage } from './pages/admin/PartnerApprovalsPage'
 import { VoucherApprovalsPage as AdminVoucherApprovalsPage } from './pages/admin/VoucherApprovalsPage'
 import { OrdersPage as AdminOrdersPage } from './pages/admin/OrdersPage'
+import { ContentManagementPage as AdminContentManagementPage } from './pages/admin/ContentManagementPage'
 import { ToastProvider } from './components/ui'
 
 /* -------------------------------------------------------------------------- */
@@ -59,6 +63,7 @@ import { ToastProvider } from './components/ui'
 function PublicLayout() {
   return (
     <div id='top' data-theme='customer' style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <AnnouncementBar />
       <Header />
       <main className='public-main' style={{ flex: 1, padding: '40px 24px', width: '100%' }}>
         <Outlet />
@@ -146,6 +151,8 @@ export function AppRoutes() {
         <Route path='search' element={<VoucherBrowsePage />} />
         <Route path='vouchers' element={<Navigate to='/search' replace />} />
         <Route path='vouchers/:id' element={<VoucherDetailPage />} />
+        <Route path='policy' element={<PolicyPage />} />
+        <Route path='faq' element={<FAQPage />} />
 
         {/* Guest-only auth routes: signed-in users are redirected to their home. */}
         <Route element={<GuestRoute />}>
@@ -267,6 +274,7 @@ export function AppRoutes() {
         <Route path='partners' element={<AdminPartnerApprovalsPage />} />
         <Route path='vouchers' element={<AdminVoucherApprovalsPage />} />
         <Route path='orders' element={<AdminOrdersPage />} />
+        <Route path='content' element={<AdminContentManagementPage />} />
       </Route>
 
       {/* Fallbacks */}
