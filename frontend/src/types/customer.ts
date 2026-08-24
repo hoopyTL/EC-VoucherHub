@@ -94,3 +94,24 @@ export interface VoucherCode {
   voucher: VoucherCodeVoucher
   order: VoucherCodeOrder
 }
+
+/** A voucher code owned by the signed-in customer (GET /my-vouchers). */
+export interface MyVoucher {
+  id: string
+  code: string
+  status: 'UNUSED' | 'USED' | 'EXPIRED' | 'CANCELLED' | 'LOCKED'
+  remainingUses: number
+  totalUses: number
+  issuedAt: string
+  expiresAt: string
+  lastUsedAt: string | null
+  lastUsedBranch: { id: number; name: string; address: string } | null
+  order: { id: string; createdAt: string }
+  voucher: {
+    id: string
+    name: string
+    description: string
+    imageUrl: string | null
+    partnerName: string
+  }
+}

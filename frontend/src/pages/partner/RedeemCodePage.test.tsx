@@ -5,6 +5,15 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { RedeemCodePage, resolveRedeemError, type PartnerBranch, type RedemptionResult } from './RedeemCodePage'
 import { api } from '../../services/api'
 
+vi.mock('../../components/common/QrCameraScanner', () => ({
+  QrCameraScanner: ({ open, onResult }: { open: boolean; onResult: (value: string) => void }) =>
+    open ? (
+      <button type='button' data-testid='mock-camera-result' onClick={() => onResult('SPA-AAAA-1111')}>
+        Camera result
+      </button>
+    ) : null
+}))
+
 function makeBranch(overrides: Partial<PartnerBranch> = {}): PartnerBranch {
   return {
     id: '1',
@@ -80,6 +89,22 @@ describe('RedeemCodePage', () => {
     })
     expect(screen.getByTestId('redeem-code-input')).toHaveProperty('value', 'SPA-AAAA-1111')
     expect(screen.getByRole('option', { name: /Downtown Spa/ })).toBeDefined()
+  })
+
+  it('reads a voucher code from the camera and validates it without redeeming automatically', async () => {
+    const get = mockApiGet()
+    const post = vi.spyOn(api, 'post')
+
+    renderPage()
+
+    await waitFor(() => expect(screen.getByTestId('branch-select')).toBeDefined())
+    fireEvent.click(screen.getByTestId('scan-qr-btn'))
+    fireEvent.click(screen.getByTestId('mock-camera-result'))
+
+    expect(screen.getByTestId('redeem-code-input')).toHaveProperty('value', 'SPA-AAAA-1111')
+    await waitFor(() => expect(get).toHaveBeenCalledWith('/voucher-codes/SPA-AAAA-1111'))
+    expect(await screen.findByText(/mã hợp lệ/i)).toBeDefined()
+    expect(post).not.toHaveBeenCalled()
   })
 
   it('only lists active branches in the selector (Req 19.3)', async () => {

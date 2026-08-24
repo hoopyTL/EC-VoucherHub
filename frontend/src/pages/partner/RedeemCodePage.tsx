@@ -23,6 +23,7 @@ import { useSearchParams } from 'react-router-dom'
 import { CheckCircle2 } from 'lucide-react'
 import type { VoucherCodeStatus } from '@ui-contracts'
 import { api } from '../../services/api'
+import { QrCameraScanner } from '../../components/common/QrCameraScanner'
 import { Badge, Button, Input, LoadingSpinner, variantForStatus } from '../../components/ui'
 import { formatDateTime, formatStatus } from '../../utils/format'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
@@ -108,6 +109,7 @@ export function RedeemCodePage() {
 
   const [code, setCode] = useState(prefilledCode)
   const [branchId, setBranchId] = useState('')
+  const [scannerOpen, setScannerOpen] = useState(false)
 
   // Keep the field in sync if the partner arrives from the verify page with a
   // different `?code=` than what is currently entered.
@@ -145,8 +147,16 @@ export function RedeemCodePage() {
   }
 
   const scanQr = () => {
-    const scanned = window.prompt('Mô phỏng quét QR: nhập mã voucher')
-    if (scanned) changeCode(scanned.trim())
+    setScannerOpen(true)
+  }
+
+  const handleScannedCode = (scannedCode: string) => {
+    const normalizedCode = scannedCode.trim()
+    if (!normalizedCode) return
+
+    changeCode(normalizedCode)
+    setScannerOpen(false)
+    validation.mutate(normalizedCode)
   }
 
   const submit = (event: FormEvent) => {
@@ -190,7 +200,7 @@ export function RedeemCodePage() {
             Kiểm tra mã
           </Button>
           <Button type='button' variant='secondary' onClick={scanQr} data-testid='scan-qr-btn'>
-            Quét QR mô phỏng
+            Quét QR bằng camera
           </Button>
         </div>
 
@@ -277,6 +287,8 @@ export function RedeemCodePage() {
           </dl>
         </div>
       )}
+
+      <QrCameraScanner open={scannerOpen} onClose={() => setScannerOpen(false)} onResult={handleScannedCode} />
     </section>
   )
 }

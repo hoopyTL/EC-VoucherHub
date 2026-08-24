@@ -6,7 +6,7 @@ import { authorize } from '~/middlewares/authorize'
 import { validate } from '~/middlewares/validate'
 import { ApiResponse } from '~/utils/api-response'
 import { asyncHandler } from '~/utils/async-handler'
-import { listRedemptionBranches, redeemVoucherCode, validateVoucherCode } from './redemption.service'
+import { listMyVouchers, listRedemptionBranches, redeemVoucherCode, validateVoucherCode } from './redemption.service'
 import {
   redeemVoucherCodeSchema,
   voucherCodeParamsSchema,
@@ -15,6 +15,13 @@ import {
 } from './redemption.validation'
 
 export const redemptionRoutes = Router()
+
+redemptionRoutes.get(
+  '/my-vouchers',
+  authenticate,
+  authorize(RoleName.CUSTOMER),
+  asyncHandler(async (req, res) => ApiResponse.success(res, await listMyVouchers(req.user!.sub)))
+)
 
 redemptionRoutes.get(
   '/voucher-code-branches',

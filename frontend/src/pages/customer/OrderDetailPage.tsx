@@ -23,13 +23,15 @@ import {
   Landmark,
   Wallet,
   ReceiptText,
+  QrCode,
   ShieldCheck,
   WalletCards,
   XCircle
 } from 'lucide-react'
 import { api } from '../../services/api'
 import type { Order } from '../../types/customer'
-import { Badge, variantForStatus, LoadingSpinner, Button, ConfirmDialog, useToast } from '../../components/ui'
+import { Badge, variantForStatus, LoadingSpinner, Button, ConfirmDialog, Modal, useToast } from '../../components/ui'
+import { QRCodeDisplay } from '../../components/common/QRCodeDisplay'
 import { formatCurrency, formatDateTime, formatStatus } from '../../utils/format'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
 import { CheckoutProgress } from '../../components/customer/CheckoutProgress'
@@ -49,6 +51,7 @@ export function OrderDetailPage() {
   const { id = '' } = useParams<{ id: string }>()
   const toast = useToast()
   const [showCancelDialog, setShowCancelDialog] = useState(false)
+  const [selectedQrCode, setSelectedQrCode] = useState<NonNullable<Order['codes']>[number] | null>(null)
 
   const {
     data: order,
@@ -354,14 +357,52 @@ export function OrderDetailPage() {
             <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
               {orderCodes.map((code) => (
                 <li key={code.code} style={codeRowStyle}>
-                  <strong style={{ fontFamily: 'monospace', color: colors.ink, fontSize: 16 }}>{code.code}</strong>
-                  <Badge variant={variantForStatus(code.status as any)}>{formatStatus(code.status as any)}</Badge>
+                  <div style={codeIdentityStyle}>
+                    <strong style={{ fontFamily: 'monospace', color: colors.ink, fontSize: 16 }}>{code.code}</strong>
+                    <Badge variant={variantForStatus(code.status as any)}>{formatStatus(code.status as any)}</Badge>
+                  </div>
+                  {code.status === 'UNUSED' && (
+                    <Button
+                      type='button'
+                      variant='secondary'
+                      size='sm'
+                      leftIcon={<QrCode size={16} aria-hidden='true' />}
+                      onClick={() => setSelectedQrCode(code)}
+                      aria-label={`Hiển thị QR cho mã ${code.code}`}
+                    >
+                      Hiển thị QR
+                    </Button>
+                  )}
                 </li>
               ))}
             </ul>
           )}
         </div>
       )}
+
+      <Modal
+        isOpen={Boolean(selectedQrCode)}
+        onClose={() => setSelectedQrCode(null)}
+        title='QR voucher của bạn'
+        size='sm'
+        footer={
+          <Button type='button' variant='secondary' onClick={() => setSelectedQrCode(null)}>
+            Đóng
+          </Button>
+        }
+      >
+        {selectedQrCode && (
+          <div style={qrModalContentStyle}>
+            <QRCodeDisplay value={selectedQrCode.code} size={280} />
+            <strong style={qrCodeTextStyle}>{selectedQrCode.code}</strong>
+            <Badge variant={variantForStatus(selectedQrCode.status as any)}>
+              {formatStatus(selectedQrCode.status as any)}
+            </Badge>
+            <p style={qrHelpStyle}>Đưa mã QR này cho nhân viên đối tác để kiểm tra và xác nhận sử dụng.</p>
+            <p style={qrExpiryStyle}>Hạn sử dụng: {formatDateTime(selectedQrCode.expiresAt)}</p>
+          </div>
+        )}
+      </Modal>
     </section>
   )
 }
@@ -519,9 +560,28 @@ const codeRowStyle: CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
-  padding: '8px 0',
+  gap: 16,
+  flexWrap: 'wrap',
+  padding: '12px 0',
   borderBottom: `1px solid ${colors.hairline}`
 }
+
+const codeIdentityStyle: CSSProperties = { display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }
+const qrModalContentStyle: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: 12,
+  textAlign: 'center'
+}
+const qrCodeTextStyle: CSSProperties = {
+  fontFamily: 'monospace',
+  fontSize: 18,
+  letterSpacing: '0.08em',
+  color: colors.ink
+}
+const qrHelpStyle: CSSProperties = { margin: '4px 0 0', color: colors.slate, lineHeight: 1.6 }
+const qrExpiryStyle: CSSProperties = { margin: 0, color: colors.slate, fontSize: 13 }
 
 const alertStyle: CSSProperties = {
   padding: '12px 16px',
