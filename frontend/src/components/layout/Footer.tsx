@@ -14,23 +14,23 @@ export function Footer() {
     <footer
       style={{
         marginTop: 'auto',
-        padding: `${spacing.xl}px ${spacing.lg}px ${spacing.lg}px`,
+        padding: `${spacing.lg}px ${spacing.lg}px`,
         borderTop: `1px solid ${colors.hairline}`,
         overflow: 'hidden'
       }}
     >
-      {/* Oversized faint watermark, a hallmark of the design language. */}
+      {/* Keep the brand watermark only in the footer and deliberately compact. */}
       <div
         aria-hidden='true'
         style={{
           fontFamily: fonts.display,
           fontWeight: 900,
-          fontSize: 'clamp(64px, 14vw, 160px)',
-          lineHeight: 0.9,
+          fontSize: 'clamp(24px, 3vw, 36px)',
+          lineHeight: 1,
           letterSpacing: '-0.05em',
           color: colors.canvasDim,
           userSelect: 'none',
-          marginBottom: spacing.lg
+          marginBottom: spacing.md
         }}
       >
         VoucherHub
@@ -52,6 +52,12 @@ export function Footer() {
         <nav aria-label='Liên kết cuối trang' style={{ display: 'flex', gap: spacing.lg, flexWrap: 'wrap' }}>
           <Link to='/search' style={{ color: 'inherit' }}>
             Khám phá voucher
+          </Link>
+          <Link to='/policy' style={{ color: 'inherit' }}>
+            Chính sách & Quy định
+          </Link>
+          <Link to='/faq' style={{ color: 'inherit' }}>
+            Hỏi đáp (FAQ)
           </Link>
           <Link to='/login' style={{ color: 'inherit' }}>
             Đăng nhập đối tác

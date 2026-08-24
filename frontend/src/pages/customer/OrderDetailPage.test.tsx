@@ -6,6 +6,7 @@ import { AxiosError, AxiosHeaders } from 'axios'
 import { OrderDetailPage } from './OrderDetailPage'
 import { api } from '../../services/api'
 import type { Order } from '../../types/customer'
+import { ToastProvider } from '../../components/ui'
 
 function makeOrder(overrides: Partial<Order> = {}): Order {
   return {
@@ -50,11 +51,13 @@ function renderAt(id: string) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={[`/orders/${id}`]}>
-        <Routes>
-          <Route path='/orders/:id' element={<OrderDetailPage />} />
-        </Routes>
-      </MemoryRouter>
+      <ToastProvider>
+        <MemoryRouter initialEntries={[`/orders/${id}`]}>
+          <Routes>
+            <Route path='/orders/:id' element={<OrderDetailPage />} />
+          </Routes>
+        </MemoryRouter>
+      </ToastProvider>
     </QueryClientProvider>
   )
 }
@@ -94,6 +97,43 @@ describe('OrderDetailPage', () => {
     expect(screen.queryByRole('link', { name: 'SPA-AAAA-1111' })).toBeNull()
   })
 
+  it('renders the payment transaction timeline in Vietnamese', async () => {
+    vi.spyOn(api, 'get').mockImplementation((url: string) => {
+      if (url === '/orders/order-1') {
+        return Promise.resolve({ data: makeOrder() } as never)
+      }
+      if (url === '/orders/order-1/payments') {
+        return Promise.resolve({
+          data: {
+            data: [
+              {
+                id: 'payment-1',
+                orderId: 'order-1',
+                gateway: 'STRIPE',
+                gatewayTransId: 'pi_demo_123',
+                amount: '250000',
+                currency: 'VND',
+                status: 'SUCCESS',
+                failureReason: null,
+                paidAt: '2025-01-05T10:01:00.000Z',
+                refundedAt: null,
+                createdAt: '2025-01-05T10:00:00.000Z'
+              }
+            ]
+          }
+        } as never)
+      }
+      return Promise.resolve({ data: [] } as never)
+    })
+
+    renderAt('order-1')
+
+    expect(await screen.findByText('Thông tin thanh toán')).toBeDefined()
+    expect(await screen.findByText('Thẻ quốc tế · Stripe')).toBeDefined()
+    expect(screen.getAllByText('Đã thanh toán').length).toBeGreaterThan(0)
+    expect(screen.getByText(/pi_demo_123/)).toBeDefined()
+  })
+
   it('does not fetch or show codes for a PENDING_PAYMENT order', async () => {
     const getSpy = vi.spyOn(api, 'get').mockImplementation((url: string) => {
       if (url === '/orders/order-1') {
@@ -107,6 +147,7 @@ describe('OrderDetailPage', () => {
     renderAt('order-1')
 
     expect(await screen.findByText(/chờ hoàn tất thanh toán/i)).toBeDefined()
+    expect(screen.getByRole('button', { name: /PayPal/i })).toBeDefined()
     expect(screen.queryByText(/Voucher codes/i)).toBeNull()
     // /my-codes must not be queried when the order is unpaid.
     expect(getSpy).not.toHaveBeenCalledWith('/my-codes')

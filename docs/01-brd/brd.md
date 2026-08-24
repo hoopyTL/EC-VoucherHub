@@ -241,7 +241,7 @@ Tạo đối tác → duyệt đối tác → tạo voucher → duyệt voucher 
 | --- | --- |
 | CON-01 | Sinh viên phải tự phân tích và thiết kế; không sao chép nguyên mẫu từ hệ thống thực tế. |
 | CON-02 | Hệ thống phải dùng cơ sở dữ liệu quan hệ. |
-| CON-03 | Phải có tối thiểu 3 vai trò: khách hàng, đối tác, quản trị viên. |
+| CON-03 | Phải có tối thiểu 3 vai trò: khách hàng, đối tác, quản trị viên; hệ thống triển khai thêm nhân viên đối tác để xác nhận voucher theo chi nhánh. |
 | CON-04 | Phải có dữ liệu mẫu đủ để chứng minh quy trình nghiệp vụ. |
 | CON-05 | Đồ án phải chứng minh hiểu biết về thương mại điện tử, không chỉ dừng ở giao diện. |
 

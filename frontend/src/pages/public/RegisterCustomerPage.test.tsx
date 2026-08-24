@@ -43,28 +43,28 @@ describe('RegisterCustomerPage', () => {
 
   it('renders the name, email, phone, and password fields', () => {
     renderPage()
-    expect(screen.getByLabelText(/full name/i)).toBeDefined()
+    expect(screen.getByLabelText(/họ và tên/i)).toBeDefined()
     expect(screen.getByLabelText(/email/i)).toBeDefined()
-    expect(screen.getByLabelText(/phone/i)).toBeDefined()
-    expect(screen.getByLabelText(/password/i)).toBeDefined()
+    expect(screen.getByLabelText(/số điện thoại/i)).toBeDefined()
+    expect(screen.getByLabelText(/mật khẩu/i)).toBeDefined()
   })
 
   it('rejects a password shorter than 8 characters (Req 1.3)', async () => {
     const postSpy = vi.spyOn(api, 'post')
     renderPage()
 
-    fireEvent.change(screen.getByLabelText(/full name/i), {
+    fireEvent.change(screen.getByLabelText(/họ và tên/i), {
       target: { value: 'Jane Doe' }
     })
     fireEvent.change(screen.getByLabelText(/email/i), {
       target: { value: 'jane@example.com' }
     })
-    fireEvent.change(screen.getByLabelText(/password/i), {
+    fireEvent.change(screen.getByLabelText(/mật khẩu/i), {
       target: { value: 'short' }
     })
-    fireEvent.click(screen.getByRole('button', { name: /create account/i }))
+    fireEvent.click(screen.getByRole('button', { name: /tạo tài khoản/i }))
 
-    expect(await screen.findByText(/at least 8 characters/i)).toBeDefined()
+    expect(await screen.findByText(/ít nhất 8 ký tự/i)).toBeDefined()
     expect(postSpy).not.toHaveBeenCalled()
   })
 
@@ -72,15 +72,15 @@ describe('RegisterCustomerPage', () => {
     const postSpy = vi.spyOn(api, 'post')
     renderPage()
 
-    fireEvent.change(screen.getByLabelText(/full name/i), {
+    fireEvent.change(screen.getByLabelText(/họ và tên/i), {
       target: { value: 'Jane Doe' }
     })
-    fireEvent.change(screen.getByLabelText(/password/i), {
+    fireEvent.change(screen.getByLabelText(/mật khẩu/i), {
       target: { value: 'password123' }
     })
-    fireEvent.click(screen.getByRole('button', { name: /create account/i }))
+    fireEvent.click(screen.getByRole('button', { name: /tạo tài khoản/i }))
 
-    expect(await screen.findByText(/enter an email or a phone number/i)).toBeDefined()
+    expect(await screen.findByText(/nhập email hoặc số điện thoại/i)).toBeDefined()
     expect(postSpy).not.toHaveBeenCalled()
   })
 
@@ -88,16 +88,16 @@ describe('RegisterCustomerPage', () => {
     const postSpy = vi.spyOn(api, 'post').mockResolvedValue({ data: {} } as never)
     renderPage()
 
-    fireEvent.change(screen.getByLabelText(/full name/i), {
+    fireEvent.change(screen.getByLabelText(/họ và tên/i), {
       target: { value: 'Jane Doe' }
     })
     fireEvent.change(screen.getByLabelText(/email/i), {
       target: { value: 'jane@example.com' }
     })
-    fireEvent.change(screen.getByLabelText(/password/i), {
+    fireEvent.change(screen.getByLabelText(/mật khẩu/i), {
       target: { value: 'password123' }
     })
-    fireEvent.click(screen.getByRole('button', { name: /create account/i }))
+    fireEvent.click(screen.getByRole('button', { name: /tạo tài khoản/i }))
 
     await waitFor(() => {
       expect(postSpy).toHaveBeenCalledWith('/auth/register', {
@@ -113,16 +113,16 @@ describe('RegisterCustomerPage', () => {
     vi.spyOn(api, 'post').mockRejectedValue(conflictError('An account with this email or phone number already exists'))
     renderPage()
 
-    fireEvent.change(screen.getByLabelText(/full name/i), {
+    fireEvent.change(screen.getByLabelText(/họ và tên/i), {
       target: { value: 'Jane Doe' }
     })
     fireEvent.change(screen.getByLabelText(/email/i), {
       target: { value: 'dupe@example.com' }
     })
-    fireEvent.change(screen.getByLabelText(/password/i), {
+    fireEvent.change(screen.getByLabelText(/mật khẩu/i), {
       target: { value: 'password123' }
     })
-    fireEvent.click(screen.getByRole('button', { name: /create account/i }))
+    fireEvent.click(screen.getByRole('button', { name: /tạo tài khoản/i }))
 
     const alert = await screen.findByRole('alert')
     expect(alert.textContent).toMatch(/already exists/i)

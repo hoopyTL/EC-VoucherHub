@@ -239,7 +239,7 @@ Mỗi FR truy vết về yêu cầu gốc `R<n>` trong BRD/requirements. Accepta
 | **NFR-05** | Khả năng sử dụng | Giao diện responsive trên desktop + mobile; luồng mua rõ ràng | R24.4, NFR-05 |
 | **NFR-06** | Khả năng mở rộng | Mở rộng loại voucher, báo cáo, tích hợp thanh toán thật trong tương lai | NFR-04 |
 | **NFR-07** | Kiểm toán | Thao tác quản trị/giao dịch quan trọng có nhật ký truy vết | R22, NFR-06 |
-| **NFR-08** | Vai trò | Hỗ trợ tối thiểu 3 vai trò: Khách_hàng, Đối_tác, Quản_trị_viên | R24.5, CON-03 |
+| **NFR-08** | Vai trò | Hỗ trợ tối thiểu 3 vai trò bắt buộc và mở rộng Nhân_viên_đối_tác với phạm vi chi nhánh | R24.5, CON-03 |
 
 ## 5. Ma trận truy vết FR ↔ R gốc
 

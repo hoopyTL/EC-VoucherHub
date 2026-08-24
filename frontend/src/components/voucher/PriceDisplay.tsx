@@ -73,8 +73,8 @@ export function PriceDisplay({ originalPrice, salePrice, discountPercentage, siz
               fontSize: originalFontSize,
               fontWeight: 700,
               letterSpacing: '0.02em',
-              color: colors.onInk,
-              background: colors.ink,
+              color: colors.onAccent,
+              background: colors.accent,
               borderRadius: radius.full,
               padding: '2px 10px'
             }}

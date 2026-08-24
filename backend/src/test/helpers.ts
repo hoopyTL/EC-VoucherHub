@@ -12,7 +12,12 @@ export async function seedRoles(): Promise<void> {
 }
 
 export async function resetUsers(): Promise<void> {
+  await prisma.review.deleteMany()
+  await prisma.auditLog.deleteMany()
+  await prisma.contentItem.deleteMany()
   await prisma.usageLog.deleteMany()
+  await prisma.partnerStaffBranch.deleteMany()
+  await prisma.partnerStaff.deleteMany()
   await prisma.issuedVoucherCode.deleteMany()
   await prisma.orderItem.deleteMany()
   await prisma.order.deleteMany()
@@ -23,6 +28,7 @@ export async function resetUsers(): Promise<void> {
   await prisma.branch.deleteMany()
   await prisma.partner.deleteMany()
   await prisma.user.deleteMany()
+  await prisma.role.deleteMany({ where: { name: { in: ['QUAN_TRI_VIEN', 'DOI_TAC', 'NHAN_VIEN', 'KHACH_HANG'] } } })
 }
 
 interface CreateUserOptions {

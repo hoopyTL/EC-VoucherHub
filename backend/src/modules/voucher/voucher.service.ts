@@ -1,5 +1,7 @@
 import { ApprovalStatus, OperatingStatus, Prisma, VoucherCodeStatus, VoucherStatus } from '@prisma/client'
 import type { VoucherDto } from '@voucher/shared'
+import fs from 'node:fs'
+import path from 'node:path'
 
 import prisma from '~/configs/prisma'
 import { voucherTransitions } from '~/domain/transitions'
@@ -9,6 +11,7 @@ import type {
   AdminVoucherStatusInput,
   CreateVoucherInput,
   PartnerVoucherStatusInput,
+  PublicVoucherSearchInput,
   UpdateVoucherInput,
   VoucherApprovalInput,
   VoucherListInput
@@ -24,6 +27,19 @@ type VoucherRecord = Prisma.VoucherProductGetPayload<{ include: typeof voucherIn
 type VoucherCodeCounts = Pick<VoucherDto, 'issuedCodeCount' | 'usedCodeCount' | 'expiredCodeCount'>
 
 const emptyCodeCounts = (): VoucherCodeCounts => ({ issuedCodeCount: 0, usedCodeCount: 0, expiredCodeCount: 0 })
+
+function assertOwnedImage(imageUrl: string | null | undefined, partnerId: string): void {
+  if (!imageUrl) return
+  const expectedPrefix = `/uploads/vouchers/${partnerId}-`
+  if (!imageUrl.startsWith(expectedPrefix)) {
+    throw AppError.forbidden('Ảnh voucher không thuộc đối tác của bạn')
+  }
+  const filename = path.basename(imageUrl)
+  const absolutePath = path.resolve(process.cwd(), 'uploads', 'vouchers', filename)
+  if (!fs.existsSync(absolutePath)) {
+    throw AppError.validation('Ảnh voucher không tồn tại hoặc đã bị xóa')
+  }
+}
 
 function toVoucherDto(voucher: VoucherRecord, codeCounts: VoucherCodeCounts = emptyCodeCounts()): VoucherDto {
   return {
@@ -52,6 +68,47 @@ function toVoucherDto(voucher: VoucherRecord, codeCounts: VoucherCodeCounts = em
     ...codeCounts,
     createdAt: voucher.createdAt.toISOString(),
     updatedAt: voucher.updatedAt.toISOString()
+  }
+}
+
+function toPublicVoucher(voucher: VoucherRecord) {
+  const originalPrice = Number(voucher.originalPrice)
+  const salePrice = Number(voucher.salePrice)
+  return {
+    id: voucher.id,
+    title: voucher.name,
+    description: voucher.description,
+    category: voucher.category?.name ?? 'Chưa phân loại',
+    originalPrice: voucher.originalPrice.toString(),
+    salePrice: voucher.salePrice.toString(),
+    totalQuantity: voucher.totalQuantity,
+    soldQuantity: voucher.totalQuantity - voucher.remainingQuantity,
+    remainingQuantity: voucher.remainingQuantity,
+    discountPercentage: Math.round(((originalPrice - salePrice) / originalPrice) * 100),
+    salePeriodStart: voucher.saleStart.toISOString(),
+    salePeriodEnd: voucher.saleEnd.toISOString(),
+    usagePeriodStart: voucher.usageStart.toISOString(),
+    usagePeriodEnd: voucher.usageEnd.toISOString(),
+    terms: null,
+    imageUrl: voucher.imageUrl,
+    status: voucher.status,
+    partnerId: voucher.partnerId,
+    createdAt: voucher.createdAt.toISOString(),
+    updatedAt: voucher.updatedAt.toISOString(),
+    partner: { businessName: voucher.partner.legalName },
+    voucherBranches: voucher.voucherProductBranches.map(({ branch, voucherProductId, branchId }) => ({
+      id: `${voucherProductId}:${branchId}`,
+      voucherId: voucherProductId,
+      branchId: String(branchId),
+      branch: {
+        id: String(branch.id),
+        name: branch.name,
+        address: branch.address,
+        region: branch.region,
+        contact: '',
+        isActive: true
+      }
+    }))
   }
 }
 
@@ -210,9 +267,95 @@ async function updateStatusAtomically(
 }
 
 export const voucherService = {
+  async searchPublic(input: PublicVoucherSearchInput) {
+    const now = new Date()
+    const where: Prisma.VoucherProductWhereInput = {
+      status: VoucherStatus.ON_SALE,
+      remainingQuantity: { gt: 0 },
+      saleStart: { lte: now },
+      saleEnd: { gte: now },
+      ...(input.keyword && {
+        OR: [
+          { name: { contains: input.keyword, mode: 'insensitive' } },
+          { description: { contains: input.keyword, mode: 'insensitive' } }
+        ]
+      }),
+      ...(input.category && input.category !== 'Tất cả danh mục' && { category: { name: input.category } }),
+      ...(input.region && { voucherProductBranches: { some: { branch: { region: input.region } } } }),
+      ...(input.partnerId && { partnerId: input.partnerId }),
+      ...((input.minPrice !== undefined || input.maxPrice !== undefined) && {
+        salePrice: { gte: input.minPrice, lte: input.maxPrice }
+      })
+    }
+    const records = await prisma.voucherProduct.findMany({
+      where,
+      include: voucherInclude,
+      orderBy: { createdAt: 'desc' }
+    })
+    const filtered =
+      input.minDiscount === undefined
+        ? records
+        : records.filter(
+            (voucher) =>
+              Math.round(
+                ((Number(voucher.originalPrice) - Number(voucher.salePrice)) / Number(voucher.originalPrice)) * 100
+              ) >= input.minDiscount!
+          )
+    const start = (input.page - 1) * input.limit
+    return {
+      vouchers: filtered.slice(start, start + input.limit).map(toPublicVoucher),
+      pagination: { page: input.page, limit: input.limit, total: filtered.length }
+    }
+  },
+
+  async getPublic(voucherId: string) {
+    const now = new Date()
+    const voucher = await prisma.voucherProduct.findFirst({
+      where: {
+        id: voucherId,
+        status: VoucherStatus.ON_SALE,
+        remainingQuantity: { gt: 0 },
+        saleStart: { lte: now },
+        saleEnd: { gte: now }
+      },
+      include: voucherInclude
+    })
+    if (!voucher) throw AppError.notFound('Voucher')
+    return toPublicVoucher(voucher)
+  },
+
+  async getPublicFilters() {
+    const now = new Date()
+    const vouchers = await prisma.voucherProduct.findMany({
+      where: {
+        status: VoucherStatus.ON_SALE,
+        remainingQuantity: { gt: 0 },
+        saleStart: { lte: now },
+        saleEnd: { gte: now }
+      },
+      select: {
+        category: { select: { name: true } },
+        partner: { select: { id: true, legalName: true } },
+        voucherProductBranches: { select: { branch: { select: { region: true } } } }
+      }
+    })
+    return {
+      categories: [...new Set(vouchers.flatMap((voucher) => (voucher.category ? [voucher.category.name] : [])))].sort(),
+      regions: [
+        ...new Set(vouchers.flatMap((voucher) => voucher.voucherProductBranches.map(({ branch }) => branch.region)))
+      ].sort(),
+      partners: [
+        ...new Map(
+          vouchers.map((voucher) => [voucher.partner.id, { id: voucher.partner.id, name: voucher.partner.legalName }])
+        ).values()
+      ].sort((a, b) => a.name.localeCompare(b.name, 'vi'))
+    }
+  },
+
   async create(userId: string, input: CreateVoucherInput) {
     const partner = await getPartnerByOwner(userId)
     validateCompleteValues(input)
+    assertOwnedImage(input.imageUrl, partner.id)
     return prisma.$transaction(async (tx) => {
       await validateRelations(tx, partner.id, input)
       const voucher = await tx.voucherProduct.create({
@@ -268,6 +411,7 @@ export const voucherService = {
       usesPerCode: input.usesPerCode !== undefined ? input.usesPerCode : voucher.usesPerCode
     }
     validateCompleteValues(values)
+    assertOwnedImage(input.imageUrl, partner.id)
     return prisma.$transaction(async (tx) => {
       await validateRelations(tx, partner.id, input)
       const updated = await tx.voucherProduct.updateMany({
@@ -323,7 +467,11 @@ export const voucherService = {
   },
 
   async listAdmin(input: VoucherListInput) {
-    const where = input.status ? { status: input.status } : undefined
+    const where = input.status
+      ? { status: input.status }
+      : input.excludeStatus
+        ? { status: { not: input.excludeStatus } }
+        : undefined
     return listVouchers(input, where, { updatedAt: 'desc' })
   },
 

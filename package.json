@@ -9,7 +9,7 @@
     "frontend"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev --workspace=backend\" \"npm run dev --workspace=frontend\"",
+    "dev": "node scripts/dev.mjs",
     "build": "npm run build --workspace=shared && npm run build --workspace=backend && npm run build --workspace=frontend",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "eslint .",
@@ -17,12 +17,12 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "npm run test --workspaces --if-present",
-    "test:e2e": "tsx e2e/run-e2e.ts",
-    "test:e2e:ui": "tsx e2e/run-e2e.ts --ui",
-    "typecheck:e2e": "tsc --noEmit -p e2e/tsconfig.json",
+    "test:e2e": "playwright test --config=e2e/playwright.config.ts",
+    "tv4:verify": "node scripts/verify-tv4.mjs",
     "db:migrate": "npm run db:migrate --workspace=backend",
     "db:generate": "npm run db:generate --workspace=backend",
     "db:seed": "npm run db:seed --workspace=backend",
+    "db:seed:full": "npm run db:seed:full --workspace=backend",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -48,6 +48,8 @@
     "@eslint/js": "^9.39.4",
     "@playwright/test": "^1.62.1",
     "@prisma/client": "^6.19.3",
+    "@rolldown/binding-darwin-arm64": "^1.2.5",
+    "@rollup/rollup-darwin-arm64": "^4.62.5",
     "@types/node": "^25.9.2",
     "bcryptjs": "^3.0.3",
     "concurrently": "^10.0.4",

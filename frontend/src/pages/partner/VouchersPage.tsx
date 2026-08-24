@@ -19,7 +19,7 @@
 import { useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Badge, variantForStatus, Button, LoadingSpinner, Pagination } from '../../components/ui'
+import { Badge, variantForStatus, Button, ContentSkeleton, Pagination } from '../../components/ui'
 import {
   availableActions,
   getApiErrorMessage,
@@ -114,7 +114,7 @@ export function VouchersPage() {
 
       {isLoading && (
         <div style={{ padding: 32 }}>
-          <LoadingSpinner label='Đang tải voucher' />
+          <ContentSkeleton rows={5} variant='cards' label='Đang tải voucher' />
         </div>
       )}
 

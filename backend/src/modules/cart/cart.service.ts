@@ -21,6 +21,7 @@ const toCartResponse = (cart: {
     quantity: number
     voucherProduct: {
       name: string
+      imageUrl: string | null
       salePrice: Decimal
     }
   }>
@@ -35,6 +36,7 @@ const toCartResponse = (cart: {
       id: ci.id,
       voucherProductId: ci.voucherProductId,
       voucherProductName: ci.voucherProduct.name,
+      imageUrl: ci.voucherProduct.imageUrl,
       salePrice: formatDecimal(ci.voucherProduct.salePrice),
       quantity: ci.quantity,
       itemTotal: formatDecimal(itemTotal)
@@ -55,7 +57,7 @@ const cartInclude = {
   cartItems: {
     include: {
       voucherProduct: {
-        select: { name: true, salePrice: true }
+        select: { name: true, imageUrl: true, salePrice: true }
       }
     },
     orderBy: { createdAt: Prisma.SortOrder.asc }

@@ -32,6 +32,14 @@ function renderPage() {
 describe('VoucherBrowsePage', () => {
   beforeEach(() => {
     localStorage.clear()
+    vi.spyOn(voucherService, 'getVoucherFilterOptions').mockResolvedValue({
+      categories: ['Ăn uống', 'Làm đẹp & Spa', 'Du lịch & Khách sạn'],
+      regions: ['Hà Nội', 'TP. Hồ Chí Minh'],
+      partners: [
+        { id: 'p1', name: 'Serenity Spa' },
+        { id: 'p2', name: 'Tasty Bites' }
+      ]
+    })
   })
 
   afterEach(() => {
@@ -70,7 +78,7 @@ describe('VoucherBrowsePage', () => {
       target: { value: 'spa' }
     })
     fireEvent.change(screen.getByLabelText(/danh mục/i), {
-      target: { value: 'Spa & Beauty' }
+      target: { value: 'Làm đẹp & Spa' }
     })
     fireEvent.change(screen.getByLabelText(/giá thấp nhất/i), {
       target: { value: '50000' }
@@ -82,7 +90,7 @@ describe('VoucherBrowsePage', () => {
         page: 1,
         limit: 12,
         keyword: 'spa',
-        category: 'Spa & Beauty',
+        category: 'Làm đẹp & Spa',
         minPrice: 50000
       })
     })

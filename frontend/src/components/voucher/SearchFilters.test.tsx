@@ -13,6 +13,8 @@ function renderFilters(overrides: Partial<VoucherFilterValues> = {}) {
         { id: 'p1', name: 'Serenity Spa' },
         { id: 'p2', name: 'Tasty Bites' }
       ]}
+      categoryOptions={['Ăn uống', 'Làm đẹp & Spa', 'Du lịch & Khách sạn']}
+      regionOptions={['Hà Nội', 'TP. Hồ Chí Minh']}
     />
   )
   return { onChange }
@@ -37,7 +39,7 @@ describe('SearchFilters', () => {
       target: { value: '  spa  ' }
     })
     fireEvent.change(screen.getByLabelText(/danh mục/i), {
-      target: { value: 'Spa & Beauty' }
+      target: { value: 'Làm đẹp & Spa' }
     })
     fireEvent.change(screen.getByLabelText(/khu vực/i), {
       target: { value: 'Hà Nội' }
@@ -60,7 +62,7 @@ describe('SearchFilters', () => {
     expect(onChange).toHaveBeenCalledTimes(1)
     expect(onChange).toHaveBeenCalledWith({
       keyword: 'spa',
-      category: 'Spa & Beauty',
+      category: 'Làm đẹp & Spa',
       region: 'Hà Nội',
       partnerId: 'p2',
       minPrice: '50000',
@@ -78,7 +80,7 @@ describe('SearchFilters', () => {
   })
 
   it('clears all filters when Clear is pressed', () => {
-    const { onChange } = renderFilters({ keyword: 'spa', category: 'Travel' })
+    const { onChange } = renderFilters({ keyword: 'spa', category: 'Du lịch & Khách sạn' })
     fireEvent.click(screen.getByRole('button', { name: /xóa lọc/i }))
     expect(onChange).toHaveBeenCalledWith(EMPTY_FILTERS)
   })

@@ -92,6 +92,44 @@ describe('CreateVoucherPage', () => {
     expect(screen.getByRole('option', { name: 'Ẩm thực' })).toBeDefined()
   })
 
+  it('validates and previews an internally uploaded voucher image', async () => {
+    mockReferenceData()
+    const postSpy = vi.spyOn(api, 'post').mockResolvedValue({
+      data: { success: true, data: { url: '/uploads/vouchers/partner-1-voucher.png' } }
+    } as never)
+    renderPage()
+    await screen.findByText('Downtown')
+
+    const input = screen.getByLabelText(/tải ảnh lên/i)
+    fireEvent.change(input, {
+      target: { files: [new File(['png'], 'voucher.png', { type: 'image/png' })] }
+    })
+
+    await waitFor(() => expect(postSpy).toHaveBeenCalledWith('/vouchers/images', expect.any(FormData)))
+    expect((await screen.findByAltText(/xem trước voucher/i)).getAttribute('src')).toBe(
+      '/uploads/vouchers/partner-1-voucher.png'
+    )
+  })
+
+  it('rejects unsupported or oversized image files before upload', async () => {
+    mockReferenceData()
+    const postSpy = vi.spyOn(api, 'post')
+    renderPage()
+    await screen.findByText('Downtown')
+    const input = screen.getByLabelText(/tải ảnh lên/i)
+
+    fireEvent.change(input, {
+      target: { files: [new File(['text'], 'voucher.txt', { type: 'text/plain' })] }
+    })
+    expect((await screen.findByRole('alert')).textContent).toBe('Chỉ chấp nhận ảnh JPEG, PNG hoặc WebP.')
+
+    const oversized = new File(['x'], 'large.png', { type: 'image/png' })
+    Object.defineProperty(oversized, 'size', { value: 2 * 1024 * 1024 + 1 })
+    fireEvent.change(input, { target: { files: [oversized] } })
+    expect((await screen.findByRole('alert')).textContent).toBe('Ảnh voucher không được vượt quá 2 MB.')
+    expect(postSpy).not.toHaveBeenCalled()
+  })
+
   it('rejects invalid price and missing branch before calling the API', async () => {
     mockReferenceData()
     const postSpy = vi.spyOn(api, 'post')

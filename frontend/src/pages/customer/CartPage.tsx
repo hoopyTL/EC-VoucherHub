@@ -21,13 +21,16 @@
  *
  * _Requirements: 13.1, 13.2, 13.3, 13.4, 13.5_
  */
-import { useCallback, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../services/api'
 import { Button } from '../../components/ui/Button'
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner'
+import { ContentSkeleton } from '../../components/ui/ContentSkeleton'
+import { CheckoutProgress } from '../../components/customer/CheckoutProgress'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
+import { readCheckoutSelection, saveCheckoutSelection } from '../../services/checkout-selection'
 
 /** Maximum quantity of a single voucher allowed per order (mirrors backend). */
 export const MAX_QUANTITY_PER_ITEM = 10
@@ -40,6 +43,7 @@ export interface CartItemView {
   id: string
   voucherId: string
   title: string
+  imageUrl?: string | null
   unitPrice: number
   quantity: number
   subtotal: number
@@ -119,9 +123,9 @@ export function resolveCartError(err: unknown): string {
   const message = response?.data?.error?.message
   if (message) return message
   if (!response) {
-    return 'Unable to reach the server. Please check your connection and try again.'
+    return 'Không thể kết nối máy chủ. Vui lòng kiểm tra kết nối và thử lại.'
   }
-  return 'Something went wrong updating your cart. Please try again.'
+  return 'Không thể cập nhật giỏ hàng. Vui lòng thử lại.'
 }
 
 /* -------------------------------------------------------------------------- */
@@ -134,6 +138,8 @@ export function CartPage() {
   // Per-row error messages (keyed by cart item id) for inline feedback such as
   // insufficient-stock notices (Requirement 13.5).
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({})
+  const [selectedIds, setSelectedIds] = useState<string[]>(readCheckoutSelection)
+  const selectionInitialized = useRef(false)
 
   const setRowError = useCallback((id: string, message: string | null) => {
     setRowErrors((prev) => {
@@ -157,6 +163,26 @@ export function CartPage() {
     queryKey: CART_QUERY_KEY,
     queryFn: fetchCart
   })
+
+  useEffect(() => {
+    if (!cart) return
+    const availableIds = cart.items.map((item) => item.id)
+    setSelectedIds((current) => {
+      const valid = current.filter((id) => availableIds.includes(id))
+      const next = selectionInitialized.current ? valid : valid.length > 0 ? valid : availableIds
+      selectionInitialized.current = true
+      saveCheckoutSelection(next)
+      return next
+    })
+  }, [cart])
+
+  const toggleItem = useCallback((id: string) => {
+    setSelectedIds((current) => {
+      const next = current.includes(id) ? current.filter((itemId) => itemId !== id) : [...current, id]
+      saveCheckoutSelection(next)
+      return next
+    })
+  }, [])
 
   /**
    * Shared optimistic-mutation wiring: cancel in-flight fetches, snapshot the
@@ -231,7 +257,7 @@ export function CartPage() {
     return (
       <section style={sectionStyle}>
         <h1 style={headingStyle}>Giỏ hàng</h1>
-        <LoadingSpinner label='Đang tải giỏ hàng' />
+        <ContentSkeleton rows={3} variant='cards' label='Đang tải giỏ hàng' />
       </section>
     )
   }
@@ -262,11 +288,29 @@ export function CartPage() {
     )
   }
 
+  const selectedItems = cart.items.filter((item) => selectedIds.includes(item.id))
+  const selectedTotal = recalcTotal(selectedItems)
+  const allSelected = selectedItems.length === cart.items.length
+
+  const toggleAll = () => {
+    const next = allSelected ? [] : cart.items.map((item) => item.id)
+    setSelectedIds(next)
+    saveCheckoutSelection(next)
+  }
+
   return (
-    <section style={sectionStyle}>
+    <section className='customer-cart-view' style={sectionStyle}>
+      <CheckoutProgress current='cart' />
+      <div className='cart-selection-toolbar'>
+        <label className='cart-select-all'>
+          <input type='checkbox' checked={allSelected} onChange={toggleAll} />
+          <span>Chọn tất cả ({cart.items.length})</span>
+        </label>
+        <span>{selectedItems.length} sản phẩm được chọn</span>
+      </div>
       <h1 style={headingStyle}>Giỏ hàng</h1>
 
-      <ul style={listStyle}>
+      <ul className='customer-cart-list' style={listStyle}>
         {cart.items.map((item) => {
           const rowError = rowErrors[item.id]
           const isUpdatingRow = updateMutation.isPending && updateMutation.variables?.id === item.id
@@ -274,7 +318,28 @@ export function CartPage() {
           const rowBusy = isUpdatingRow || isRemovingRow
 
           return (
-            <li key={item.id} style={rowStyle} data-testid={`cart-item-${item.id}`}>
+            <li
+              className={`customer-cart-row${selectedIds.includes(item.id) ? ' is-selected' : ''}`}
+              key={item.id}
+              style={rowStyle}
+              data-testid={`cart-item-${item.id}`}
+            >
+              <label className='cart-item-check' aria-label={`Chọn ${item.title} để thanh toán`}>
+                <input type='checkbox' checked={selectedIds.includes(item.id)} onChange={() => toggleItem(item.id)} />
+              </label>
+              <div style={thumbnailStyle}>
+                <span>VH</span>
+                {item.imageUrl && (
+                  <img
+                    src={item.imageUrl}
+                    alt=''
+                    style={thumbnailImageStyle}
+                    onError={(event) => {
+                      event.currentTarget.style.display = 'none'
+                    }}
+                  />
+                )}
+              </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={titleStyle}>{item.title}</p>
                 <p style={metaStyle}>
@@ -335,19 +400,23 @@ export function CartPage() {
         })}
       </ul>
 
-      <div style={footerStyle}>
+      <div className='customer-cart-summary' style={footerStyle}>
         <div style={{ fontSize: 16 }}>
-          <span style={{ color: colors.slate, marginRight: 8 }}>Tổng giỏ hàng</span>
-          <strong data-testid='cart-total'>{formatPrice(cart.total)}</strong>
+          <span style={{ color: colors.slate, marginRight: 8 }}>Tổng thanh toán ({selectedItems.length} mục)</span>
+          <strong data-testid='cart-total'>{formatPrice(selectedTotal)}</strong>
           {isFetching && (
             <span style={{ marginLeft: 10, verticalAlign: 'middle' }}>
               <LoadingSpinner size='sm' inline label='Đang cập nhật giỏ hàng' />
             </span>
           )}
         </div>
-        <Link to='/checkout' style={{ textDecoration: 'none' }}>
-          <Button>Tiến hành thanh toán</Button>
-        </Link>
+        {selectedItems.length > 0 ? (
+          <Link to='/checkout' style={{ textDecoration: 'none' }}>
+            <Button>Thanh toán {selectedItems.length} voucher</Button>
+          </Link>
+        ) : (
+          <Button disabled>Vui lòng chọn voucher</Button>
+        )}
       </div>
     </section>
   )
@@ -358,7 +427,7 @@ export function CartPage() {
 /* -------------------------------------------------------------------------- */
 
 const sectionStyle: CSSProperties = {
-  maxWidth: 760,
+  maxWidth: 1040,
   margin: '0 auto'
 }
 
@@ -396,6 +465,29 @@ const rowStyle: CSSProperties = {
   borderRadius: radius.xl,
   background: colors.surface,
   boxShadow: shadows.card
+}
+
+const thumbnailStyle: CSSProperties = {
+  position: 'relative',
+  width: 88,
+  height: 66,
+  flexShrink: 0,
+  display: 'grid',
+  placeItems: 'center',
+  overflow: 'hidden',
+  borderRadius: radius.lg,
+  background: colors.ink,
+  color: colors.onInk,
+  fontFamily: fonts.display,
+  fontWeight: 800
+}
+
+const thumbnailImageStyle: CSSProperties = {
+  position: 'absolute',
+  inset: 0,
+  width: '100%',
+  height: '100%',
+  objectFit: 'cover'
 }
 
 const titleStyle: CSSProperties = {

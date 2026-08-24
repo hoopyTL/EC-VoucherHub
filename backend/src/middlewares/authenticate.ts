@@ -23,6 +23,8 @@ const assertPartnerCanAccess = (
 }
 
 export async function authenticate(req: Request, _res: Response, next: NextFunction) {
+  // Short-circuit when a previous middleware (e.g. devAuth) already set req.user
+  if ((req as any).user) return next()
   const authHeader = req.headers.authorization
 
   if (!authHeader?.startsWith('Bearer ')) {
@@ -42,7 +44,13 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
     where: { id: payload.sub },
     include: {
       role: true,
-      partner: { select: { id: true, approvalStatus: true, operatingStatus: true } }
+      partner: { select: { id: true, approvalStatus: true, operatingStatus: true } },
+      staffProfile: {
+        select: {
+          status: true,
+          partner: { select: { id: true, approvalStatus: true, operatingStatus: true } }
+        }
+      }
     }
   })
   if (!user) {
@@ -59,12 +67,19 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
   if (role === RoleName.PARTNER) {
     assertPartnerCanAccess(user.partner)
   }
+  if (role === RoleName.STAFF) {
+    if (!user.staffProfile || user.staffProfile.status !== 'ACTIVE') {
+      return next(AppError.forbidden('Tài khoản nhân viên đã ngừng hoạt động'))
+    }
+    assertPartnerCanAccess(user.staffProfile.partner)
+  }
 
   req.user = {
     sub: user.id,
     role,
     ver: user.tokenVersion,
-    ...(user.partner && { partnerId: user.partner.id })
+    ...(user.partner && { partnerId: user.partner.id }),
+    ...(user.staffProfile && { partnerId: user.staffProfile.partner.id })
   }
   next()
 }

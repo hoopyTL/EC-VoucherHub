@@ -21,7 +21,8 @@ import { useState, type CSSProperties, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { approveVoucher, getAdminApiError, listPendingVouchers, rejectVoucher } from '../../services/admin'
 import type { VoucherApprovalView } from '../../types/admin'
-import { Badge, Button, LoadingSpinner, Modal, Pagination, useToast, variantForStatus } from '../../components/ui'
+import { Badge, Button, ContentSkeleton, Modal, Pagination, useToast, variantForStatus } from '../../components/ui'
+import { DataTable } from '../../components/admin/DataTable'
 import { discountPercent, formatCurrency, formatDateRange, formatDateTime, formatStatus } from '../../utils/format'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
 import { VoucherManagementSection } from './VoucherManagementSection'
@@ -60,10 +61,10 @@ export function VoucherApprovalsPage() {
     onSuccess: async (_result, voucher) => {
       await invalidate()
       setDetail(null)
-      toast.success(`“${voucher.title}” has been approved.`)
+      toast.success(`Đã duyệt voucher “${voucher.title}”.`)
     },
     onError: (err) => {
-      toast.error(getAdminApiError(err, 'Could not approve the voucher. Please try again.'))
+      toast.error(getAdminApiError(err, 'Không thể duyệt voucher. Vui lòng thử lại.'))
     }
   })
 
@@ -73,10 +74,10 @@ export function VoucherApprovalsPage() {
       await invalidate()
       closeReject()
       setDetail(null)
-      toast.success(`“${vars.voucher.title}” has been rejected.`)
+      toast.success(`Đã từ chối voucher “${vars.voucher.title}”.`)
     },
     onError: (err) => {
-      setReasonError(getAdminApiError(err, 'Could not reject the voucher. Please try again.'))
+      setReasonError(getAdminApiError(err, 'Không thể từ chối voucher. Vui lòng thử lại.'))
     }
   })
 
@@ -101,7 +102,7 @@ export function VoucherApprovalsPage() {
     event.preventDefault()
     const trimmed = reason.trim()
     if (!trimmed) {
-      setReasonError('A rejection reason is required.')
+      setReasonError('Vui lòng nhập lý do từ chối.')
       return
     }
     if (rejecting) {
@@ -112,31 +113,29 @@ export function VoucherApprovalsPage() {
   return (
     <section style={pageStyle}>
       <header>
-        <p style={eyebrowStyle}>● Approvals</p>
-        <h1 style={titleStyle}>Voucher approvals</h1>
-        <p style={subtitleStyle}>
-          Review voucher submissions from partners and approve or reject them before they go live on the marketplace.
-        </p>
+        <p style={eyebrowStyle}>● Kiểm duyệt sản phẩm</p>
+        <h1 style={titleStyle}>Voucher chờ duyệt</h1>
+        <p style={subtitleStyle}>Kiểm tra nội dung, giá và thời hạn trước khi voucher được mở bán trên sàn.</p>
       </header>
 
       {isLoading && (
         <div style={{ padding: 48 }}>
-          <LoadingSpinner label='Loading pending vouchers' />
+          <ContentSkeleton rows={5} label='Đang tải voucher chờ duyệt' />
         </div>
       )}
 
       {!isLoading && isError && (
         <div role='alert' style={alertStyle}>
-          We couldn&apos;t load pending vouchers.{' '}
+          Không thể tải danh sách voucher chờ duyệt.{' '}
           <button type='button' style={linkButtonStyle} onClick={() => refetch()}>
-            Retry
+            Thử lại
           </button>
         </div>
       )}
 
       {!isLoading && !isError && data && vouchers.length === 0 && (
         <div style={emptyStyle}>
-          <p style={{ margin: 0 }}>No pending vouchers</p>
+          <p style={{ margin: 0 }}>Không có voucher nào đang chờ duyệt.</p>
         </div>
       )}
 
@@ -144,16 +143,16 @@ export function VoucherApprovalsPage() {
         <>
           <div style={cardStyle}>
             <div style={tableWrapperStyle}>
-              <table style={tableStyle}>
+              <DataTable style={tableStyle} accessibleLabel='Danh sách voucher chờ duyệt'>
                 <thead>
                   <tr>
                     <th style={thStyle}>Voucher</th>
-                    <th style={thStyle}>Partner</th>
-                    <th style={thStyle}>Category</th>
-                    <th style={thNumStyle}>Price</th>
-                    <th style={thNumStyle}>Qty</th>
-                    <th style={thStyle}>Sale period</th>
-                    <th style={thActionStyle}>Actions</th>
+                    <th style={thStyle}>Đối tác</th>
+                    <th style={thStyle}>Danh mục</th>
+                    <th style={thNumStyle}>Giá bán</th>
+                    <th style={thNumStyle}>Số lượng</th>
+                    <th style={thStyle}>Thời gian bán</th>
+                    <th style={thActionStyle}>Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -190,26 +189,26 @@ export function VoucherApprovalsPage() {
                               size='sm'
                               variant='secondary'
                               onClick={() => setDetail(voucher)}
-                              aria-label={`View ${voucher.title}`}
+                              aria-label={`Xem ${voucher.title}`}
                             >
-                              View
+                              Chi tiết
                             </Button>
                             <Button
                               size='sm'
                               variant='primary'
                               isLoading={approveMutation.isPending && approveMutation.variables?.id === voucher.id}
                               onClick={() => approveMutation.mutate(voucher)}
-                              aria-label={`Approve ${voucher.title}`}
+                              aria-label={`Duyệt ${voucher.title}`}
                             >
-                              Approve
+                              Duyệt
                             </Button>
                             <Button
                               size='sm'
                               variant='danger'
                               onClick={() => openReject(voucher)}
-                              aria-label={`Reject ${voucher.title}`}
+                              aria-label={`Từ chối ${voucher.title}`}
                             >
-                              Reject
+                              Từ chối
                             </Button>
                           </div>
                         </td>
@@ -217,7 +216,7 @@ export function VoucherApprovalsPage() {
                     )
                   })}
                 </tbody>
-              </table>
+              </DataTable>
             </div>
           </div>
 
@@ -241,14 +240,14 @@ export function VoucherApprovalsPage() {
           detail && (
             <>
               <Button variant='danger' onClick={() => detail && openReject(detail)}>
-                Reject
+                Từ chối
               </Button>
               <Button
                 variant='primary'
                 isLoading={approveMutation.isPending}
                 onClick={() => detail && approveMutation.mutate(detail)}
               >
-                Approve
+                Duyệt
               </Button>
             </>
           )
@@ -267,24 +266,24 @@ export function VoucherApprovalsPage() {
             )}
 
             <dl style={detailGridStyle}>
-              <DetailRow label='Partner' value={detail.partner.businessName} />
-              <DetailRow label='Sale price' value={formatCurrency(detail.salePrice)} />
-              <DetailRow label='Original price' value={formatCurrency(detail.originalPrice)} />
-              <DetailRow label='Quantity' value={`${detail.soldQuantity} / ${detail.totalQuantity} sold`} />
+              <DetailRow label='Đối tác' value={detail.partner.businessName} />
+              <DetailRow label='Giá bán' value={formatCurrency(detail.salePrice)} />
+              <DetailRow label='Giá gốc' value={formatCurrency(detail.originalPrice)} />
+              <DetailRow label='Số lượng' value={`Đã bán ${detail.soldQuantity} / ${detail.totalQuantity}`} />
               <DetailRow
-                label='Sale period'
+                label='Thời gian mở bán'
                 value={formatDateRange(detail.salePeriodStart, detail.salePeriodEnd) || '—'}
               />
               <DetailRow
-                label='Usage period'
+                label='Thời hạn sử dụng'
                 value={formatDateRange(detail.usagePeriodStart, detail.usagePeriodEnd) || '—'}
               />
-              <DetailRow label='Submitted' value={formatDateTime(detail.createdAt) || '—'} />
+              <DetailRow label='Ngày gửi duyệt' value={formatDateTime(detail.createdAt) || '—'} />
             </dl>
 
             {detail.terms && (
               <div>
-                <p style={detailTermStyle}>Terms &amp; conditions</p>
+                <p style={detailTermStyle}>Điều khoản và điều kiện</p>
                 <p style={{ margin: '4px 0 0', color: colors.slate, lineHeight: 1.6 }}>{detail.terms}</p>
               </div>
             )}
@@ -296,15 +295,15 @@ export function VoucherApprovalsPage() {
       <Modal
         isOpen={rejecting !== null}
         onClose={closeReject}
-        title='Reject voucher'
+        title='Từ chối voucher'
         size='sm'
         footer={
           <>
             <Button variant='secondary' onClick={closeReject}>
-              Cancel
+              Quay lại
             </Button>
             <Button variant='danger' type='submit' form='reject-voucher-form' isLoading={rejectMutation.isPending}>
-              Reject voucher
+              Xác nhận từ chối
             </Button>
           </>
         }
@@ -312,12 +311,12 @@ export function VoucherApprovalsPage() {
         <form id='reject-voucher-form' onSubmit={handleRejectSubmit}>
           {rejecting && (
             <p style={{ margin: '0 0 12px', color: colors.slate }}>
-              Provide a reason for rejecting <strong style={{ color: colors.ink }}>“{rejecting.title}”</strong>. This is
-              shared with the partner.
+              Nhập lý do từ chối <strong style={{ color: colors.ink }}>“{rejecting.title}”</strong>. Nội dung này sẽ
+              được gửi cho đối tác.
             </p>
           )}
           <label htmlFor='voucher-reject-reason' style={labelStyle}>
-            Rejection reason
+            Lý do từ chối
             <span aria-hidden='true' style={{ color: colors.danger, marginLeft: 2 }}>
               *
             </span>
@@ -330,7 +329,7 @@ export function VoucherApprovalsPage() {
               if (reasonError) setReasonError(null)
             }}
             rows={4}
-            placeholder='Explain why this voucher is being rejected…'
+            placeholder='Nhập lý do từ chối voucher…'
             aria-invalid={reasonError ? true : undefined}
             aria-describedby={reasonError ? 'voucher-reject-error' : undefined}
             style={{

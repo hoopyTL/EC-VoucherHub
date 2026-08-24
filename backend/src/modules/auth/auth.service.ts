@@ -90,7 +90,13 @@ export const authService = {
       where: { OR: [{ email: dto.identifier }, { phone: dto.identifier }] },
       include: {
         role: true,
-        partner: { select: { id: true, approvalStatus: true, operatingStatus: true } }
+        partner: { select: { id: true, approvalStatus: true, operatingStatus: true } },
+        staffProfile: {
+          select: {
+            status: true,
+            partner: { select: { id: true, approvalStatus: true, operatingStatus: true } }
+          }
+        }
       }
     })
 
@@ -106,11 +112,18 @@ export const authService = {
     if (role === RoleName.PARTNER) {
       assertPartnerCanAccess(user.partner)
     }
+    if (role === RoleName.STAFF) {
+      if (!user.staffProfile || user.staffProfile.status !== 'ACTIVE') {
+        throw AppError.forbidden('Tài khoản nhân viên đã ngừng hoạt động')
+      }
+      assertPartnerCanAccess(user.staffProfile.partner)
+    }
     const token = signAccessToken({
       sub: user.id,
       role,
       ver: user.tokenVersion,
-      ...(user.partner && { partnerId: user.partner.id })
+      ...(user.partner && { partnerId: user.partner.id }),
+      ...(user.staffProfile && { partnerId: user.staffProfile.partner.id })
     })
 
     return { token, user: { id: user.id, role } }

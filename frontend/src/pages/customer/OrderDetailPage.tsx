@@ -14,12 +14,26 @@
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
-import type { CSSProperties } from 'react'
+import { useState, type CSSProperties } from 'react'
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Clock3,
+  CreditCard,
+  Landmark,
+  Wallet,
+  ReceiptText,
+  ShieldCheck,
+  WalletCards,
+  XCircle
+} from 'lucide-react'
 import { api } from '../../services/api'
 import type { Order } from '../../types/customer'
-import { Badge, variantForStatus, LoadingSpinner, Button } from '../../components/ui'
+import { Badge, variantForStatus, LoadingSpinner, Button, ConfirmDialog, useToast } from '../../components/ui'
 import { formatCurrency, formatDateTime, formatStatus } from '../../utils/format'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
+import { CheckoutProgress } from '../../components/customer/CheckoutProgress'
+import { getOrderPayments, type PaymentTransactionResponse } from '../../services/orders'
 
 async function fetchOrder(id: string): Promise<Order> {
   const { data } = await api.get<any>(`/orders/${id}`)
@@ -33,6 +47,8 @@ function isNotFound(error: unknown): boolean {
 
 export function OrderDetailPage() {
   const { id = '' } = useParams<{ id: string }>()
+  const toast = useToast()
+  const [showCancelDialog, setShowCancelDialog] = useState(false)
 
   const {
     data: order,
@@ -46,6 +62,17 @@ export function OrderDetailPage() {
   })
 
   const queryClient = useQueryClient()
+  const {
+    data: payments = [],
+    isLoading: isLoadingPayments,
+    isError: isPaymentsError,
+    refetch: refetchPayments
+  } = useQuery({
+    queryKey: ['order-payments', id],
+    queryFn: () => getOrderPayments(id),
+    enabled: Boolean(id && order),
+    retry: 1
+  })
   const cancelMutation = useMutation({
     mutationFn: async () => {
       const { cancelOrder } = await import('../../services/orders')
@@ -53,10 +80,11 @@ export function OrderDetailPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['order', id] })
-      alert('Đã hủy đơn hàng thành công, số lượng voucher đã được hoàn lại kho.')
+      setShowCancelDialog(false)
+      toast.success('Đã hủy đơn hàng thành công, số lượng voucher đã được hoàn lại kho.')
     },
     onError: (err: any) => {
-      alert('Lỗi hủy đơn: ' + (err?.response?.data?.message || err?.message || 'Không xác định'))
+      toast.error(err?.response?.data?.error?.message || 'Không thể hủy đơn hàng. Vui lòng thử lại.')
     }
   })
 
@@ -99,15 +127,18 @@ export function OrderDetailPage() {
   }
 
   return (
-    <section style={wrapperStyle}>
-      <p style={{ marginTop: 0, marginBottom: 8 }}>
-        <Link to='/orders' style={linkStyle}>
-          ← Quay lại đơn hàng
+    <section className='order-detail-page' style={wrapperStyle}>
+      <p style={{ marginTop: 0, marginBottom: 18 }}>
+        <Link to='/orders' className='order-detail-back' style={linkStyle}>
+          <ArrowLeft size={17} aria-hidden='true' /> Quay lại đơn hàng
         </Link>
       </p>
 
-      <div style={headerStyle}>
+      <CheckoutProgress current={isPaid ? 'complete' : 'checkout'} />
+
+      <div className='order-detail-hero' style={headerStyle}>
         <div>
+          <span className='order-detail-eyebrow'>Chi tiết giao dịch</span>
           <h1 style={{ margin: 0, fontFamily: fonts.display, letterSpacing: '-0.02em', color: colors.ink }}>
             Đơn #{order.id.slice(0, 8)}
           </h1>
@@ -127,54 +158,99 @@ export function OrderDetailPage() {
         </div>
       )}
 
-      <div style={cardStyle}>
-        <h2 style={cardTitleStyle}>Voucher</h2>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
-          <thead>
-            <tr>
-              <th style={thStyle}>Voucher</th>
-              <th style={{ ...thStyle, textAlign: 'center' }}>SL</th>
-              <th style={{ ...thStyle, textAlign: 'right' }}>Đơn giá</th>
-              <th style={{ ...thStyle, textAlign: 'right' }}>Thành tiền</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(order.items || []).map((item) => (
-              <tr key={item.id}>
-                <td style={tdStyle}>{item.voucherProductName}</td>
-                <td style={{ ...tdStyle, textAlign: 'center' }}>{item.quantity}</td>
-                <td style={{ ...tdStyle, textAlign: 'right' }}>{formatCurrency(item.unitPrice)}</td>
-                <td style={{ ...tdStyle, textAlign: 'right' }}>
-                  {formatCurrency(Number(item.unitPrice) * item.quantity)}
-                </td>
+      <div className='order-detail-card' style={cardStyle}>
+        <div className='order-card-heading'>
+          <span className='order-card-icon'>
+            <ReceiptText size={20} aria-hidden='true' />
+          </span>
+          <div>
+            <h2 style={cardTitleStyle}>Voucher trong đơn</h2>
+            <p>Kiểm tra sản phẩm và số lượng trước khi thanh toán.</p>
+          </div>
+        </div>
+        <div className='order-detail-table-wrap'>
+          <table
+            className='order-summary-table'
+            style={{ width: '100%', minWidth: 560, borderCollapse: 'collapse', fontSize: 14 }}
+          >
+            <thead>
+              <tr>
+                <th style={thStyle}>Voucher</th>
+                <th style={{ ...thStyle, textAlign: 'center' }}>SL</th>
+                <th style={{ ...thStyle, textAlign: 'right' }}>Đơn giá</th>
+                <th style={{ ...thStyle, textAlign: 'right' }}>Thành tiền</th>
               </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr>
-              <td style={{ ...tdStyle, fontWeight: 600 }} colSpan={3}>
-                Tổng cộng
-              </td>
-              <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600 }}>{formatCurrency(order.totalAmount)}</td>
-            </tr>
-          </tfoot>
-        </table>
+            </thead>
+            <tbody>
+              {(order.items || []).map((item) => (
+                <tr key={item.id}>
+                  <td style={tdStyle}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span>{item.voucherProductName}</span>
+                      {isPaid && (
+                        <Link
+                          to={`/vouchers/${item.voucherProductId}#reviews`}
+                          style={{
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            color: 'var(--accent, #4338ca)',
+                            background: '#e0e7ff',
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            textDecoration: 'none'
+                          }}
+                          data-testid={`review-link-${item.id}`}
+                        >
+                          ★ Đánh giá
+                        </Link>
+                      )}
+                    </div>
+                  </td>
+                  <td style={{ ...tdStyle, textAlign: 'center' }}>{item.quantity}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right' }}>{formatCurrency(item.unitPrice)}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right' }}>
+                    {formatCurrency(Number(item.unitPrice) * item.quantity)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td style={{ ...tdStyle, fontWeight: 600 }} colSpan={3}>
+                  Tổng cộng
+                </td>
+                <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600 }}>{formatCurrency(order.totalAmount)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
       </div>
 
       {order.status === 'PENDING_PAYMENT' && (
-        <div style={cardStyle}>
-          <p style={{ margin: 0, color: colors.ink }}>Đơn hàng đang chờ hoàn tất thanh toán.</p>
-          <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
+        <div className='order-payment-card' style={cardStyle}>
+          <div className='order-payment-heading'>
+            <div>
+              <span>Thanh toán an toàn</span>
+              <h2>Chọn phương thức thanh toán</h2>
+            </div>
+            <ShieldCheck size={30} aria-hidden='true' />
+          </div>
+          <p className='order-payment-note'>
+            Đơn hàng đang chờ hoàn tất thanh toán và được giữ chỗ. Giao dịch được mã hóa và xử lý qua cổng thanh toán
+            bảo mật.
+          </p>
+          <div className='order-payment-actions' style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 16 }}>
             <Button
               variant='primary'
-              style={{ backgroundColor: '#005baa' }}
+              leftIcon={<Landmark size={19} aria-hidden='true' />}
+              style={{ backgroundColor: colors.accent, borderColor: colors.accent }}
               onClick={async () => {
                 try {
                   const { getVNPayUrl } = await import('../../services/orders')
                   const url = await getVNPayUrl(order.id)
                   window.location.href = url
-                } catch (e) {
-                  alert('Khởi tạo VNPay thất bại, vui lòng thử lại!')
+                } catch (error: any) {
+                  toast.error(error?.response?.data?.error?.message || 'Không thể mở VNPay. Vui lòng thử lại.')
                 }
               }}
             >
@@ -182,20 +258,73 @@ export function OrderDetailPage() {
             </Button>
 
             <Button
-              variant='danger'
-              disabled={cancelMutation.isPending}
-              isLoading={cancelMutation.isPending}
-              onClick={() => {
-                if (window.confirm('Bạn có chắc muốn hủy đơn hàng này không? Voucher sẽ được trả lại kho.')) {
-                  cancelMutation.mutate()
+              variant='primary'
+              leftIcon={<CreditCard size={19} aria-hidden='true' />}
+              style={{ backgroundColor: colors.ink, borderColor: colors.ink }}
+              onClick={async () => {
+                try {
+                  const { getStripeUrl } = await import('../../services/orders')
+                  const url = await getStripeUrl(order.id)
+                  window.location.href = url
+                } catch (error: any) {
+                  toast.error(
+                    error?.response?.data?.error?.message || 'Không thể mở cổng thanh toán quốc tế. Vui lòng thử lại.'
+                  )
                 }
               }}
+            >
+              Thanh toán qua thẻ quốc tế (Stripe)
+            </Button>
+
+            <Button
+              variant='primary'
+              leftIcon={<Wallet size={19} aria-hidden='true' />}
+              style={{ backgroundColor: '#0070ba', borderColor: '#0070ba' }}
+              onClick={async () => {
+                try {
+                  const { getPayPalUrl } = await import('../../services/orders')
+                  const url = await getPayPalUrl(order.id)
+                  window.location.href = url
+                } catch (error: any) {
+                  toast.error(error?.response?.data?.error?.message || 'Không thể mở PayPal Sandbox. Vui lòng thử lại.')
+                }
+              }}
+            >
+              Thanh toán qua PayPal
+            </Button>
+
+            <Button
+              variant='secondary'
+              leftIcon={<XCircle size={18} aria-hidden='true' />}
+              style={{ color: colors.danger, borderColor: colors.danger }}
+              disabled={cancelMutation.isPending}
+              isLoading={cancelMutation.isPending}
+              onClick={() => setShowCancelDialog(true)}
             >
               Hủy đơn
             </Button>
           </div>
         </div>
       )}
+
+      <PaymentHistory
+        payments={payments}
+        isLoading={isLoadingPayments}
+        isError={isPaymentsError}
+        onRetry={() => void refetchPayments()}
+      />
+
+      <ConfirmDialog
+        open={showCancelDialog}
+        title='Xác nhận hủy đơn hàng'
+        message='Bạn có chắc muốn hủy đơn hàng này không? Số lượng voucher sẽ được trả lại kho.'
+        confirmLabel='Hủy đơn'
+        cancelLabel='Tiếp tục thanh toán'
+        danger
+        busy={cancelMutation.isPending}
+        onConfirm={() => cancelMutation.mutate()}
+        onCancel={() => setShowCancelDialog(false)}
+      />
 
       {isPaid && (
         <div style={cardStyle}>
@@ -218,7 +347,95 @@ export function OrderDetailPage() {
   )
 }
 
-const wrapperStyle: CSSProperties = { maxWidth: 760, margin: '0 auto' }
+function PaymentHistory({
+  payments,
+  isLoading,
+  isError,
+  onRetry
+}: {
+  payments: PaymentTransactionResponse[]
+  isLoading: boolean
+  isError: boolean
+  onRetry: () => void
+}) {
+  return (
+    <div className='payment-history-card' style={cardStyle}>
+      <div className='payment-history-header'>
+        <span className='order-card-icon'>
+          <WalletCards size={20} aria-hidden='true' />
+        </span>
+        <div>
+          <h2 style={cardTitleStyle}>Thông tin thanh toán</h2>
+          <p>Phương thức và số tiền của giao dịch đã hoàn tất.</p>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className='payment-history-state'>
+          <LoadingSpinner label='Đang tải lịch sử thanh toán' />
+        </div>
+      ) : isError ? (
+        <div className='payment-history-state payment-history-error' role='alert'>
+          <span>Chưa thể tải lịch sử giao dịch.</span>
+          <button type='button' onClick={onRetry}>
+            Thử lại
+          </button>
+        </div>
+      ) : payments.length === 0 ? (
+        <div className='payment-history-empty'>
+          <Clock3 size={22} aria-hidden='true' />
+          <div>
+            <strong>Chưa có thanh toán thành công</strong>
+            <span>Thông tin sẽ xuất hiện sau khi đơn hàng được thanh toán.</span>
+          </div>
+        </div>
+      ) : (
+        <ol className='payment-timeline'>
+          {payments.map((payment) => {
+            const StatusIcon = CheckCircle2
+            const eventTime = payment.refundedAt || payment.paidAt || payment.createdAt
+            return (
+              <li key={payment.id} className={`payment-timeline-item payment-${payment.status.toLowerCase()}`}>
+                <span className='payment-timeline-marker'>
+                  <StatusIcon size={18} aria-hidden='true' />
+                </span>
+                <div className='payment-timeline-content'>
+                  <div className='payment-timeline-main'>
+                    <div>
+                      <strong>{gatewayLabel(payment.gateway)}</strong>
+                      <span>{formatDateTime(eventTime)}</span>
+                    </div>
+                    <div className='payment-timeline-amount'>
+                      <strong>{formatCurrency(payment.amount)}</strong>
+                      <span className='payment-status-label'>Đã thanh toán</span>
+                    </div>
+                  </div>
+                  {payment.gatewayTransId && (
+                    <div className='payment-timeline-meta'>
+                      <span>Mã đối soát: {payment.gatewayTransId}</span>
+                    </div>
+                  )}
+                </div>
+              </li>
+            )
+          })}
+        </ol>
+      )}
+    </div>
+  )
+}
+
+function gatewayLabel(gateway: string): string {
+  const labels: Record<string, string> = {
+    VNPAY: 'VNPay',
+    STRIPE: 'Thẻ quốc tế · Stripe',
+    PAYPAL: 'PayPal',
+    SIMULATE: 'Thanh toán mô phỏng'
+  }
+  return labels[gateway.toUpperCase()] || gateway
+}
+
+const wrapperStyle: CSSProperties = { maxWidth: 980, margin: '0 auto' }
 
 const pageHeadingStyle: CSSProperties = {
   marginTop: 0,

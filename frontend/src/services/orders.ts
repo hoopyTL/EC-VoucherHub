@@ -7,7 +7,7 @@
  *   - GET  /cart                 → {@link getCart}        (order summary source)
  *   - POST /orders               → {@link createOrder}    (Req 14.1, 14.2)
  *   - GET  /orders/:id           → {@link getOrder}       (payment page summary)
- *   - POST /orders/:id/pay       → {@link payOrder}       (Req 15.1–15.3)
+ *   - POST /orders/:id/payment   → {@link payOrder}       (Req 15.1–15.3)
  *   - POST /orders/:id/cancel    → {@link cancelOrder}    (Req 15.4)
  *
  * Response typing notes:
@@ -72,11 +72,26 @@ export interface OrderResponse {
   }>
 }
 
-/** Result of a successful payment (`POST /orders/:id/pay`). */
+/** Result of a successful payment (`POST /orders/:id/payment`). */
 export interface PaymentResultResponse {
   order: OrderResponse
   /** Number of voucher codes issued for the order (Req 16.1). */
   issuedCodeCount: number
+}
+
+/** A recorded gateway attempt returned by `GET /orders/:id/payments`. */
+export interface PaymentTransactionResponse {
+  id: string
+  orderId: string
+  gateway: string
+  gatewayTransId: string | null
+  amount: string
+  currency: string
+  status: 'PENDING' | 'SUCCESS' | 'FAILED' | 'REFUNDED'
+  failureReason: string | null
+  paidAt: string | null
+  refundedAt: string | null
+  createdAt: string
 }
 
 // ---------------------------------------------------------------------------
@@ -130,7 +145,7 @@ export async function getOrder(orderId: string): Promise<OrderResponse> {
 
 /** Submit a simulated payment for an order (success/failure). */
 export async function payOrder(orderId: string, body: PaymentRequest): Promise<PaymentResultResponse> {
-  const { data } = await api.post<PaymentResultResponse>(`/orders/${orderId}/pay`, body)
+  const { data } = await api.post<PaymentResultResponse>(`/orders/${orderId}/payment`, body)
   return (data as any).data || data
 }
 
@@ -144,6 +159,29 @@ export async function cancelOrder(orderId: string): Promise<OrderResponse> {
 export async function getVNPayUrl(orderId: string): Promise<string> {
   const { data } = await api.get<{ data: { url: string } }>(`/orders/${orderId}/vnpay`)
   return data.data.url
+}
+
+/** Get the Stripe Checkout URL for an order. */
+export async function getStripeUrl(orderId: string): Promise<string> {
+  const { data } = await api.get<{ data: { url: string } }>(`/orders/${orderId}/stripe`)
+  return data.data.url
+}
+
+/** Get the PayPal Sandbox approval URL for an order. */
+export async function getPayPalUrl(orderId: string): Promise<string> {
+  const { data } = await api.get<{ data: { url: string } }>(`/orders/${orderId}/paypal`)
+  return data.data.url
+}
+
+/** Capture an approved PayPal order and issue voucher codes. */
+export async function capturePayPalPayment(orderId: string, paypalOrderId: string): Promise<void> {
+  await api.post(`/orders/${orderId}/paypal/capture`, { paypalOrderId })
+}
+
+/** Fetch the authenticated customer's payment attempts for one order. */
+export async function getOrderPayments(orderId: string): Promise<PaymentTransactionResponse[]> {
+  const { data } = await api.get<{ data: PaymentTransactionResponse[] }>(`/orders/${orderId}/payments`)
+  return (data as any).data || data
 }
 
 // ---------------------------------------------------------------------------

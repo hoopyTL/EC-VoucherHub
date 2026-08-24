@@ -23,6 +23,7 @@ export interface CartItemResponse {
   id: number
   voucherProductId: string
   voucherProductName: string
+  imageUrl: string | null
   salePrice: string // Decimal as string
   quantity: number
   itemTotal: string // salePrice × quantity

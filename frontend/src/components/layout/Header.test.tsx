@@ -77,8 +77,8 @@ describe('Header navigation', () => {
   it('shows customer links once authenticated', () => {
     renderHeader(makeAuth({ user: customer, token: 't', isAuthenticated: true }))
 
-    expect(screen.getByText('Cart')).toBeDefined()
-    expect(screen.getByText('Orders')).toBeDefined()
+    expect(screen.getByRole('link', { name: 'Mở giỏ hàng' })).toBeDefined()
+    expect(screen.queryByText('Orders')).toBeNull()
     expect(screen.queryByText('My Codes')).toBeNull()
     // No guest CTAs when signed in.
     expect(screen.queryByText(/sign up/i)).toBeNull()

@@ -122,7 +122,7 @@ export interface ToastContextValue {
 
 const ToastContext = createContext<ToastContextValue | null>(null)
 
-const DEFAULT_DURATION = 4000
+const DEFAULT_DURATION = 3000
 
 let toastCounter = 0
 function nextToastId(): string {
@@ -218,7 +218,7 @@ export function ToastProvider({ children, position = 'top-right' }: ToastProvide
       {children}
       <div style={viewportStyle} aria-label='Thông báo'>
         {toasts.map((toast) => (
-          <div key={toast.id} style={{ pointerEvents: 'auto' }}>
+          <div key={toast.id} className='toast-motion' style={{ pointerEvents: 'auto' }}>
             <Toast message={toast.message} variant={toast.variant} onClose={() => dismissToast(toast.id)} />
           </div>
         ))}

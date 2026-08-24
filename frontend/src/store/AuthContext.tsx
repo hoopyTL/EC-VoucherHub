@@ -127,6 +127,7 @@ function previewUserForPath(pathname: string): AuthUser | null {
 function previewRoleForIdentifier(identifier: string): UserRole {
   const normalized = identifier.toLowerCase()
   if (normalized.includes('admin')) return 'ADMIN'
+  if (normalized.includes('staff')) return 'STAFF'
   if (normalized.includes('partner')) return 'PARTNER'
   return 'CUSTOMER'
 }

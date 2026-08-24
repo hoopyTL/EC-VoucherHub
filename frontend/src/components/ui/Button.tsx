@@ -43,7 +43,7 @@ const SIZE_STYLES: Record<ButtonSize, CSSProperties> = {
 const ARROW_SIZE: Record<ButtonSize, number> = { sm: 18, md: 22, lg: 26 }
 
 const VARIANT_STYLES: Record<ButtonVariant, CSSProperties> = {
-  primary: { background: colors.ink, color: colors.onInk, border: `1px solid ${colors.ink}` },
+  primary: { background: colors.accent, color: colors.onAccent, border: `1px solid ${colors.accent}` },
   secondary: {
     background: colors.surface,
     color: colors.ink,

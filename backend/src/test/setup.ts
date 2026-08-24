@@ -9,5 +9,5 @@ process.env.NODE_ENV = 'test'
 
 afterAll(async () => {
   const { default: prisma } = await import('~/configs/prisma')
-  await prisma.$disconnect()
+  if (typeof prisma.$disconnect === 'function') await prisma.$disconnect()
 })

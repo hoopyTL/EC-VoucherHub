@@ -4,21 +4,16 @@
 
 ## 1. Tổng quan
 
-Schema hiện tại đã triển khai **13 bảng MVP-High** trong PostgreSQL qua Prisma:
+Schema hiện tại đã triển khai **19 bảng** trong PostgreSQL qua Prisma:
 
 - **Tài khoản & vai trò**: `roles`, `users`
-- **Đối tác**: `partners`, `branches`
+- **Đối tác**: `partners`, `branches`, `partner_staff`, `partner_staff_branches`
 - **Danh mục & voucher**: `categories`, `voucher_products`, `voucher_product_branches`
 - **Giỏ hàng**: `carts`, `cart_items`
-- **Mua hàng**: `orders`, `order_items`
+- **Mua hàng**: `orders`, `order_items`, `payment_transactions`
 - **Phát hành & sử dụng**: `issued_voucher_codes`, `usage_logs`
-
-Các bảng **chưa có trong schema hiện tại** và đang nằm ngoài scope triển khai:
-
-- `partner_staff`
-- `reviews`
-- `audit_logs`
-- `content_items`
+- **Đánh giá & phản hồi**: `reviews`
+- **Vận hành**: `content_items`, `audit_logs`
 
 Ba thực thể trạng thái trung tâm:
 
@@ -36,6 +31,7 @@ Ba thực thể trạng thái trung tâm:
   - `carts.id`
   - `orders.id`
   - `issued_voucher_codes.id`
+  - `reviews.id`
 - Tiền tệ dùng `numeric(12,2)`
 - Thời gian dùng `timestamptz(6)`
 - Enum DB được map qua Prisma enum + `@@map(...)`
@@ -46,13 +42,18 @@ Ba thực thể trạng thái trung tâm:
 erDiagram
     ROLES ||--o{ USERS : "phân vai"
     USERS ||--o| PARTNERS : "đại diện"
+    USERS ||--o| PARTNER_STAFF : "tài khoản nhân viên"
     USERS ||--o| CARTS : "sở hữu"
     USERS ||--o{ ORDERS : "đặt"
     USERS ||--o{ ISSUED_VOUCHER_CODES : "sở hữu"
     USERS ||--o{ USAGE_LOGS : "người xác nhận"
+    USERS ||--o{ REVIEWS : "đánh giá"
 
     PARTNERS ||--o{ BRANCHES : "có"
     PARTNERS ||--o{ VOUCHER_PRODUCTS : "sở hữu"
+    PARTNERS ||--o{ PARTNER_STAFF : "tuyển dụng"
+    PARTNER_STAFF ||--o{ PARTNER_STAFF_BRANCHES : "được phân công"
+    BRANCHES ||--o{ PARTNER_STAFF_BRANCHES : "có nhân viên"
 
     CATEGORIES ||--o{ CATEGORIES : "danh mục cha"
     CATEGORIES ||--o{ VOUCHER_PRODUCTS : "phân loại"
@@ -72,6 +73,9 @@ erDiagram
 
     ISSUED_VOUCHER_CODES ||--o{ USAGE_LOGS : "ghi nhận"
     BRANCHES ||--o{ USAGE_LOGS : "xác thực tại"
+
+    VOUCHER_PRODUCTS ||--o{ REVIEWS : "nhận đánh giá"
+    ORDERS ||--o{ REVIEWS : "được đánh giá từ"
 ```
 
 ## 4. Data Dictionary
@@ -125,6 +129,25 @@ erDiagram
 | `name` | `varchar(255)` | NOT NULL | |
 | `address` | `text` | NOT NULL | |
 | `region` | `varchar(128)` | NOT NULL | lọc khu vực |
+
+### `partner_staff`
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+| --- | --- | --- | --- |
+| `id` | `uuid` | PK | hồ sơ nhân viên |
+| `user_id` | `uuid` | FK→`users`, UNIQUE, NOT NULL | một tài khoản chỉ có một hồ sơ nhân viên |
+| `partner_id` | `uuid` | FK→`partners`, NOT NULL | nhân viên thuộc đúng một đối tác |
+| `status` | `staff_status` | NOT NULL, default `active` | `active` hoặc `inactive` |
+| `created_at` | `timestamptz(6)` | NOT NULL | |
+| `updated_at` | `timestamptz(6)` | NOT NULL | |
+
+### `partner_staff_branches`
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+| --- | --- | --- | --- |
+| `staff_id` | `uuid` | PK, FK→`partner_staff` | |
+| `branch_id` | `int` | PK, FK→`branches` | một nhân viên có thể làm nhiều chi nhánh |
+| `created_at` | `timestamptz(6)` | NOT NULL | |
 
 ### `categories`
 
@@ -245,9 +268,18 @@ erDiagram
 | `id` | `serial` | PK | |
 | `issued_code_id` | `uuid` | FK→`issued_voucher_codes`, NOT NULL | |
 | `branch_id` | `int` | FK→`branches`, NOT NULL | |
-| `actor_user_id` | `uuid` | FK→`users`, NOT NULL | |
-| `used_at` | `timestamptz(6)` | NOT NULL | |
-| `result` | `usage_result` | NOT NULL | |
+### `reviews`
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+| --- | --- | --- | --- |
+| `id` | `uuid` | PK | |
+| `customer_id` | `uuid` | FK→`users`, NOT NULL | Khách hàng đánh giá |
+| `voucher_product_id` | `uuid` | FK→`voucher_products`, NOT NULL | Voucher nhận đánh giá |
+| `order_id` | `uuid` | FK→`orders`, NOT NULL | Đơn hàng đã thanh toán liên quan (FR-10) |
+| `rating` | `int` | NOT NULL | 1–5 sao |
+| `comment` | `text` | nullable | Nhận xét chi tiết (tối đa 1000 ký tự) |
+| `created_at` | `timestamptz(6)` | NOT NULL | |
+| `updated_at` | `timestamptz(6)` | NOT NULL | Cập nhật khi chỉnh sửa nhận xét |
 
 ## 5. Index hiện tại
 
@@ -262,11 +294,15 @@ erDiagram
 - `carts(customer_id)`
 - `cart_items(cart_id, voucher_product_id)`
 - `issued_voucher_codes(code)`
+- `reviews(customer_id, voucher_product_id)` (1 review duy nhất / khách / voucher)
 
 ### Normal indexes
 
 - `branches(partner_id)`
 - `branches(region)`
+- `partner_staff(partner_id)`
+- `partner_staff(status)`
+- `partner_staff_branches(branch_id)`
 - `voucher_products(partner_id)`
 - `voucher_products(category_id)`
 - `voucher_products(status)`
@@ -287,6 +323,8 @@ erDiagram
 - `usage_logs(issued_code_id)`
 - `usage_logs(branch_id)`
 - `usage_logs(actor_user_id)`
+- `reviews(voucher_product_id)`
+- `reviews(customer_id)`
 
 ## 6. ON DELETE hiện tại
 
@@ -296,6 +334,7 @@ erDiagram
   - `voucher_product_branches -> branches`
   - `carts -> users`
   - `cart_items -> carts`
+  - `reviews -> users, voucher_products, orders`
 
 Riêng `order_items -> orders` hiện đang là `RESTRICT`, tức lịch sử giao dịch được bảo vệ khỏi xóa dây chuyền.
 
@@ -312,9 +351,14 @@ Riêng `order_items -> orders` hiện đang là `RESTRICT`, tức lịch sử gi
 | 1 khách chỉ có 1 giỏ | UNIQUE trên `carts(customer_id)` |
 | 1 voucher chỉ có 1 dòng trong giỏ | UNIQUE trên `cart_items(cart_id, voucher_product_id)` |
 | Mã voucher phát hành là duy nhất | UNIQUE trên `issued_voucher_codes(code)` |
+| 1 khách chỉ đánh giá 1 lần cho 1 voucher | UNIQUE trên `reviews(customer_id, voucher_product_id)` |
+| Một tài khoản chỉ thuộc một hồ sơ nhân viên | UNIQUE trên `partner_staff(user_id)` |
+| Không phân công trùng nhân viên–chi nhánh | PK ghép `partner_staff_branches(staff_id, branch_id)` |
+| Nhân viên chỉ redeem tại chi nhánh được giao | Kiểm tra ownership và assignment trong service transaction |
 
 ## 8. Ghi chú vận hành
 
 - `orders.total_amount`, `order_items.unit_price`, `issued_voucher_codes.expires_at`, `issued_voucher_codes.order_id` là dữ liệu snapshot/denormalized có chủ đích.
 - Chống oversell không được giải quyết chỉ bằng CHECK; cần transaction ở service layer.
-- Các bảng ngoài schema hiện tại (`partner_staff`, `reviews`, `audit_logs`, `content_items`) vẫn có thể giữ trong docs kế hoạch tổng thể, nhưng không nên được xem là “đã tồn tại trong DB thật”.
+- `partner_staff` và `partner_staff_branches` đã tồn tại trong DB thật; migration cũng thêm role chuẩn `STAFF` theo cách idempotent.
+- `reviews` đã được tạo qua migration `20260824100000_add_reviews` và tích hợp đầy đủ trong backend & frontend.

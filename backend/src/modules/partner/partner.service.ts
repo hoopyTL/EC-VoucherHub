@@ -5,12 +5,14 @@ import prisma from '~/configs/prisma'
 import { AppError } from '~/utils/app-error'
 import { hashPassword } from '~/utils/password'
 import { getCompatibleRoleNames } from '~/utils/role'
+import { redeemVoucherCode } from '~/modules/redemption/redemption.service'
 import type {
   ApprovalDto,
   BranchDto,
   OperatingStatusDto,
   PartnerListDto,
   RegisterPartnerDto,
+  RedeemCodeDto,
   UpdateBranchDto,
   UpdatePartnerDto
 } from './partner.validation'
@@ -42,6 +44,9 @@ async function assertBranchOwnership(userId: string, branchId: number) {
 }
 
 export const partnerService = {
+  async redeemCode(userId: string, dto: RedeemCodeDto) {
+    return redeemVoucherCode(userId, dto.code, dto.branchId)
+  },
   async register(dto: RegisterPartnerDto) {
     const role = await prisma.role.findFirst({
       where: { name: { in: getCompatibleRoleNames(RoleName.PARTNER) } }
@@ -118,7 +123,7 @@ export const partnerService = {
 
   async deleteBranch(userId: string, branchId: number) {
     const { partner, branch } = await assertBranchOwnership(userId, branchId)
-    const [linkedVouchers, usageLogs, globalVouchers] = await Promise.all([
+    const [linkedVouchers, usageLogs, globalVouchers, staffAssignments] = await Promise.all([
       prisma.voucherProductBranch.count({ where: { branchId } }),
       prisma.usageLog.count({ where: { branchId } }),
       prisma.voucherProduct.count({
@@ -129,16 +134,31 @@ export const partnerService = {
           },
           voucherProductBranches: { none: {} }
         }
-      })
+      }),
+      prisma.partnerStaffBranch.count({ where: { branchId } })
     ])
-    if (linkedVouchers > 0 || usageLogs > 0 || globalVouchers > 0) {
+    if (linkedVouchers > 0 || usageLogs > 0 || globalVouchers > 0 || staffAssignments > 0) {
       throw AppError.conflict('Chi nhánh đang được sử dụng và không thể xóa')
     }
     await prisma.branch.delete({ where: { id: branch.id } })
   },
 
   async list(dto: PartnerListDto, pendingOnly = false) {
-    const where = pendingOnly ? { approvalStatus: ApprovalStatus.PENDING } : undefined
+    const where: Prisma.PartnerWhereInput = {
+      approvalStatus: pendingOnly ? ApprovalStatus.PENDING : dto.approvalStatus,
+      operatingStatus: dto.operatingStatus,
+      ...(dto.q
+        ? {
+            OR: [
+              { legalName: { contains: dto.q, mode: 'insensitive' } },
+              { taxCode: { contains: dto.q, mode: 'insensitive' } },
+              { representative: { contains: dto.q, mode: 'insensitive' } },
+              { owner: { email: { contains: dto.q, mode: 'insensitive' } } },
+              { owner: { phone: { contains: dto.q } } }
+            ]
+          }
+        : {})
+    }
     const skip = (dto.page - 1) * dto.limit
     const [partners, total] = await prisma.$transaction([
       prisma.partner.findMany({
