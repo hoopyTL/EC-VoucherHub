@@ -184,7 +184,28 @@ export function OrderDetailPage() {
             <tbody>
               {(order.items || []).map((item) => (
                 <tr key={item.id}>
-                  <td style={tdStyle}>{item.voucherProductName}</td>
+                  <td style={tdStyle}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span>{item.voucherProductName}</span>
+                      {isPaid && (
+                        <Link
+                          to={`/vouchers/${item.voucherProductId}#reviews`}
+                          style={{
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            color: 'var(--accent, #4338ca)',
+                            background: '#e0e7ff',
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            textDecoration: 'none'
+                          }}
+                          data-testid={`review-link-${item.id}`}
+                        >
+                          ★ Đánh giá
+                        </Link>
+                      )}
+                    </div>
+                  </td>
                   <td style={{ ...tdStyle, textAlign: 'center' }}>{item.quantity}</td>
                   <td style={{ ...tdStyle, textAlign: 'right' }}>{formatCurrency(item.unitPrice)}</td>
                   <td style={{ ...tdStyle, textAlign: 'right' }}>

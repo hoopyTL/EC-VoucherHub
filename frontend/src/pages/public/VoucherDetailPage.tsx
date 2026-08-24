@@ -20,6 +20,7 @@ import { LoadingSpinner } from '../../components/ui/LoadingSpinner'
 import { useToast } from '../../components/ui'
 import { PriceDisplay } from '../../components/voucher/PriceDisplay'
 import { FlashSaleBadge } from '../../components/voucher/FlashSaleBadge'
+import { ReviewSection } from '../../components/voucher/ReviewSection'
 import { formatDateRange } from '../../utils/format'
 import { useAuth } from '../../hooks/useAuth'
 import { addToCart } from '../../services/orders'
@@ -408,6 +409,8 @@ export function VoucherDetailPage() {
           {voucher.terms?.trim() ? voucher.terms : 'Voucher chưa có điều khoản và điều kiện riêng.'}
         </p>
       </section>
+
+      <ReviewSection voucherId={voucher.id} voucherTitle={voucher.title} />
     </article>
   )
 }
