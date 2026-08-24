@@ -148,6 +148,7 @@ describe('OrderDetailPage', () => {
 
     expect(await screen.findByText(/chờ hoàn tất thanh toán/i)).toBeDefined()
     expect(screen.getByRole('button', { name: /PayPal/i })).toBeDefined()
+    expect(screen.getByRole('button', { name: /OnePay/i })).toBeDefined()
     expect(screen.queryByText(/Voucher codes/i)).toBeNull()
     // /my-codes must not be queried when the order is unpaid.
     expect(getSpy).not.toHaveBeenCalledWith('/my-codes')

@@ -294,6 +294,25 @@ export function OrderDetailPage() {
             </Button>
 
             <Button
+              variant='primary'
+              leftIcon={<CreditCard size={19} aria-hidden='true' />}
+              style={{ backgroundColor: '#f05a28', borderColor: '#f05a28' }}
+              onClick={async () => {
+                try {
+                  const { getOnePayUrl } = await import('../../services/orders')
+                  const url = await getOnePayUrl(order.id)
+                  window.location.href = url
+                } catch (error: any) {
+                  toast.error(
+                    error?.response?.data?.error?.message || 'Không thể kết nối OnePay Sandbox. Vui lòng thử lại.'
+                  )
+                }
+              }}
+            >
+              Thanh toán qua OnePay
+            </Button>
+
+            <Button
               variant='secondary'
               leftIcon={<XCircle size={18} aria-hidden='true' />}
               style={{ color: colors.danger, borderColor: colors.danger }}
@@ -428,8 +447,10 @@ function PaymentHistory({
 function gatewayLabel(gateway: string): string {
   const labels: Record<string, string> = {
     VNPAY: 'VNPay',
+    ONEPAY: 'OnePay (Napas ATM)',
     STRIPE: 'Thẻ quốc tế · Stripe',
     PAYPAL: 'PayPal',
+    ZALOPAY: 'Ví ZaloPay',
     SIMULATE: 'Thanh toán mô phỏng'
   }
   return labels[gateway.toUpperCase()] || gateway
