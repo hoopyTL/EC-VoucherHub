@@ -103,7 +103,7 @@ async function resolveAdminActorId(actorEmail?: string, client: AuditWriter = pr
   const actor = await client.user.findFirst({
     where: {
       email,
-      role: { is: { name: 'QUAN_TRI_VIEN' } }
+      role: { is: { name: { in: ['ADMIN', 'QUAN_TRI_VIEN'] } } }
     },
     select: { id: true }
   })

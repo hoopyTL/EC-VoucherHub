@@ -35,7 +35,8 @@ function singleParam(value: string | string[] | undefined) {
 
 function actorEmail(req: Request) {
   const value = req.headers['x-admin-email']
-  return Array.isArray(value) ? value[0] : value
+  const headerEmail = Array.isArray(value) ? value[0] : value
+  return headerEmail ?? (req as Request & { user?: { email?: string } }).user?.email
 }
 
 router.get(

@@ -8,6 +8,7 @@ import { redemptionRoutes } from './redemption/redemption.routes'
 import { partnerReportRoutes } from './report/partner-report.routes'
 import { staffRoutes } from './staff/staff.routes'
 import { reviewRoutes } from './review/review.routes'
+import { contentRoutes } from './content/content.routes'
 
 const apiRouter = Router()
 
@@ -19,6 +20,7 @@ apiRouter.use(voucherRoutes)
 apiRouter.use(redemptionRoutes)
 apiRouter.use(partnerReportRoutes)
 apiRouter.use(reviewRoutes)
+apiRouter.use(contentRoutes)
 apiRouter.use(userRoutes)
 
 export default apiRouter
