@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AxiosError, AxiosHeaders } from 'axios'
@@ -95,6 +95,46 @@ describe('OrderDetailPage', () => {
 
     expect(await screen.findByText('SPA-AAAA-1111')).toBeDefined()
     expect(screen.queryByRole('link', { name: 'SPA-AAAA-1111' })).toBeNull()
+  })
+
+  it('opens a scannable QR modal for an unused voucher code', async () => {
+    vi.spyOn(api, 'get').mockImplementation((url: string) => {
+      if (url === '/orders/order-1') return Promise.resolve({ data: makeOrder() } as never)
+      return Promise.resolve({ data: [] } as never)
+    })
+
+    renderAt('order-1')
+
+    fireEvent.click(await screen.findByRole('button', { name: /hiển thị qr cho mã spa-aaaa-1111/i }))
+
+    expect(screen.getByRole('dialog', { name: /qr voucher của bạn/i })).toBeDefined()
+    expect(screen.getByTestId('qr-code-display').getAttribute('data-value')).toBe('SPA-AAAA-1111')
+    expect(screen.getAllByText('SPA-AAAA-1111').length).toBeGreaterThan(1)
+  })
+
+  it('does not offer a QR button after a voucher code has been used', async () => {
+    vi.spyOn(api, 'get').mockImplementation((url: string) => {
+      if (url === '/orders/order-1') {
+        return Promise.resolve({
+          data: makeOrder({
+            codes: [
+              {
+                code: 'SPA-USED-1111',
+                voucherProductId: 'v-1',
+                status: 'USED',
+                expiresAt: '2025-12-31T00:00:00.000Z'
+              }
+            ]
+          })
+        } as never)
+      }
+      return Promise.resolve({ data: [] } as never)
+    })
+
+    renderAt('order-1')
+
+    expect(await screen.findByText('SPA-USED-1111')).toBeDefined()
+    expect(screen.queryByRole('button', { name: /hiển thị qr/i })).toBeNull()
   })
 
   it('renders the payment transaction timeline in Vietnamese', async () => {

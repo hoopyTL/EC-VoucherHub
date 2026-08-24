@@ -78,6 +78,7 @@ describe('Header navigation', () => {
     renderHeader(makeAuth({ user: customer, token: 't', isAuthenticated: true }))
 
     expect(screen.getByRole('link', { name: 'Mở giỏ hàng' })).toBeDefined()
+    expect(screen.getByRole('link', { name: 'Voucher của tôi' }).getAttribute('href')).toBe('/my-vouchers')
     expect(screen.queryByText('Orders')).toBeNull()
     expect(screen.queryByText('My Codes')).toBeNull()
     // No guest CTAs when signed in.

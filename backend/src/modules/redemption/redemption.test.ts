@@ -74,10 +74,27 @@ async function fixture(options: { multiUse?: boolean; remainingUses?: number } =
       expiresAt: new Date(Date.now() + 10 * 86_400_000)
     }
   })
-  return { partnerUser, partner, code }
+  return { partnerUser, customer, partner, code }
 }
 
 describe('TASK-013 redemption API', () => {
+  it('lists only voucher codes owned by the authenticated customer', async () => {
+    const mine = await fixture({ multiUse: true, remainingUses: 2 })
+    await fixture()
+
+    const response = await request(app).get('/api/my-vouchers').set(authHeader(mine.customer.id, RoleName.CUSTOMER))
+
+    expect(response.status).toBe(200)
+    expect(response.body.data).toHaveLength(1)
+    expect(response.body.data[0]).toMatchObject({
+      code: mine.code.code,
+      status: VoucherCodeStatus.UNUSED,
+      remainingUses: 2,
+      totalUses: 2,
+      voucher: { name: 'Redeem voucher', partnerName: 'Redemption Partner' }
+    })
+  })
+
   it('validates a code in the partner scope', async () => {
     const data = await fixture()
     const response = await request(app)

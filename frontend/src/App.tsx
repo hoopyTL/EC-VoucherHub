@@ -38,6 +38,7 @@ import { VoucherDetailPage } from './pages/public/VoucherDetailPage'
 import { OrderDetailPage } from './pages/customer/OrderDetailPage'
 import { CheckoutPage } from './pages/customer/CheckoutPage'
 import { CustomerCartHubPage } from './pages/customer/CustomerCartHubPage'
+import { MyVouchersPage } from './pages/customer/MyVouchersPage'
 import { PaymentResultPage } from './pages/customer/PaymentResultPage'
 import { VouchersPage as PartnerVouchersPage } from './pages/partner/VouchersPage'
 import { CreateVoucherPage as PartnerCreateVoucherPage } from './pages/partner/CreateVoucherPage'
@@ -170,6 +171,7 @@ export function AppRoutes() {
         {/* Customer-only routes */}
         <Route element={<ProtectedRoute allowedRoles={['CUSTOMER']} />}>
           <Route path='cart' element={<CustomerCartHubPage />} />
+          <Route path='my-vouchers' element={<MyVouchersPage />} />
           <Route path='checkout' element={<CheckoutPage />} />
           <Route path='orders' element={<Navigate to='/cart?tab=orders' replace />} />
           <Route path='orders/:id' element={<OrderDetailPage />} />

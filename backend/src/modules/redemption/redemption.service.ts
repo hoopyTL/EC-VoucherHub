@@ -78,6 +78,70 @@ export async function listRedemptionBranches(userId: string) {
   })
 }
 
+/**
+ * Return every issued voucher owned by the authenticated customer.
+ * The effective status treats a code past its expiry timestamp as EXPIRED even
+ * when the persisted status has not yet been updated by a maintenance job.
+ */
+export async function listMyVouchers(userId: string) {
+  const now = new Date()
+  const codes = await prisma.issuedVoucherCode.findMany({
+    where: { ownerUserId: userId },
+    orderBy: { issuedAt: 'desc' },
+    include: {
+      voucherProduct: {
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          imageUrl: true,
+          isMultiUse: true,
+          usesPerCode: true,
+          partner: { select: { legalName: true } }
+        }
+      },
+      order: { select: { id: true, createdAt: true } },
+      usageLogs: {
+        where: { result: 'SUCCESS' },
+        orderBy: { usedAt: 'desc' },
+        take: 1,
+        select: {
+          usedAt: true,
+          branch: { select: { id: true, name: true, address: true } }
+        }
+      }
+    }
+  })
+
+  return codes.map((code) => {
+    const latestUsage = code.usageLogs[0] ?? null
+    const status =
+      code.status === VoucherCodeStatus.UNUSED && code.expiresAt <= now ? VoucherCodeStatus.EXPIRED : code.status
+    return {
+      id: code.id,
+      code: code.code,
+      status,
+      remainingUses: code.remainingUses,
+      totalUses: code.voucherProduct.isMultiUse ? (code.voucherProduct.usesPerCode ?? 1) : 1,
+      issuedAt: code.issuedAt.toISOString(),
+      expiresAt: code.expiresAt.toISOString(),
+      lastUsedAt: latestUsage?.usedAt.toISOString() ?? null,
+      lastUsedBranch: latestUsage?.branch ?? null,
+      order: {
+        id: code.order.id,
+        createdAt: code.order.createdAt.toISOString()
+      },
+      voucher: {
+        id: code.voucherProduct.id,
+        name: code.voucherProduct.name,
+        description: code.voucherProduct.description,
+        imageUrl: code.voucherProduct.imageUrl,
+        partnerName: code.voucherProduct.partner.legalName
+      }
+    }
+  })
+}
+
 export async function redeemVoucherCode(userId: string, rawCode: string, branchId: number) {
   return prisma.$transaction(async (tx) => {
     const scope = await getActorScope(tx as typeof prisma, userId)

@@ -3,11 +3,11 @@ import prisma from '../../configs/prisma'
 /**
  * Background worker dọn dẹp đơn hàng quá hạn (chạy mỗi 1 phút).
  *
- * Chính sách: đơn PENDING_PAYMENT chưa có tiền → không phải đơn thật.
+ * Chính sách: đơn PENDING_PAYMENT hết hạn được hủy nhưng vẫn giữ lịch sử.
  * Khi hết hạn:
  *   1. Hoàn tồn kho (increment remainingQuantity)
  *   2. Trả items về giỏ hàng khách (tạo lại CartItem)
- *   3. Xóa OrderItems + Order khỏi DB (không lưu rác)
+ *   3. Đánh dấu payment đang chờ là FAILED và Order là CANCELLED
  */
 export const startOrderCleanupCron = () => {
   const ONE_MINUTE = 60 * 1000
@@ -91,16 +91,28 @@ export const startOrderCleanupCron = () => {
               }
             }
 
-            // 2c. Xóa OrderItems rồi xóa Order (không lưu đơn rác)
-            await tx.orderItem.deleteMany({
-              where: { orderId: order.id }
+            // 2c. Giữ lịch sử thanh toán, đánh dấu các lần thanh toán đang chờ là thất bại.
+            await tx.paymentTransaction.updateMany({
+              where: {
+                orderId: order.id,
+                status: 'PENDING'
+              },
+              data: {
+                status: 'FAILED',
+                failureReason: 'PAYMENT_TIMEOUT'
+              }
             })
-            await tx.order.delete({
-              where: { id: order.id }
+
+            // 2d. Giữ Order và OrderItems để tra cứu lịch sử.
+            await tx.order.update({
+              where: { id: order.id },
+              data: { status: 'CANCELLED' }
             })
           })
 
-          console.log(`[OrderCron] Expired order ${order.id} → items restored to cart, order deleted.`)
+          console.log(
+            `[OrderCron] Expired order ${order.id} → inventory restored, items returned to cart, order cancelled.`
+          )
         } catch (txError) {
           console.error(`[OrderCron] Failed to clean up order ${order.id}:`, txError)
         }

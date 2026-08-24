@@ -4,11 +4,11 @@ import { startOrderCleanupCron } from './order.cron'
 
 vi.mock('../../configs/prisma', () => ({
   default: {
-    order: { findMany: vi.fn(), delete: vi.fn() },
+    order: { findMany: vi.fn(), update: vi.fn() },
     voucherProduct: { update: vi.fn() },
     cart: { findUnique: vi.fn(), create: vi.fn() },
     cartItem: { findUnique: vi.fn(), update: vi.fn(), create: vi.fn() },
-    orderItem: { deleteMany: vi.fn() },
+    paymentTransaction: { updateMany: vi.fn() },
     $disconnect: vi.fn(),
     $transaction: vi.fn((callback) => callback(prismaMock))
   }
@@ -48,7 +48,7 @@ describe('order cleanup cron', () => {
     expect(prismaMock.$transaction).not.toHaveBeenCalled()
   })
 
-  it('restores stock, merges an existing cart item and deletes the expired order', async () => {
+  it('restores stock, merges an existing cart item and cancels the expired order', async () => {
     prismaMock.order.findMany.mockResolvedValue([expiredOrder])
     prismaMock.cart.findUnique.mockResolvedValue({ id: 'cart-1' })
     prismaMock.cartItem.findUnique.mockResolvedValue({ id: 10, quantity: 3 })
@@ -61,8 +61,14 @@ describe('order cleanup cron', () => {
       data: { remainingQuantity: { increment: 2 } }
     })
     expect(prismaMock.cartItem.update).toHaveBeenCalledWith({ where: { id: 10 }, data: { quantity: 5 } })
-    expect(prismaMock.orderItem.deleteMany).toHaveBeenCalledWith({ where: { orderId: 'order-1' } })
-    expect(prismaMock.order.delete).toHaveBeenCalledWith({ where: { id: 'order-1' } })
+    expect(prismaMock.paymentTransaction.updateMany).toHaveBeenCalledWith({
+      where: { orderId: 'order-1', status: 'PENDING' },
+      data: { status: 'FAILED', failureReason: 'PAYMENT_TIMEOUT' }
+    })
+    expect(prismaMock.order.update).toHaveBeenCalledWith({
+      where: { id: 'order-1' },
+      data: { status: 'CANCELLED' }
+    })
   })
 
   it('creates a cart and cart item when neither exists', async () => {
