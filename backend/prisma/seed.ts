@@ -564,11 +564,12 @@ async function main() {
 
   await prisma.auditLog.createMany({
     data: [
+      // 1. Admin System Actions
       {
         actorUserId: admin.id,
         action: 'seed.database',
         entityType: 'database',
-        metadata: { scope: 'TV4', roles: 3, tables: 15 }
+        metadata: { scope: 'EC-VoucherHub', roles: 4, tables: 19 }
       },
       {
         actorUserId: admin.id,
@@ -586,10 +587,112 @@ async function main() {
       },
       {
         actorUserId: admin.id,
+        action: 'partner.approve',
+        entityType: 'partner',
+        entityId: highlands.id,
+        metadata: { partnerName: highlands.legalName, approvalStatus: 'APPROVED' }
+      },
+      {
+        actorUserId: admin.id,
+        action: 'partner.approve',
+        entityType: 'partner',
+        entityId: lotusSpa.id,
+        metadata: { partnerName: lotusSpa.legalName, approvalStatus: 'APPROVED' }
+      },
+      {
+        actorUserId: admin.id,
+        action: 'voucher.approve',
+        entityType: 'voucher_product',
+        entityId: coffeeVoucher.id,
+        metadata: { voucherName: coffeeVoucher.name, previousStatus: 'PENDING_APPROVAL', nextStatus: 'ACTIVE' }
+      },
+      {
+        actorUserId: admin.id,
+        action: 'voucher.approve',
+        entityType: 'voucher_product',
+        entityId: spaVoucher.id,
+        metadata: { voucherName: spaVoucher.name, previousStatus: 'PENDING_APPROVAL', nextStatus: 'ACTIVE' }
+      },
+      {
+        actorUserId: admin.id,
         action: 'order.demo-ready',
         entityType: 'order',
         entityId: refundableOrder.id,
         metadata: { flow: 'FLOW-010', expectedAction: 'refund' }
+      },
+
+      // 2. Partner Actions (Highlands & Lotus Spa)
+      {
+        actorUserId: highlandsOwner.id,
+        action: 'branch.create',
+        entityType: 'branch',
+        entityId: String(hanoiBranch.id),
+        metadata: { branchName: hanoiBranch.name, region: hanoiBranch.region }
+      },
+      {
+        actorUserId: highlandsOwner.id,
+        action: 'voucher.create',
+        entityType: 'voucher_product',
+        entityId: coffeeVoucher.id,
+        metadata: { voucherName: coffeeVoucher.name, salePrice: 35000, totalQuantity: 200 }
+      },
+      {
+        actorUserId: highlandsOwner.id,
+        action: 'voucher.submit',
+        entityType: 'voucher_product',
+        entityId: coffeeVoucher.id,
+        metadata: { voucherName: coffeeVoucher.name, status: 'PENDING_APPROVAL' }
+      },
+      {
+        actorUserId: spaOwner.id,
+        action: 'voucher.submit',
+        entityType: 'voucher_product',
+        entityId: spaVoucher.id,
+        metadata: { voucherName: spaVoucher.name, status: 'PENDING_APPROVAL' }
+      },
+
+      // 3. Customer Actions (Customer A & B)
+      {
+        actorUserId: customerA.id,
+        action: 'order.create',
+        entityType: 'order',
+        entityId: paidOrder.id,
+        metadata: { totalAmount: 70000, itemCount: 2 }
+      },
+      {
+        actorUserId: customerA.id,
+        action: 'payment.success',
+        entityType: 'order',
+        entityId: paidOrder.id,
+        metadata: { gateway: 'VNPAY', amount: 70000 }
+      },
+      {
+        actorUserId: customerA.id,
+        action: 'review.create',
+        entityType: 'review',
+        entityId: coffeeVoucher.id,
+        metadata: { rating: 4, comment: 'Cà phê thơm ngon, không gian quán rất thích hợp để làm việc.' }
+      },
+      {
+        actorUserId: customerB.id,
+        action: 'order.create',
+        entityType: 'order',
+        entityId: refundableOrder.id,
+        metadata: { totalAmount: 390000, itemCount: 1 }
+      },
+      {
+        actorUserId: customerB.id,
+        action: 'payment.success',
+        entityType: 'order',
+        entityId: refundableOrder.id,
+        metadata: { gateway: 'VNPAY', amount: 390000 }
+      },
+      {
+        actorUserId: customerB.id,
+        action: 'review.create',
+        entityType: 'review',
+        entityId: spaVoucher.id,
+        metadata: { rating: 5, comment: 'Dịch vụ spa tuyệt vời, nhân viên tận tình, cơ sở vật chất 5 sao!' }
       }
     ]
   })
