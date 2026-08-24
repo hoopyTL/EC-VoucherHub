@@ -9,6 +9,7 @@ function daysFromNow(days: number) {
 }
 
 async function resetDatabase() {
+  await prisma.review.deleteMany()
   await prisma.auditLog.deleteMany()
   await prisma.contentItem.deleteMany()
   await prisma.usageLog.deleteMany()
@@ -539,6 +540,26 @@ async function main() {
       status: 'draft',
       authorUserId: admin.id
     }
+  })
+
+  // Sample Reviews for Demo
+  await prisma.review.createMany({
+    data: [
+      {
+        customerId: customerB.id,
+        voucherProductId: spaVoucher.id,
+        orderId: refundableOrder.id,
+        rating: 5,
+        comment: 'Dịch vụ spa tuyệt vời, nhân viên tận tình, cơ sở vật chất 5 sao!'
+      },
+      {
+        customerId: customerA.id,
+        voucherProductId: coffeeVoucher.id,
+        orderId: paidOrder.id,
+        rating: 4,
+        comment: 'Cà phê thơm ngon, không gian quán rất thích hợp để làm việc.'
+      }
+    ]
   })
 
   await prisma.auditLog.createMany({

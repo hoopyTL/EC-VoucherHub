@@ -125,6 +125,7 @@ model User {
   usageLogs          UsageLog[]
   contentItems       ContentItem[]
   auditLogs          AuditLog[]
+  reviews            Review[]
 
   @@map("users")
 }
@@ -253,6 +254,7 @@ model VoucherProduct {
   cartItems              CartItem[]
   orderItems             OrderItem[]
   issuedVoucherCodes     IssuedVoucherCode[]
+  reviews                Review[]
 
   @@index([partnerId])
   @@index([categoryId])
@@ -333,6 +335,7 @@ model Order {
   orderItems          OrderItem[]
   issuedVoucherCodes  IssuedVoucherCode[]
   paymentTransactions PaymentTransaction[]
+  reviews             Review[]
 
   @@index([customerId])
   @@index([status])
@@ -485,4 +488,26 @@ model AuditLog {
   @@index([entityType])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+// MODELS — Review & Rating
+model Review {
+  id               String         @id @default(uuid()) @db.Uuid
+  customerId       String         @map("customer_id") @db.Uuid
+  voucherProductId String         @map("voucher_product_id") @db.Uuid
+  orderId          String         @map("order_id") @db.Uuid
+  rating           Int            // 1–5
+  comment          String?        @db.Text
+  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  customer       User           @relation(fields: [customerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  voucherProduct VoucherProduct @relation(fields: [voucherProductId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  order          Order          @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([customerId, voucherProductId]) // 1 review duy nhất per customer per voucher
+  @@index([voucherProductId])
+  @@index([customerId])
+  @@map("reviews")
 }

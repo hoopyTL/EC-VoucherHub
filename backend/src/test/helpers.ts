@@ -12,6 +12,7 @@ export async function seedRoles(): Promise<void> {
 }
 
 export async function resetUsers(): Promise<void> {
+  await prisma.review.deleteMany()
   await prisma.auditLog.deleteMany()
   await prisma.contentItem.deleteMany()
   await prisma.usageLog.deleteMany()
