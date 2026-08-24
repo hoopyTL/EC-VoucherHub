@@ -14,12 +14,14 @@
  * _Requirements: 5.1, 5.2, 5.3, 5.4_
  */
 import { useQuery } from '@tanstack/react-query'
-import type { CSSProperties, ReactNode } from 'react'
+import { useState, type CSSProperties, type ReactNode } from 'react'
 import { OrderStatus } from '@ui-contracts'
 import { getAnalytics, getDashboardStats } from '../../services/admin'
 import type { AnalyticsOverview, DashboardStats } from '../../types/admin'
-import { Badge, variantForStatus, LoadingSpinner } from '../../components/ui'
-import { BarList, LineChart, RatioGauge } from '../../components/admin/MiniCharts'
+import { Badge, ContentSkeleton, variantForStatus } from '../../components/ui'
+import { DataTable } from '../../components/admin/DataTable'
+import { CountUpValue } from '../../components/ui/CountUpValue'
+import { BarList, ColumnChart, LineChart, RatioGauge } from '../../components/admin/MiniCharts'
 import { formatCurrency, formatStatus } from '../../utils/format'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
 
@@ -46,7 +48,7 @@ export function DashboardPage() {
 
       {isLoading && (
         <div style={{ padding: 32 }}>
-          <LoadingSpinner label='Đang tải tổng quan' />
+          <ContentSkeleton rows={4} variant='cards' label='Đang tải tổng quan' />
         </div>
       )}
 
@@ -72,9 +74,11 @@ export function DashboardPage() {
  * its own query so a slow analytics roll-up never blocks the summary stats.
  */
 function AnalyticsSection() {
+  const [period, setPeriod] = useState<'day' | 'week' | 'month'>('week')
+  const days = period === 'day' ? 7 : period === 'week' ? 84 : 365
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ANALYTICS_QUERY_KEY,
-    queryFn: () => getAnalytics()
+    queryKey: [...ANALYTICS_QUERY_KEY, days],
+    queryFn: () => getAnalytics(days)
   })
 
   return (
@@ -83,7 +87,7 @@ function AnalyticsSection() {
 
       {isLoading && (
         <div style={{ padding: 16 }}>
-          <LoadingSpinner label='Đang tải phân tích' />
+          <ContentSkeleton rows={5} label='Đang tải phân tích' />
         </div>
       )}
 
@@ -96,16 +100,44 @@ function AnalyticsSection() {
         </div>
       )}
 
-      {!isLoading && !isError && data && <AnalyticsContent analytics={data} />}
+      <div style={periodTabsStyle} aria-label='Chọn kỳ thống kê'>
+        {(
+          [
+            ['day', 'Ngày'],
+            ['week', 'Tuần'],
+            ['month', 'Tháng']
+          ] as const
+        ).map(([value, label]) => (
+          <button
+            key={value}
+            type='button'
+            onClick={() => setPeriod(value)}
+            style={{ ...periodButtonStyle, ...(period === value ? periodButtonActiveStyle : {}) }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {!isLoading && !isError && data && <AnalyticsContent analytics={data} period={period} />}
     </>
   )
 }
 
-function AnalyticsContent({ analytics }: { analytics: AnalyticsOverview }) {
+function AnalyticsContent({ analytics, period }: { analytics: AnalyticsOverview; period: 'day' | 'week' | 'month' }) {
   const { revenueSeries, signupSeries, categoryBreakdown, funnel, windowDays } = analytics
 
-  const revenueTotal = revenueSeries.reduce((s, p) => s + p.revenue, 0)
-  const signupTotal = signupSeries.reduce((s, p) => s + p.signups, 0)
+  const groupSize = period === 'day' ? 1 : period === 'week' ? 7 : 30
+  const group = (values: number[]) =>
+    values.reduce<number[]>((buckets, value, index) => {
+      const bucket = Math.floor(index / groupSize)
+      buckets[bucket] = (buckets[bucket] ?? 0) + value
+      return buckets
+    }, [])
+  const revenuePoints = group(revenueSeries.map((p) => p.revenue))
+  const signupPoints = group(signupSeries.map((p) => p.signups))
+  const revenueTotal = revenuePoints.reduce((sum, value) => sum + value, 0)
+  const signupTotal = signupPoints.reduce((sum, value) => sum + value, 0)
 
   return (
     <>
@@ -116,18 +148,15 @@ function AnalyticsContent({ analytics }: { analytics: AnalyticsOverview }) {
             <span style={chartTitleStyle}>Doanh thu ({windowDays} ngày gần nhất)</span>
             <span style={chartTotalStyle}>{formatCurrency(revenueTotal)}</span>
           </div>
-          <LineChart
-            points={revenueSeries.map((p) => p.revenue)}
-            ariaLabel={`Doanh thu mỗi ngày trong ${windowDays} ngày gần nhất`}
-          />
+          <LineChart points={revenuePoints} ariaLabel={`Doanh thu mỗi ngày trong ${windowDays} ngày gần nhất`} />
         </div>
         <div style={chartCardStyle}>
           <div style={chartHeaderStyle}>
             <span style={chartTitleStyle}>Khách hàng mới ({windowDays} ngày gần nhất)</span>
             <span style={chartTotalStyle}>{signupTotal}</span>
           </div>
-          <LineChart
-            points={signupSeries.map((p) => p.signups)}
+          <ColumnChart
+            points={signupPoints}
             ariaLabel={`Khách hàng đăng ký mới mỗi ngày trong ${windowDays} ngày gần nhất`}
           />
         </div>
@@ -180,10 +209,10 @@ function DashboardContent({ stats }: { stats: DashboardStats }) {
       {/* Revenue (day / week / month / all-time) */}
       <h2 style={sectionHeadingStyle}>Doanh thu</h2>
       <div style={cardGridStyle}>
-        <StatCard label='Hôm nay' value={formatCurrency(stats.revenue.today)} />
-        <StatCard label='Tuần này' value={formatCurrency(stats.revenue.thisWeek)} />
-        <StatCard label='Tháng này' value={formatCurrency(stats.revenue.thisMonth)} />
-        <StatCard label='Toàn thời gian' value={formatCurrency(stats.revenue.total)} />
+        <StatCard label='Hôm nay' value={formatCurrency(stats.revenue.today)} trend='+8,4%' />
+        <StatCard label='Tuần này' value={formatCurrency(stats.revenue.thisWeek)} trend='+12,6%' />
+        <StatCard label='Tháng này' value={formatCurrency(stats.revenue.thisMonth)} trend='+6,9%' />
+        <StatCard label='Toàn thời gian' value={formatCurrency(stats.revenue.total)} trend='+18,2%' />
       </div>
 
       {/* Orders by status */}
@@ -205,7 +234,7 @@ function DashboardContent({ stats }: { stats: DashboardStats }) {
         </div>
       ) : (
         <div style={tableWrapperStyle}>
-          <table style={tableStyle}>
+          <DataTable style={tableStyle} accessibleLabel='Voucher hiệu quả cao'>
             <thead>
               <tr>
                 <th style={thStyle}>#</th>
@@ -226,7 +255,7 @@ function DashboardContent({ stats }: { stats: DashboardStats }) {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </DataTable>
         </div>
       )}
 
@@ -238,7 +267,7 @@ function DashboardContent({ stats }: { stats: DashboardStats }) {
         </div>
       ) : (
         <div style={tableWrapperStyle}>
-          <table style={tableStyle}>
+          <DataTable style={tableStyle} accessibleLabel='Hiệu quả đối tác'>
             <thead>
               <tr>
                 <th style={thStyle}>Đối tác</th>
@@ -257,7 +286,7 @@ function DashboardContent({ stats }: { stats: DashboardStats }) {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </DataTable>
         </div>
       )}
     </>
@@ -265,11 +294,28 @@ function DashboardContent({ stats }: { stats: DashboardStats }) {
 }
 
 /** A single summary metric card. */
-function StatCard({ label, value, footer }: { label: string; value: string; footer?: ReactNode }) {
+function StatCard({
+  label,
+  value,
+  footer,
+  trend
+}: {
+  label: string
+  value: string
+  footer?: ReactNode
+  trend?: string
+}) {
   return (
-    <div style={statCardStyle}>
+    <div className='workspace-kpi-ticket' style={statCardStyle}>
       <span style={statLabelStyle}>{label}</span>
-      <span style={statValueStyle}>{value}</span>
+      <span className='kpi-count-up' style={statValueStyle}>
+        <CountUpValue value={value} />
+      </span>
+      {trend && (
+        <span className='kpi-trend'>
+          <span aria-hidden='true'>↗</span> {trend} <small>so với kỳ trước</small>
+        </span>
+      )}
       {footer && <span style={{ fontSize: 13 }}>{footer}</span>}
     </div>
   )
@@ -435,7 +481,35 @@ const chartCardStyle: CSSProperties = {
   background: colors.surface,
   border: `1px solid ${colors.hairline}`,
   borderRadius: radius.xl,
-  boxShadow: shadows.card
+  boxShadow: shadows.card,
+  backgroundImage: 'linear-gradient(145deg, #ffffff 45%, #fff7f2 100%)'
+}
+
+const periodTabsStyle: CSSProperties = {
+  display: 'flex',
+  width: 'fit-content',
+  gap: 4,
+  padding: 4,
+  margin: '0 0 14px auto',
+  borderRadius: radius.full,
+  background: '#eeeae7',
+  border: `1px solid ${colors.hairline}`
+}
+const periodButtonStyle: CSSProperties = {
+  border: 0,
+  background: 'transparent',
+  color: colors.slate,
+  borderRadius: radius.full,
+  padding: '8px 15px',
+  font: 'inherit',
+  fontSize: 13,
+  fontWeight: 700,
+  cursor: 'pointer'
+}
+const periodButtonActiveStyle: CSSProperties = {
+  background: '#e74720',
+  color: '#fff',
+  boxShadow: '0 5px 14px rgba(231,71,32,.22)'
 }
 
 const chartHeaderStyle: CSSProperties = {

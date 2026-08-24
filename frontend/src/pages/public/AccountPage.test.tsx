@@ -62,19 +62,20 @@ function unauthorizedError(message: string): AxiosError {
 }
 
 function fillForm(current: string, next: string, confirm: string) {
-  fireEvent.change(screen.getByLabelText(/current password/i), {
+  fireEvent.click(screen.getByRole('tab', { name: /bảo mật/i }))
+  fireEvent.change(screen.getByLabelText(/mật khẩu hiện tại/i), {
     target: { value: current }
   })
-  fireEvent.change(screen.getByLabelText(/^new password/i), {
+  fireEvent.change(screen.getByLabelText(/^mật khẩu mới/i), {
     target: { value: next }
   })
-  fireEvent.change(screen.getByLabelText(/confirm new password/i), {
+  fireEvent.change(screen.getByLabelText(/xác nhận mật khẩu mới/i), {
     target: { value: confirm }
   })
 }
 
 function submit() {
-  fireEvent.click(screen.getByRole('button', { name: /change password/i }))
+  fireEvent.click(screen.getByRole('button', { name: /đổi mật khẩu/i }))
 }
 
 describe('AccountPage', () => {
@@ -96,17 +97,18 @@ describe('AccountPage', () => {
     renderPage()
 
     expect(screen.getByRole('heading', { name: /alice customer/i })).toBeDefined()
-    expect(screen.getByText(/^customer$/i)).toBeDefined()
+    expect(screen.getByText(/^khách hàng$/i)).toBeDefined()
   })
 
   it('renders the change-password fields and a log out button', () => {
     seedSession()
     renderPage()
 
-    expect(screen.getByLabelText(/current password/i)).toBeDefined()
-    expect(screen.getByLabelText(/^new password/i)).toBeDefined()
-    expect(screen.getByLabelText(/confirm new password/i)).toBeDefined()
-    expect(screen.getByRole('button', { name: /log out/i })).toBeDefined()
+    fireEvent.click(screen.getByRole('tab', { name: /bảo mật/i }))
+    expect(screen.getByLabelText(/mật khẩu hiện tại/i)).toBeDefined()
+    expect(screen.getByLabelText(/^mật khẩu mới/i)).toBeDefined()
+    expect(screen.getByLabelText(/xác nhận mật khẩu mới/i)).toBeDefined()
+    expect(screen.getByRole('button', { name: /đăng xuất/i })).toBeDefined()
   })
 
   it('loads, updates, and synchronizes the profile name', async () => {
@@ -115,10 +117,10 @@ describe('AccountPage', () => {
     seedSession()
     renderPage()
 
-    const fullName = await screen.findByLabelText(/full name/i)
+    const fullName = await screen.findByLabelText(/họ và tên/i)
     expect((fullName as HTMLInputElement).value).toBe('Alice Customer')
     fireEvent.change(fullName, { target: { value: 'Alice Updated' } })
-    fireEvent.click(screen.getByRole('button', { name: /save profile/i }))
+    fireEvent.click(screen.getByRole('button', { name: /lưu hồ sơ/i }))
 
     await waitFor(() => {
       expect(updateProfileMock).toHaveBeenCalledWith({
@@ -129,7 +131,7 @@ describe('AccountPage', () => {
       })
     })
     expect(await screen.findByRole('heading', { name: 'Alice Updated' })).toBeDefined()
-    expect(await screen.findByText(/profile updated successfully/i)).toBeDefined()
+    expect(await screen.findByText(/cập nhật hồ sơ thành công/i)).toBeDefined()
     expect(localStorage.getItem(USER_STORAGE_KEY)).toContain('Alice Updated')
   })
 
@@ -138,11 +140,11 @@ describe('AccountPage', () => {
     seedSession()
     renderPage()
 
-    const fullName = await screen.findByLabelText(/full name/i)
+    const fullName = await screen.findByLabelText(/họ và tên/i)
     fireEvent.change(fullName, { target: { value: '   ' } })
-    fireEvent.click(screen.getByRole('button', { name: /save profile/i }))
+    fireEvent.click(screen.getByRole('button', { name: /lưu hồ sơ/i }))
 
-    expect(await screen.findByText(/full name is required/i)).toBeDefined()
+    expect(await screen.findByText(/họ và tên không được để trống/i)).toBeDefined()
     expect(updateProfileMock).not.toHaveBeenCalled()
   })
 
@@ -153,7 +155,7 @@ describe('AccountPage', () => {
     fillForm('current123', 'short', 'short')
     submit()
 
-    expect(await screen.findByText(/at least 8 characters/i)).toBeDefined()
+    expect(await screen.findByText(/ít nhất 8 ký tự/i)).toBeDefined()
     expect(changePasswordMock).not.toHaveBeenCalled()
   })
 
@@ -164,7 +166,7 @@ describe('AccountPage', () => {
     fillForm('current123', 'password123', 'password999')
     submit()
 
-    expect(await screen.findByText(/passwords do not match/i)).toBeDefined()
+    expect(await screen.findByText(/mật khẩu xác nhận không khớp/i)).toBeDefined()
     expect(changePasswordMock).not.toHaveBeenCalled()
   })
 
@@ -181,7 +183,7 @@ describe('AccountPage', () => {
     await waitFor(() => {
       expect(changePasswordMock).toHaveBeenCalledWith('current123', 'password123')
     })
-    expect(await screen.findByText(/password changed successfully/i)).toBeDefined()
+    expect(await screen.findByText(/đổi mật khẩu thành công/i)).toBeDefined()
   })
 
   it('shows an error toast when the current password is incorrect', async () => {
@@ -193,7 +195,7 @@ describe('AccountPage', () => {
     submit()
 
     const alert = await screen.findByRole('alert')
-    expect(alert.textContent).toMatch(/current password is incorrect/i)
+    expect(alert.textContent).toMatch(/mật khẩu hiện tại không chính xác/i)
   })
 
   it('logs the user out when the log out button is clicked', () => {
@@ -201,7 +203,11 @@ describe('AccountPage', () => {
     seedSession()
     renderPage()
 
-    fireEvent.click(screen.getByRole('button', { name: /log out/i }))
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    fireEvent.click(screen.getByRole('tab', { name: /bảo mật/i }))
+    fireEvent.click(screen.getByRole('button', { name: /đăng xuất/i }))
+    const confirmations = screen.getAllByRole('button', { name: 'Đăng xuất' })
+    fireEvent.click(confirmations[confirmations.length - 1])
 
     expect(getAccessToken()).toBeNull()
     expect(localStorage.getItem(USER_STORAGE_KEY)).toBeNull()

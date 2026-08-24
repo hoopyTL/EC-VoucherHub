@@ -15,27 +15,33 @@
 /** Monochrome palette. Hue is avoided entirely; hierarchy comes from value. */
 export const colors = {
   /** Global background — a warm light gray, more premium than pure white. */
-  canvas: '#E8E7E4',
+  canvas: '#F4EFE3',
   /** A slightly dimmer canvas for recessed/secondary surfaces. */
-  canvasDim: '#DBDAD9',
+  canvasDim: '#E9E1D1',
   /** Floating cards and interactive containers. */
-  surface: '#FFFFFF',
+  surface: '#FFFDF7',
   /** Subtle raised fill (e.g. inactive chips, hover wells). */
-  surfaceMuted: '#F5F3F3',
+  surfaceMuted: '#EFE8DA',
 
   /** High-priority text, primary buttons, structural lines. */
-  ink: '#0B0B0B',
+  ink: '#1C1912',
   /** Near-ink used for large display headlines that should feel "blocky". */
-  inkSoft: '#1B1C1C',
+  inkSoft: '#29241B',
   /** Secondary information, metadata, supporting body copy. */
-  slate: '#6B6B6B',
+  slate: '#6D6658',
   /** Lower-emphasis captions / placeholder text. */
-  slateMuted: '#8A8A8A',
+  slateMuted: '#8C8372',
 
   /** 1px boundary strokes. */
-  hairline: '#E2E2E2',
+  hairline: '#D8CFB9',
   /** Slightly stronger hairline for inputs / dividers needing more presence. */
-  hairlineStrong: '#C4C7C7',
+  hairlineStrong: '#BEB39A',
+
+  /** Warm brand accent for primary actions, promotions and key states. */
+  accent: '#B4791E',
+  accentHover: '#8F5F16',
+  accentSurface: '#F5E6C8',
+  onAccent: '#FFFFFF',
 
   /** Text/fill on top of ink surfaces. */
   onInk: '#FFFFFF',
@@ -52,14 +58,15 @@ export const colors = {
   dangerSurface: '#FFDAD6',
   onDangerSurface: '#93000A',
   /** Success/positive surfaces, rendered as ink-on-light to stay monochrome. */
-  successSurface: '#E9E8E7',
-  onSuccessSurface: '#1B1C1C'
+  successSurface: '#DDEADF',
+  onSuccessSurface: '#1F5138'
 } as const
 
 /** Font stacks. Hanken Grotesk for display/labels, Inter for body. */
 export const fonts = {
-  display: "'Hanken Grotesk', system-ui, -apple-system, sans-serif",
-  body: "'Inter', system-ui, -apple-system, sans-serif"
+  display: "'Be Vietnam Pro', system-ui, -apple-system, sans-serif",
+  body: "'Be Vietnam Pro', system-ui, -apple-system, sans-serif",
+  mono: "'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace"
 } as const
 
 /**
@@ -136,17 +143,19 @@ export const radius = {
   sm: 4,
   md: 12,
   lg: 16,
-  xl: 24,
+  xl: 18,
   full: 9999
 } as const
 
-/** 8px spacing scale plus layout-level constants from DESIGN.md. */
+/** Chuẩn spacing 4/8/12/16/24/32/48/64. */
 export const spacing = {
   xs: 4,
   sm: 8,
+  smPlus: 12,
   md: 16,
   lg: 24,
-  xl: 40,
+  xl: 32,
+  xlPlus: 48,
   '2xl': 64,
   '3xl': 120,
   containerPadding: 40,
@@ -156,8 +165,11 @@ export const spacing = {
 
 /** Soft, highly diffused shadows so white cards hover above the canvas. */
 export const shadows = {
+  sm: '0px 4px 12px rgba(43, 35, 22, 0.07)',
+  md: '0px 12px 28px rgba(43, 35, 22, 0.10)',
+  lg: '0px 22px 52px rgba(43, 35, 22, 0.15)',
   /** Default floating card. */
-  card: '0px 20px 40px rgba(0, 0, 0, 0.04)',
+  card: '0px 12px 28px rgba(43, 35, 22, 0.10)',
   /** Slightly stronger lift on hover. */
   cardHover: '0px 24px 50px rgba(0, 0, 0, 0.08)',
   /** Top layer (modals, dropdowns). */
@@ -166,7 +178,7 @@ export const shadows = {
 
 /** Glassmorphism preset for nav docks and image overlays. */
 export const glass = {
-  background: 'rgba(251, 249, 248, 0.72)',
+  background: 'rgba(255, 255, 255, 0.94)',
   backdropFilter: 'blur(20px)',
   border: `1px solid ${colors.hairline}`
 } as const

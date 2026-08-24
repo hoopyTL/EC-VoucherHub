@@ -67,8 +67,8 @@ function toAdminAccount(user: BackendUserView): AdminAccount {
 
 /** Fetch platform-wide dashboard statistics for the admin overview. */
 export async function getDashboardStats(): Promise<DashboardStats> {
-  const { data } = await api.get<DashboardStats>('/admin/dashboard/stats')
-  return data
+  const { data } = await api.get<ApiEnvelope<DashboardStats> | DashboardStats>('/admin/dashboard/stats')
+  return 'data' in data ? data.data : data
 }
 
 /**
@@ -77,10 +77,10 @@ export async function getDashboardStats(): Promise<DashboardStats> {
  * series (clamped server-side; defaults to 30).
  */
 export async function getAnalytics(days?: number): Promise<AnalyticsOverview> {
-  const { data } = await api.get<AnalyticsOverview>('/admin/analytics', {
+  const { data } = await api.get<ApiEnvelope<AnalyticsOverview> | AnalyticsOverview>('/admin/analytics', {
     params: { days }
   })
-  return data
+  return 'data' in data ? data.data : data
 }
 
 /**
@@ -162,7 +162,15 @@ export async function rejectPartner(id: string, reason: string): Promise<Partner
 }
 
 /** List every Partner, including approved, rejected, active, and suspended records. */
-export async function listPartners(params: { page?: number; limit?: number } = {}): Promise<ListPartnersDto> {
+export async function listPartners(
+  params: {
+    page?: number
+    limit?: number
+    q?: string
+    approvalStatus?: 'PENDING' | 'APPROVED' | 'REJECTED'
+    operatingStatus?: 'ACTIVE' | 'SUSPENDED'
+  } = {}
+): Promise<ListPartnersDto> {
   const { data } = await api.get<ApiEnvelope<ListPartnersDto>>('/admin/partners', { params })
   return data.data
 }
@@ -223,7 +231,9 @@ export async function rejectVoucher(id: string, reason: string): Promise<Voucher
 }
 
 /** List vouchers across every lifecycle state for the admin management view. */
-export async function listAdminVouchers(params: { page?: number; limit?: number } = {}): Promise<ListVouchersDto> {
+export async function listAdminVouchers(
+  params: { page?: number; limit?: number; excludeStatus?: VoucherDto['status'] } = {}
+): Promise<ListVouchersDto> {
   const { data } = await api.get<ApiEnvelope<ListVouchersDto>>('/admin/vouchers', { params })
   return data.data
 }
@@ -276,8 +286,107 @@ export function getAdminApiError(err: unknown, fallback: string): string {
   const response = (err as { response?: { status?: number; data?: ApiErrorBody } })?.response
 
   if (!response) {
-    return 'Unable to reach the server. Please check your connection and try again.'
+    return 'Không thể kết nối máy chủ. Vui lòng kiểm tra kết nối và thử lại.'
   }
 
   return response.data?.error?.message ?? fallback
+}
+
+/* -------------------------------------------------------------------------- */
+/* Content Management (FR-21 / FLOW-011)                                      */
+/* -------------------------------------------------------------------------- */
+
+export type ContentType = 'banner' | 'announcement' | 'policy' | 'faq'
+export type ContentStatus = 'draft' | 'published' | 'archived'
+
+export interface AdminContentItem {
+  id: string
+  type: ContentType
+  title: string
+  body: string
+  status: ContentStatus
+  displayFrom: string | null
+  displayTo: string | null
+  createdAt: string
+  updatedAt: string
+  author?: {
+    email: string | null
+    phone: string | null
+    fullName: string
+  } | null
+}
+
+export interface ListAdminContentParams {
+  type?: ContentType | string
+  status?: ContentStatus | string
+  q?: string
+  limit?: number
+}
+
+export interface CreateAdminContentDto {
+  type: ContentType
+  title: string
+  body: string
+  status?: ContentStatus
+  displayFrom?: string | null
+  displayTo?: string | null
+}
+
+export interface UpdateAdminContentDto {
+  type?: ContentType
+  title?: string
+  body?: string
+  status?: ContentStatus
+  displayFrom?: string | null
+  displayTo?: string | null
+}
+
+export async function listAdminContent(params: ListAdminContentParams = {}): Promise<AdminContentItem[]> {
+  const { data } = await api.get<ApiEnvelope<{ items: AdminContentItem[] }>>('/admin/content', { params })
+  return data.data.items
+}
+
+export async function createAdminContent(input: CreateAdminContentDto): Promise<AdminContentItem> {
+  const { data } = await api.post<ApiEnvelope<AdminContentItem>>('/admin/content', input)
+  return data.data
+}
+
+export async function updateAdminContent(id: string, input: UpdateAdminContentDto): Promise<AdminContentItem> {
+  const { data } = await api.patch<ApiEnvelope<AdminContentItem>>(`/admin/content/${id}`, input)
+  return data.data
+}
+
+export async function archiveAdminContent(id: string): Promise<AdminContentItem> {
+  const { data } = await api.delete<ApiEnvelope<AdminContentItem>>(`/admin/content/${id}`)
+  return data.data
+}
+
+/* -------------------------------------------------------------------------- */
+/* Audit Logs (FR-23 / FLOW-012)                                              */
+/* -------------------------------------------------------------------------- */
+
+export interface AdminAuditLogItem {
+  id: string
+  action: string
+  entityType: string
+  entityId: string | null
+  metadata: Record<string, unknown> | null
+  createdAt: string
+  actor?: {
+    email: string | null
+    phone: string | null
+    fullName: string
+  } | null
+}
+
+export interface ListAdminAuditLogsParams {
+  action?: string
+  entityType?: string
+  q?: string
+  limit?: number
+}
+
+export async function listAdminAuditLogs(params: ListAdminAuditLogsParams = {}): Promise<AdminAuditLogItem[]> {
+  const { data } = await api.get<ApiEnvelope<{ items: AdminAuditLogItem[] }>>('/admin/audit-logs', { params })
+  return data.data.items
 }

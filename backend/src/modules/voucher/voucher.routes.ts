@@ -11,6 +11,7 @@ import {
   adminVoucherStatusSchema,
   createVoucherSchema,
   partnerVoucherStatusSchema,
+  publicVoucherSearchSchema,
   updateVoucherSchema,
   voucherApprovalSchema,
   voucherIdSchema,
@@ -24,6 +25,10 @@ const uploadLimiter = rateLimit({
   maxRequests: 20,
   keyGenerator: (req) => req.user?.sub ?? 'unknown'
 })
+
+voucherRoutes.get('/vouchers', validate({ query: publicVoucherSearchSchema }), voucherController.searchPublic)
+voucherRoutes.get('/vouchers/filters', voucherController.getPublicFilters)
+voucherRoutes.get('/vouchers/:id', validate({ params: voucherIdSchema }), voucherController.getPublic)
 
 voucherRoutes.post('/vouchers/images', ...partnerOnly, uploadLimiter, voucherImageUpload, voucherController.uploadImage)
 voucherRoutes.post('/vouchers', ...partnerOnly, validate({ body: createVoucherSchema }), voucherController.create)

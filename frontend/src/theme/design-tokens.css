@@ -1,0 +1,61 @@
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+
+:root,
+[data-theme='customer'] {
+  --paper: #f4efe3;
+  --surface: #fffdf7;
+  --ink: #1c1912;
+  --muted-ink: #6d6658;
+  --orange: #b4791e;
+  --orange-deep: #8f5f16;
+  --accent: var(--orange);
+  --accent-deep: var(--orange-deep);
+  --accent-soft: #f5e6c8;
+  --workspace-background: linear-gradient(135deg, #f5e6c8 0%, #fffdf7 100%);
+  --green: #2b6b4a;
+  --mustard: #e2a63a;
+  --danger: #b83232;
+  --danger-soft: #f8dada;
+  --line: #d8cfb9;
+
+  --font-sans: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  --radius-card: 18px;
+  --radius-control: 16px;
+  --radius-pill: 100px;
+  --shadow-sm: 0 4px 12px rgb(43 35 22 / 7%);
+  --shadow-md: 0 12px 28px rgb(43 35 22 / 10%);
+  --shadow-lg: 0 22px 52px rgb(43 35 22 / 15%);
+}
+
+[data-theme='admin'] {
+  --accent: #6d5bd0;
+  --accent-deep: #5545b2;
+  --accent-soft: #e8e4fa;
+  --workspace-background: linear-gradient(135deg, #f6f4ff 0%, #fff8f3 100%);
+}
+
+[data-theme='partner'] {
+  --accent: #1f6b4a;
+  --accent-deep: #155239;
+  --accent-soft: #dcece4;
+  --workspace-background: linear-gradient(135deg, #f2fbf8 0%, #fff9f2 100%);
+}
+
+.money,
+.voucher-code,
+.timestamp,
+[data-numeric='true'] {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}

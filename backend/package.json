@@ -7,9 +7,9 @@
     "dev": "nodemon",
     "build": "rimraf dist && tsc && tsc-alias -p tsconfig.json",
     "start": "node dist/server.js",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
+    "test": "vitest run --configLoader runner",
+    "test:watch": "vitest --configLoader runner",
+    "test:coverage": "vitest run --coverage --configLoader runner",
     "typecheck": "tsc --noEmit",
     "typecheck:test": "tsc --noEmit -p tsconfig.test.json",
     "db:migrate": "prisma migrate dev",
@@ -17,6 +17,13 @@
     "db:generate": "prisma generate",
     "db:status": "prisma migrate status",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed:full": "tsx scripts/seed-full.ts",
+    "db:seed:catalogue": "tsx scripts/seed-catalogue.ts",
+    "db:seed:marketplace": "tsx scripts/seed-marketplace.ts",
+    "db:seed:search-catalogue": "tsx scripts/seed-search-catalogue.ts",
+    "db:seed:analytics": "tsx scripts/seed-business-analytics.ts",
+    "db:seed:partners": "tsx scripts/balance-partner-catalogue.ts",
+    "db:seed:admin-operations": "tsx scripts/seed-admin-operations.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {
@@ -33,6 +40,7 @@
     "morgan": "^1.11.0",
     "multer": "^2.2.0",
     "qs": "^6.15.3",
+    "stripe": "^22.5.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

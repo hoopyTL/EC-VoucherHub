@@ -7,6 +7,7 @@ import type {
   OperatingStatusDto,
   PartnerListDto,
   RegisterPartnerDto,
+  RedeemCodeDto,
   UpdateBranchDto,
   UpdatePartnerDto
 } from './partner.validation'
@@ -45,6 +46,11 @@ export const partnerController = {
     const params = req.validated?.params as { id: number }
     await partnerService.deleteBranch(req.user!.sub, params.id)
     ApiResponse.noContent(res)
+  }),
+
+  redeemCode: asyncHandler(async (req, res) => {
+    const result = await partnerService.redeemCode(req.user!.sub, req.validated?.body as RedeemCodeDto)
+    ApiResponse.success(res, result)
   }),
 
   list: asyncHandler(async (req, res) => {

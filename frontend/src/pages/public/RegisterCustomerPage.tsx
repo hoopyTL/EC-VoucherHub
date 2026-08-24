@@ -64,13 +64,13 @@ export function RegisterCustomerPage() {
     const errors: FieldErrors = {}
 
     if (!name.trim()) {
-      errors.name = 'Please enter your name.'
+      errors.name = 'Vui lòng nhập họ và tên.'
     }
     if (!email.trim() && !phone.trim()) {
-      errors.identifier = 'Enter an email or a phone number.'
+      errors.identifier = 'Vui lòng nhập email hoặc số điện thoại.'
     }
     if (password.length < MIN_PASSWORD_LENGTH) {
-      errors.password = `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`
+      errors.password = `Mật khẩu phải có ít nhất ${MIN_PASSWORD_LENGTH} ký tự.`
     }
 
     return errors
@@ -102,9 +102,9 @@ export function RegisterCustomerPage() {
         state: { registered: true, role: 'CUSTOMER' }
       })
     } catch (err) {
-      const { status, message } = describeApiError(err, 'Registration failed. Please try again.')
+      const { status, message } = describeApiError(err, 'Đăng ký thất bại. Vui lòng thử lại.')
       // 409 = duplicate email/phone (Requirement 1.2).
-      setFormError(status === 409 ? message || 'An account with this email or phone number already exists.' : message)
+      setFormError(status === 409 ? message || 'Email hoặc số điện thoại này đã được sử dụng.' : message)
     } finally {
       setIsSubmitting(false)
     }
@@ -112,10 +112,10 @@ export function RegisterCustomerPage() {
 
   return (
     <section style={sectionStyle}>
-      <p style={eyebrowStyle}>● Account</p>
-      <h1 style={headingStyle}>Create your customer account</h1>
+      <p style={eyebrowStyle}>● Tài khoản khách hàng</p>
+      <h1 style={headingStyle}>Tạo tài khoản VoucherHub</h1>
       <p style={{ color: colors.slate, marginTop: 0, marginBottom: 28, fontSize: 16 }}>
-        Register with your email or phone number to start buying vouchers.
+        Đăng ký bằng email hoặc số điện thoại để bắt đầu mua voucher.
       </p>
 
       {formError && (
@@ -127,7 +127,7 @@ export function RegisterCustomerPage() {
       <form onSubmit={handleSubmit} noValidate>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <Input
-            label='Full name'
+            label='Họ và tên'
             value={name}
             onChange={(e) => setName(e.target.value)}
             error={fieldErrors.name}
@@ -140,43 +140,49 @@ export function RegisterCustomerPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             error={fieldErrors.identifier}
-            hint='Provide an email or a phone number.'
+            hint='Bạn chỉ cần cung cấp email hoặc số điện thoại.'
             autoComplete='email'
           />
-          <Input label='Phone' type='tel' value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete='tel' />
           <Input
-            label='Password'
+            label='Số điện thoại'
+            type='tel'
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            autoComplete='tel'
+          />
+          <Input
+            label='Mật khẩu'
             type='password'
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             error={fieldErrors.password}
-            hint={`At least ${MIN_PASSWORD_LENGTH} characters.`}
+            hint={`Ít nhất ${MIN_PASSWORD_LENGTH} ký tự.`}
             required
             autoComplete='new-password'
           />
           <Input
-            label='Referral code (optional)'
+            label='Mã giới thiệu (không bắt buộc)'
             value={referralCode}
             onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-            hint='Got a code from a friend? Enter it to earn bonus points.'
+            hint='Nhập mã từ bạn bè để nhận điểm thưởng.'
             autoComplete='off'
           />
           <Button type='submit' isLoading={isSubmitting} fullWidth>
-            Create account
+            Tạo tài khoản
           </Button>
         </div>
       </form>
 
       <p style={{ marginTop: 24, fontSize: 14, color: colors.slate }}>
-        Already have an account?{' '}
+        Đã có tài khoản?{' '}
         <Link to='/login' style={linkStyle}>
-          Log in
+          Đăng nhập
         </Link>
       </p>
       <p style={{ marginTop: 4, fontSize: 14, color: colors.slate }}>
-        Registering a business?{' '}
+        Bạn đăng ký cho doanh nghiệp?{' '}
         <Link to='/register/partner' style={linkStyle}>
-          Partner sign up
+          Đăng ký đối tác
         </Link>
       </p>
     </section>

@@ -18,6 +18,7 @@
  */
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './store/AuthContext'
+import { AnnouncementBar } from './components/layout/AnnouncementBar'
 import { Header } from './components/layout/Header'
 import { Footer } from './components/layout/Footer'
 import { Sidebar, type SidebarVariant } from './components/layout/Sidebar'
@@ -29,13 +30,14 @@ import { LoginPage } from './pages/public/LoginPage'
 import { ForgotPasswordPage } from './pages/public/ForgotPasswordPage'
 import { AccountPage } from './pages/public/AccountPage'
 import { HomePage } from './pages/public/HomePage'
+import { PolicyPage } from './pages/public/PolicyPage'
+import { FAQPage } from './pages/public/FAQPage'
 import { RegisterChooserPage } from './pages/public/RegisterChooserPage'
 import { VoucherBrowsePage } from './pages/public/VoucherBrowsePage'
 import { VoucherDetailPage } from './pages/public/VoucherDetailPage'
-import { OrdersPage } from './pages/customer/OrdersPage'
 import { OrderDetailPage } from './pages/customer/OrderDetailPage'
 import { CheckoutPage } from './pages/customer/CheckoutPage'
-import { CartPage } from './pages/customer/CartPage'
+import { CustomerCartHubPage } from './pages/customer/CustomerCartHubPage'
 import { PaymentResultPage } from './pages/customer/PaymentResultPage'
 import { VouchersPage as PartnerVouchersPage } from './pages/partner/VouchersPage'
 import { CreateVoucherPage as PartnerCreateVoucherPage } from './pages/partner/CreateVoucherPage'
@@ -43,12 +45,15 @@ import { DashboardPage as PartnerDashboardPage } from './pages/partner/Dashboard
 import { BranchesPage as PartnerBranchesPage } from './pages/partner/BranchesPage'
 import { RedeemCodePage } from './pages/partner/RedeemCodePage'
 import { ProfilePage as PartnerProfilePage } from './pages/partner/ProfilePage'
-import { ReportsPage as PartnerReportsPage } from './pages/partner/ReportsPage'
+import { PartnerReportsPage } from './pages/partner/PartnerReportsPage'
+import { StaffPage as PartnerStaffPage } from './pages/partner/StaffPage'
 import { DashboardPage as AdminDashboardPage } from './pages/admin/DashboardPage'
 import { UsersPage as AdminUsersPage } from './pages/admin/UsersPage'
 import { PartnerApprovalsPage as AdminPartnerApprovalsPage } from './pages/admin/PartnerApprovalsPage'
 import { VoucherApprovalsPage as AdminVoucherApprovalsPage } from './pages/admin/VoucherApprovalsPage'
 import { OrdersPage as AdminOrdersPage } from './pages/admin/OrdersPage'
+import { ContentManagementPage as AdminContentManagementPage } from './pages/admin/ContentManagementPage'
+import { AuditLogsPage as AdminAuditLogsPage } from './pages/admin/AuditLogsPage'
 import { ToastProvider } from './components/ui'
 
 /* -------------------------------------------------------------------------- */
@@ -58,7 +63,8 @@ import { ToastProvider } from './components/ui'
 /** Public/customer layout: header, routed content, footer. */
 function PublicLayout() {
   return (
-    <div id='top' style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <div id='top' data-theme='customer' style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <AnnouncementBar />
       <Header />
       <main className='public-main' style={{ flex: 1, padding: '40px 24px', width: '100%' }}>
         <Outlet />
@@ -68,14 +74,46 @@ function PublicLayout() {
   )
 }
 
+/** Full-bleed presentation shell shared by all guest authentication screens. */
+function AuthLayout() {
+  return (
+    <section className='auth-shell'>
+      <div className='auth-shell__form'>
+        <Outlet />
+      </div>
+      <aside className='auth-shell__brand' aria-label='VoucherHub'>
+        <div className='auth-shell__brand-content'>
+          <span className='auth-shell__eyebrow'>VoucherHub Marketplace</span>
+          <h2>Ưu đãi thật. Trải nghiệm đáng nhớ.</h2>
+          <p>Kết nối người mua với những thương hiệu Việt được tuyển chọn kỹ lưỡng.</p>
+          <div className='auth-shell__stats'>
+            <span>
+              <strong>100+</strong> voucher đang bán
+            </span>
+            <span>
+              <strong>12</strong> đối tác uy tín
+            </span>
+            <span>
+              <strong>5</strong> khu vực phục vụ
+            </span>
+          </div>
+        </div>
+      </aside>
+    </section>
+  )
+}
+
 /** Workspace layout for admin/partner: header, sidebar + content, footer. */
 function WorkspaceLayout({ variant }: { variant: SidebarVariant }) {
   return (
-    <div id='top' style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <div id='top' data-theme={variant} style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Header />
       <div className='workspace-shell' style={{ display: 'flex', flex: 1 }}>
         <Sidebar variant={variant} />
-        <main className='workspace-main' style={{ flex: 1, padding: '1.25rem', minWidth: 0 }}>
+        <main
+          className={`workspace-main workspace-main--${variant}`}
+          style={{ flex: 1, padding: '2rem', minWidth: 0, background: 'var(--workspace-background)' }}
+        >
           <Outlet />
         </main>
       </div>
@@ -114,22 +152,26 @@ export function AppRoutes() {
         <Route path='search' element={<VoucherBrowsePage />} />
         <Route path='vouchers' element={<Navigate to='/search' replace />} />
         <Route path='vouchers/:id' element={<VoucherDetailPage />} />
+        <Route path='policy' element={<PolicyPage />} />
+        <Route path='faq' element={<FAQPage />} />
 
         {/* Guest-only auth routes: signed-in users are redirected to their home. */}
         <Route element={<GuestRoute />}>
-          <Route path='login' element={<LoginPage />} />
-          <Route path='forgot-password' element={<ForgotPasswordPage />} />
-          <Route path='register' element={<RegisterChooserPage />} />
-          <Route path='register/customer' element={<RegisterCustomerPage />} />
-          <Route path='partner/register' element={<RegisterPartnerPage />} />
-          <Route path='register/partner' element={<RegisterPartnerPage />} />
+          <Route element={<AuthLayout />}>
+            <Route path='login' element={<LoginPage />} />
+            <Route path='forgot-password' element={<ForgotPasswordPage />} />
+            <Route path='register' element={<RegisterChooserPage />} />
+            <Route path='register/customer' element={<RegisterCustomerPage />} />
+            <Route path='partner/register' element={<RegisterPartnerPage />} />
+            <Route path='register/partner' element={<RegisterPartnerPage />} />
+          </Route>
         </Route>
 
         {/* Customer-only routes */}
         <Route element={<ProtectedRoute allowedRoles={['CUSTOMER']} />}>
-          <Route path='cart' element={<CartPage />} />
+          <Route path='cart' element={<CustomerCartHubPage />} />
           <Route path='checkout' element={<CheckoutPage />} />
-          <Route path='orders' element={<OrdersPage />} />
+          <Route path='orders' element={<Navigate to='/cart?tab=orders' replace />} />
           <Route path='orders/:id' element={<OrderDetailPage />} />
         </Route>
 
@@ -147,19 +189,76 @@ export function AppRoutes() {
       <Route
         path='partner'
         element={
-          <ProtectedRoute allowedRoles={['PARTNER']}>
+          <ProtectedRoute allowedRoles={['PARTNER', 'STAFF']}>
             <WorkspaceLayout variant='partner' />
           </ProtectedRoute>
         }
       >
-        <Route index element={<PartnerDashboardPage />} />
-        <Route path='profile' element={<PartnerProfilePage />} />
-        <Route path='branches' element={<PartnerBranchesPage />} />
-        <Route path='vouchers' element={<PartnerVouchersPage />} />
-        <Route path='vouchers/new' element={<PartnerCreateVoucherPage />} />
-        <Route path='vouchers/:id/edit' element={<PartnerCreateVoucherPage />} />
+        <Route
+          index
+          element={
+            <ProtectedRoute allowedRoles={['PARTNER']}>
+              <PartnerDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='profile'
+          element={
+            <ProtectedRoute allowedRoles={['PARTNER']}>
+              <PartnerProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='branches'
+          element={
+            <ProtectedRoute allowedRoles={['PARTNER']}>
+              <PartnerBranchesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='vouchers'
+          element={
+            <ProtectedRoute allowedRoles={['PARTNER']}>
+              <PartnerVouchersPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='vouchers/new'
+          element={
+            <ProtectedRoute allowedRoles={['PARTNER']}>
+              <PartnerCreateVoucherPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='vouchers/:id/edit'
+          element={
+            <ProtectedRoute allowedRoles={['PARTNER']}>
+              <PartnerCreateVoucherPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='staff'
+          element={
+            <ProtectedRoute allowedRoles={['PARTNER']}>
+              <PartnerStaffPage />
+            </ProtectedRoute>
+          }
+        />
         <Route path='redeem' element={<RedeemCodePage />} />
-        <Route path='reports' element={<PartnerReportsPage />} />
+        <Route
+          path='reports'
+          element={
+            <ProtectedRoute allowedRoles={['PARTNER']}>
+              <PartnerReportsPage />
+            </ProtectedRoute>
+          }
+        />
       </Route>
 
       {/* Admin console */}
@@ -176,6 +275,8 @@ export function AppRoutes() {
         <Route path='partners' element={<AdminPartnerApprovalsPage />} />
         <Route path='vouchers' element={<AdminVoucherApprovalsPage />} />
         <Route path='orders' element={<AdminOrdersPage />} />
+        <Route path='content' element={<AdminContentManagementPage />} />
+        <Route path='audit-logs' element={<AdminAuditLogsPage />} />
       </Route>
 
       {/* Fallbacks */}
@@ -189,7 +290,7 @@ export default function App() {
   return (
     <AuthProvider>
       <ToastProvider>
-        <BrowserRouter>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <AppRoutes />
         </BrowserRouter>
       </ToastProvider>

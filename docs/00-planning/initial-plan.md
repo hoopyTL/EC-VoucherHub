@@ -22,7 +22,7 @@ Xây dựng nền tảng thương mại điện tử bán voucher giảm giá tr
 | SC-02 | Vòng đời voucher nhất quán | Trạng thái voucher, đơn hàng, voucher code đúng theo 15 business rules |
 | SC-03 | Partner xác thực voucher thành công | Nhập mã hoặc QR → hệ thống xác minh → đánh dấu đã dùng |
 | SC-04 | Dashboard admin hiển thị báo cáo | Doanh thu, đơn hàng, voucher, đối tác — có filter thời gian |
-| SC-05 | 3 vai trò hoạt động độc lập | Customer, Partner, Admin với giao diện & quyền riêng |
+| SC-05 | 4 vai trò hoạt động độc lập | Customer, Partner, Staff, Admin với giao diện & quyền riêng |
 | SC-06 | Dữ liệu mẫu demo đầy đủ | ≥ 5 đối tác, ≥ 20 voucher, ≥ 50 đơn hàng, ≥ 3 danh mục |
 
 ---
@@ -571,7 +571,7 @@ LOCKED → UNUSED (mở khóa) / EXPIRED (hết hạn khi đang khóa) / CANCELL
 - [ ] `pnpm run dev` — Backend + Frontend start correctly
 - [ ] Full E2E flow manual test (SC-01 through SC-06)
 - [ ] 15 Business Rules (RB-01 → RB-15) — spot check each
-- [ ] 3 roles authentication & authorization verified
+- [ ] 4 roles authentication & authorization verified (Customer, Partner, Staff, Admin)
 - [ ] Responsive check on mobile viewport (375px)
 
 ---

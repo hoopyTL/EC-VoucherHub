@@ -18,6 +18,37 @@ export function PaymentResultPage() {
     hasProcessed.current = true
 
     const handleVNPayReturn = async () => {
+      const paypalOrderId = searchParams.get('token')
+      const paypalLocalOrderId = searchParams.get('order_id')
+      const paypalSuccess = searchParams.get('paypal_success')
+
+      if (paypalLocalOrderId && paypalSuccess !== null) {
+        if (paypalSuccess === 'true' && paypalOrderId) {
+          try {
+            const { capturePayPalPayment } = await import('../../services/orders')
+            await capturePayPalPayment(paypalLocalOrderId, paypalOrderId)
+          } catch (error) {
+            console.error('Không thể xác nhận giao dịch PayPal:', error)
+            alert('Không thể xác nhận giao dịch PayPal. Vui lòng kiểm tra lại đơn hàng.')
+          }
+        } else {
+          alert('Bạn đã hủy hoặc chưa hoàn tất thanh toán PayPal.')
+        }
+        navigate(`/orders/${paypalLocalOrderId}`, { replace: true })
+        return
+      }
+
+      const stripeOrderId = searchParams.get('order_id')
+      const stripeSuccess = searchParams.get('stripe_success')
+
+      if (stripeOrderId) {
+        if (!stripeSuccess || stripeSuccess !== 'true') {
+          alert('Bạn đã hủy hoặc chưa hoàn tất thanh toán quốc tế.')
+        }
+        navigate(`/orders/${stripeOrderId}`, { replace: true })
+        return
+      }
+
       // ----------------------------------------------------------------------
       // BƯỚC 1: ĐỒNG BỘ IPN CỤC BỘ (Fallback cho Localhost)
       // Do VNPay ngoài Internet không thể chọc API vào localhost, Frontend sẽ
@@ -66,7 +97,7 @@ export function PaymentResultPage() {
 
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
-      <LoadingSpinner label='Đang đồng bộ kết quả thanh toán từ Ngân hàng...' />
+      <LoadingSpinner label='Đang đồng bộ kết quả thanh toán...' />
     </div>
   )
 }

@@ -39,6 +39,8 @@ export function roleHomePath(role: UserRole): string {
       return '/admin'
     case 'PARTNER':
       return '/partner'
+    case 'STAFF':
+      return '/partner/redeem'
     case 'CUSTOMER':
     default:
       return '/'

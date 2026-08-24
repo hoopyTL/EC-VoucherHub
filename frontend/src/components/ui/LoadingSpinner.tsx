@@ -44,7 +44,7 @@ function ensureKeyframes(): void {
 export function LoadingSpinner({
   size = 'md',
   color = 'currentColor',
-  label = 'Loading',
+  label = 'Đang tải',
   inline = false,
   style,
   className

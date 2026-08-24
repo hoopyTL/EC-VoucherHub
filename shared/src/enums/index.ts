@@ -58,7 +58,15 @@ export type UsageResult = (typeof UsageResult)[keyof typeof UsageResult]
 export const RoleName = {
   ADMIN: 'ADMIN',
   PARTNER: 'PARTNER',
+  STAFF: 'STAFF',
   CUSTOMER: 'CUSTOMER'
 } as const
 
 export type RoleName = (typeof RoleName)[keyof typeof RoleName]
+
+export const StaffStatus = {
+  ACTIVE: 'ACTIVE',
+  INACTIVE: 'INACTIVE'
+} as const
+
+export type StaffStatus = (typeof StaffStatus)[keyof typeof StaffStatus]

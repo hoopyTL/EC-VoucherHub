@@ -20,6 +20,7 @@ import { LoadingSpinner } from '../../components/ui/LoadingSpinner'
 import { useToast } from '../../components/ui'
 import { PriceDisplay } from '../../components/voucher/PriceDisplay'
 import { FlashSaleBadge } from '../../components/voucher/FlashSaleBadge'
+import { ReviewSection } from '../../components/voucher/ReviewSection'
 import { formatDateRange } from '../../utils/format'
 import { useAuth } from '../../hooks/useAuth'
 import { addToCart } from '../../services/orders'
@@ -28,6 +29,13 @@ import { colors, fonts, radius, shadows } from '../../theme/tokens'
 
 /** Per-voucher cart quantity ceiling (mirrors the backend limit). */
 const MAX_QUANTITY = 10
+
+/** Resolve the same cell from the demo catalogue sprite that VoucherCard uses. */
+function spritePosition(imageUrl: string): string {
+  const cell = Number(new URL(imageUrl, window.location.origin).searchParams.get('cell'))
+  if (!Number.isFinite(cell) || cell < 0) return '0% 0%'
+  return `${((cell % 10) * 100) / 9}% ${(Math.floor(cell / 10) * 100) / 6}%`
+}
 
 /** Returns true when the error represents a 404 (voucher not found/published). */
 function isNotFound(error: unknown): boolean {
@@ -46,9 +54,9 @@ function resolveAddToCartError(err: unknown): string {
   const message = response?.data?.error?.message
   if (message) return message
   if (!response) {
-    return 'Unable to reach the server. Please check your connection and try again.'
+    return 'Không thể kết nối máy chủ. Vui lòng kiểm tra kết nối và thử lại.'
   }
-  return 'Could not add this voucher to your cart. Please try again.'
+  return 'Không thể thêm voucher vào giỏ hàng. Vui lòng thử lại.'
 }
 
 const sectionTitleStyle: CSSProperties = {
@@ -166,11 +174,11 @@ export function VoucherDetailPage() {
     const notFound = isNotFound(query.error)
     return (
       <section style={{ maxWidth: 560, margin: '0 auto', textAlign: 'center' }}>
-        <h1 style={{ marginTop: 0 }}>{notFound ? 'Voucher not found' : 'Something went wrong'}</h1>
+        <h1 style={{ marginTop: 0 }}>{notFound ? 'Không tìm thấy voucher' : 'Đã xảy ra lỗi'}</h1>
         <p style={{ color: colors.slate }}>
           {notFound
-            ? 'This voucher is no longer available or does not exist.'
-            : 'We couldn\u2019t load this voucher. Please try again.'}
+            ? 'Voucher này không còn được bán hoặc không tồn tại.'
+            : 'Không thể tải thông tin voucher. Vui lòng thử lại.'}
         </p>
         <Link to='/search' style={{ color: colors.ink, fontWeight: 600 }}>
           ← Quay lại tìm kiếm
@@ -204,24 +212,23 @@ export function VoucherDetailPage() {
 
   return (
     <article
+      className='voucher-detail-layout'
       style={{
-        display: 'flex',
-        flexDirection: 'column',
         gap: 20,
-        maxWidth: 860,
+        maxWidth: 1180,
         margin: '0 auto'
       }}
     >
-      <nav>
+      <nav className='voucher-detail-nav'>
         <Link to='/search' style={{ fontSize: 13, fontFamily: fonts.display, fontWeight: 600, color: colors.slate }}>
           ← Quay lại tìm kiếm
         </Link>
       </nav>
 
-      <header style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <header className='voucher-detail-summary' style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
           <Badge variant='info'>{voucher.category}</Badge>
-          <Badge variant={voucher.remainingQuantity > 0 ? 'success' : 'danger'}>
+          <Badge variant={voucher.remainingQuantity > 0 ? 'success' : 'neutral'}>
             {voucher.remainingQuantity > 0 ? `Còn ${voucher.remainingQuantity}` : 'Hết hàng'}
           </Badge>
         </div>
@@ -258,7 +265,7 @@ export function VoucherDetailPage() {
       </header>
 
       {/* Purchase panel — quantity selector + add to cart (Req 13.1) */}
-      <section style={purchasePanelStyle} aria-label='Mua voucher'>
+      <section className='voucher-detail-purchase' style={purchasePanelStyle} aria-label='Mua voucher'>
         {isCustomer ? (
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
@@ -311,6 +318,7 @@ export function VoucherDetailPage() {
 
       {voucher.imageUrl && (
         <div
+          className='voucher-detail-media'
           style={{
             borderRadius: radius.xl,
             overflow: 'hidden',
@@ -319,26 +327,42 @@ export function VoucherDetailPage() {
             background: colors.surfaceMuted
           }}
         >
-          <img
-            src={voucher.imageUrl}
-            alt={voucher.title}
-            style={{
-              display: 'block',
-              width: '100%',
-              maxHeight: 420,
-              objectFit: 'cover',
-              filter: 'grayscale(55%) contrast(1.05)'
-            }}
-          />
+          {voucher.imageUrl.startsWith('/assets/voucher-catalogue-sprite.png') ? (
+            <div
+              role='img'
+              aria-label={voucher.title}
+              style={{
+                width: '100%',
+                minHeight: 440,
+                backgroundImage: "url('/assets/voucher-catalogue-sprite.png')",
+                backgroundSize: '1000% auto',
+                backgroundPosition: spritePosition(voucher.imageUrl),
+                backgroundRepeat: 'no-repeat'
+              }}
+            />
+          ) : (
+            <img
+              src={voucher.imageUrl}
+              alt={voucher.title}
+              style={{
+                display: 'block',
+                width: '100%',
+                height: '100%',
+                minHeight: 440,
+                objectFit: 'cover'
+              }}
+            />
+          )}
         </div>
       )}
 
-      <section style={cardStyle}>
+      <section className='voucher-detail-description' style={cardStyle}>
         <h2 style={sectionTitleStyle}>Mô tả</h2>
         <p style={{ ...bodyTextStyle, whiteSpace: 'pre-line' }}>{voucher.description}</p>
       </section>
 
       <div
+        className='voucher-detail-facts'
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
@@ -363,7 +387,7 @@ export function VoucherDetailPage() {
         </section>
       </div>
 
-      <section style={cardStyle}>
+      <section className='voucher-detail-wide' style={cardStyle}>
         <h2 style={sectionTitleStyle}>Chi nhánh áp dụng</h2>
         {activeBranches.length === 0 ? (
           <p style={bodyTextStyle}>Voucher chưa có chi nhánh đang hoạt động.</p>
@@ -379,12 +403,14 @@ export function VoucherDetailPage() {
         )}
       </section>
 
-      <section style={cardStyle}>
+      <section className='voucher-detail-wide' style={cardStyle}>
         <h2 style={sectionTitleStyle}>Điều khoản và điều kiện</h2>
         <p style={{ ...bodyTextStyle, whiteSpace: 'pre-line' }}>
           {voucher.terms?.trim() ? voucher.terms : 'Voucher chưa có điều khoản và điều kiện riêng.'}
         </p>
       </section>
+
+      <ReviewSection voucherId={voucher.id} voucherTitle={voucher.title} />
     </article>
   )
 }

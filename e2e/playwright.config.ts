@@ -5,6 +5,7 @@ const frontendUrl = 'http://127.0.0.1:5174'
 const rootDir = process.cwd()
 
 export default defineConfig({
+  globalSetup: './setup-e2e-db.ts',
   testDir: '.',
   testMatch: ['*.spec.ts'],
   fullyParallel: false,

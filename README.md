@@ -87,6 +87,7 @@ Design Preview không gửi request tới backend và tự cấp vai trò theo n
 |------|------------|
 | **Customer** | Mua voucher, quản lý đơn hàng, đánh giá |
 | **Partner** | Tạo/quản lý voucher, xác thực sử dụng, báo cáo |
+| **Staff** | Nhân viên của một đối tác; xác thực voucher tại các chi nhánh được phân công |
 | **Admin** | Duyệt đối tác/voucher, quản lý hệ thống, dashboard |
 
 ## Contributing

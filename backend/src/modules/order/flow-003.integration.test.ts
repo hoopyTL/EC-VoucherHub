@@ -19,6 +19,7 @@ vi.mock('../../configs/prisma', () => ({
     order: { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
     voucherProduct: { updateMany: vi.fn(), update: vi.fn() },
     issuedVoucherCode: { findUnique: vi.fn(), createManyAndReturn: vi.fn() },
+    paymentTransaction: { create: vi.fn(), update: vi.fn() },
     $disconnect: vi.fn(),
     $transaction: vi.fn((callback) => callback(prismaMock))
   }
@@ -35,6 +36,8 @@ describe('FLOW-003: Cart -> Order -> Payment', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     prismaMock.$transaction.mockImplementation((callback: any) => callback(prismaMock))
+    prismaMock.paymentTransaction.create.mockResolvedValue({ id: 'payment-1' })
+    prismaMock.paymentTransaction.update.mockResolvedValue({ id: 'payment-1' })
   })
   it('creates an order and issues codes after successful payment', async () => {
     const usageEnd = new Date('2026-12-31T23:59:59.000Z')

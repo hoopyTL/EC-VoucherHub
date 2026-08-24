@@ -7,10 +7,12 @@
  * to the authenticated user's role (Req 23.2).
  */
 import { Link, NavLink } from 'react-router-dom'
-import type { CSSProperties } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../hooks/useAuth'
 import { colors, fonts, radius, glass, shadows } from '../../theme/tokens'
+import { ConfirmDialog } from '../ui'
+import { Home, LogOut, ShoppingCart } from 'lucide-react'
 
 interface NavItem {
   to: string
@@ -43,6 +45,9 @@ function renderNavLink({ to, label }: NavItem) {
         boxShadow: isActive ? '0 2px 8px rgba(0,0,0,0.06)' : 'none'
       })}
     >
+      {to === '/' && (
+        <Home size={16} strokeWidth={1.8} aria-hidden='true' style={{ marginRight: 7, verticalAlign: '-3px' }} />
+      )}
       {label}
     </NavLink>
   )
@@ -51,6 +56,8 @@ function renderNavLink({ to, label }: NavItem) {
 export function Header() {
   const { isAuthenticated, user, logout } = useAuth()
   const { t } = useTranslation()
+  const [logoutOpen, setLogoutOpen] = useState(false)
+  const initial = (user?.name?.trim().charAt(0) || 'K').toLocaleUpperCase('vi')
 
   const publicLinks: NavItem[] = [
     { to: '/', label: t('nav.home') },
@@ -63,10 +70,8 @@ export function Header() {
   // from the persisted profile while `isAuthenticated` is still false — gating
   // on `isAuthenticated` prevents showing Cart/Orders/My Codes to a visitor who
   // is not (yet) logged in.
-  if (isAuthenticated && user?.role === 'CUSTOMER') {
-    roleLinks.push({ to: '/cart', label: t('nav.cart') }, { to: '/orders', label: t('nav.orders') })
-  } else if (isAuthenticated && user?.role === 'PARTNER') {
-    roleLinks.push({ to: '/partner', label: t('nav.partnerWorkspace') })
+  if (isAuthenticated && (user?.role === 'PARTNER' || user?.role === 'STAFF')) {
+    roleLinks.push({ to: user.role === 'STAFF' ? '/partner/redeem' : '/partner', label: t('nav.partnerWorkspace') })
   } else if (isAuthenticated && user?.role === 'ADMIN') {
     roleLinks.push({ to: '/admin', label: t('nav.adminConsole') })
   }
@@ -133,14 +138,59 @@ export function Header() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         {isAuthenticated && user ? (
           <>
-            <NavLink to='/profile' style={navLinkBase}>
-              {user.name || t('nav.account')}
+            {user.role === 'CUSTOMER' && (
+              <NavLink
+                to='/cart'
+                aria-label='Mở giỏ hàng'
+                title='Giỏ hàng'
+                style={({ isActive }) => ({
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 42,
+                  height: 42,
+                  borderRadius: radius.full,
+                  color: isActive ? colors.accentHover : colors.ink,
+                  background: isActive ? colors.accentSurface : colors.surface,
+                  border: `1px solid ${isActive ? colors.accent : colors.hairline}`,
+                  boxShadow: isActive ? '0 6px 16px rgba(228, 77, 38, 0.10)' : 'none'
+                })}
+              >
+                <ShoppingCart size={20} strokeWidth={1.8} aria-hidden='true' />
+              </NavLink>
+            )}
+            <NavLink
+              to='/profile'
+              aria-label='Mở tài khoản'
+              title={user.name || t('nav.account')}
+              style={() => ({
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 42,
+                height: 42,
+                borderRadius: radius.full,
+                color: colors.accentHover,
+                background: colors.accentSurface,
+                border: `1px solid ${colors.accent}`,
+                fontFamily: fonts.display,
+                fontWeight: 800
+              })}
+            >
+              {initial}
             </NavLink>
             <button
               type='button'
-              onClick={logout}
+              aria-label='Đăng xuất'
+              title='Đăng xuất'
+              onClick={() => setLogoutOpen(true)}
               style={{
-                padding: '10px 18px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 42,
+                height: 42,
+                padding: 0,
                 borderRadius: radius.full,
                 border: `1px solid ${colors.hairline}`,
                 background: colors.surface,
@@ -151,7 +201,7 @@ export function Header() {
                 fontWeight: 600
               }}
             >
-              {t('nav.logOut')}
+              <LogOut size={19} strokeWidth={1.8} aria-hidden='true' />
             </button>
           </>
         ) : (
@@ -178,6 +228,19 @@ export function Header() {
           </>
         )}
       </div>
+      <ConfirmDialog
+        open={logoutOpen}
+        title='Đăng xuất VoucherHub?'
+        message='Bạn có chắc muốn kết thúc phiên đăng nhập trên thiết bị này không?'
+        cancelLabel='Ở lại'
+        confirmLabel='Đăng xuất'
+        danger
+        onCancel={() => setLogoutOpen(false)}
+        onConfirm={() => {
+          setLogoutOpen(false)
+          logout()
+        }}
+      />
     </header>
   )
 }

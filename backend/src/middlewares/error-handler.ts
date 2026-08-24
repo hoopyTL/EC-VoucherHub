@@ -25,7 +25,7 @@ export function errorHandler(err: Error, _req: Request, res: Response, _next: Ne
         ...(!isServerError && err.details !== undefined && { details: err.details })
       }
     }
-    if (isServerError) console.error('Server error:', err)
+    if (isServerError && process.env.NODE_ENV !== 'test') console.error('Server error:', err)
     res.status(err.statusCode).json(body)
     return
   }
@@ -42,7 +42,7 @@ export function errorHandler(err: Error, _req: Request, res: Response, _next: Ne
       success: false,
       error: {
         code: ErrorCode.VALIDATION_ERROR,
-        message: 'Validation failed',
+        message: 'Dữ liệu không hợp lệ',
         details
       }
     }
@@ -56,7 +56,7 @@ export function errorHandler(err: Error, _req: Request, res: Response, _next: Ne
       success: false,
       error: {
         code: ErrorCode.BAD_REQUEST,
-        message: 'Malformed JSON in request body'
+        message: 'Dữ liệu JSON trong yêu cầu không hợp lệ'
       }
     }
     res.status(400).json(body)
@@ -73,7 +73,7 @@ export function errorHandler(err: Error, _req: Request, res: Response, _next: Ne
         success: false,
         error: {
           code: ErrorCode.DUPLICATE_ENTRY,
-          message: 'A record with this value already exists',
+          message: 'Đã tồn tại bản ghi có giá trị này',
           details: prismaErr.meta?.target ? { fields: prismaErr.meta.target } : undefined
         }
       }
@@ -87,7 +87,7 @@ export function errorHandler(err: Error, _req: Request, res: Response, _next: Ne
         success: false,
         error: {
           code: ErrorCode.RESOURCE_NOT_FOUND,
-          message: 'Record not found'
+          message: 'Không tìm thấy bản ghi'
         }
       }
       res.status(404).json(body)
@@ -96,13 +96,13 @@ export function errorHandler(err: Error, _req: Request, res: Response, _next: Ne
   }
 
   // 5. Unknown / unhandled — log + generic response
-  console.error('Unhandled error:', err)
+  if (process.env.NODE_ENV !== 'test') console.error('Unhandled error:', err)
 
   const body: ErrorResponseBody = {
     success: false,
     error: {
       code: ErrorCode.INTERNAL_ERROR,
-      message: 'An unexpected error occurred'
+      message: 'Đã xảy ra lỗi không mong muốn'
     }
   }
   res.status(500).json(body)

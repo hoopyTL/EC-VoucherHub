@@ -4,6 +4,7 @@ import { AppError } from './app-error'
 const legacyRoleNames: Record<RoleNameValue, string> = {
   [RoleName.ADMIN]: 'QUAN_TRI_VIEN',
   [RoleName.PARTNER]: 'DOI_TAC',
+  [RoleName.STAFF]: 'NHAN_VIEN',
   [RoleName.CUSTOMER]: 'KHACH_HANG'
 }
 

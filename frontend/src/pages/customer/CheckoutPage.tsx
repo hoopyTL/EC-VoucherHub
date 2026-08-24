@@ -19,10 +19,11 @@
 import { useState, type CSSProperties, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { LockKeyhole } from 'lucide-react'
 import type { CreateOrderRequest } from '@ui-contracts'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
-import { LoadingSpinner } from '../../components/ui/LoadingSpinner'
+import { ContentSkeleton } from '../../components/ui/ContentSkeleton'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
 import {
   createOrder,
@@ -32,6 +33,7 @@ import {
   type CartResponse,
   type OrderResponse
 } from '../../services/orders'
+import { clearCheckoutSelection, readCheckoutSelection } from '../../services/checkout-selection'
 
 /** Trim a string and return `undefined` when the result is empty. */
 function emptyToUndefined(value: string): string | undefined {
@@ -47,11 +49,13 @@ export function CheckoutPage() {
   const [recipientEmail, setRecipientEmail] = useState('')
   const [recipientPhone, setRecipientPhone] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [selectedIds] = useState(readCheckoutSelection)
 
   const cartQuery = useQuery<CartResponse>({
     queryKey: ['cart'],
     queryFn: getCart
   })
+  const selectionForOrder = selectedIds.length > 0 ? selectedIds : (cartQuery.data?.items.map((item) => item.id) ?? [])
 
   const createOrderMutation = useMutation<OrderResponse, unknown, CreateOrderRequest>({
     mutationFn: createOrder,
@@ -59,6 +63,7 @@ export function CheckoutPage() {
       // The order now owns the reserved inventory and the cart was cleared
       // server-side — drop the cached cart so other views refetch.
       queryClient.invalidateQueries({ queryKey: ['cart'] })
+      clearCheckoutSelection()
       navigate(`/orders/${order.id}`)
     },
     onError: (err) => {
@@ -78,8 +83,9 @@ export function CheckoutPage() {
     // If we only have flat fields locally, map them into the nested object
     const giftRecipient = name || email || phone ? { name, email, phone } : undefined
 
-    const body: any = {
-      giftRecipient
+    const body: CreateOrderRequest = {
+      giftRecipient,
+      selectedCartItemIds: selectionForOrder.map(Number)
     }
 
     createOrderMutation.mutate(body)
@@ -88,7 +94,7 @@ export function CheckoutPage() {
   if (cartQuery.isLoading) {
     return (
       <section style={sectionStyle}>
-        <LoadingSpinner label='Đang tải giỏ hàng' />
+        <ContentSkeleton rows={3} variant='cards' label='Đang tải giỏ hàng' />
       </section>
     )
   }
@@ -105,7 +111,15 @@ export function CheckoutPage() {
   }
 
   const cart = cartQuery.data
-  const isEmpty = !cart || cart.items.length === 0
+  const selectedCart = cart
+    ? {
+        items: cart.items.filter((item) => selectionForOrder.includes(item.id)),
+        total: cart.items
+          .filter((item) => selectionForOrder.includes(item.id))
+          .reduce((sum, item) => sum + item.subtotal, 0)
+      }
+    : undefined
+  const isEmpty = !selectedCart || selectedCart.items.length === 0
 
   return (
     <section style={sectionStyle}>
@@ -126,7 +140,7 @@ export function CheckoutPage() {
           {/* Order summary (Req 14.1) */}
           <div aria-label='Tóm tắt đơn hàng' style={panelStyle}>
             <h2 style={panelHeadingStyle}>Tóm tắt đơn hàng</h2>
-            <table style={tableStyle}>
+            <table className='checkout-summary-table' style={tableStyle}>
               <thead>
                 <tr>
                   <th style={thStyle}>Voucher</th>
@@ -136,8 +150,8 @@ export function CheckoutPage() {
                 </tr>
               </thead>
               <tbody>
-                {cart.items.map((item) => (
-                  <tr key={item.id}>
+                {selectedCart!.items.map((item) => (
+                  <tr className='checkout-summary-row' key={item.id}>
                     <td style={tdStyle}>{item.title}</td>
                     <td style={tdNumStyle}>{formatMoney(item.unitPrice)}</td>
                     <td style={tdNumStyle}>{item.quantity}</td>
@@ -151,7 +165,7 @@ export function CheckoutPage() {
                     Tổng cộng
                   </td>
                   <td style={{ ...tdNumStyle, fontWeight: 700 }} data-testid='cart-total'>
-                    {formatMoney(cart.total)}
+                    {formatMoney(selectedCart!.total)}
                   </td>
                 </tr>
               </tfoot>
@@ -208,6 +222,12 @@ export function CheckoutPage() {
             <Button type='submit' fullWidth isLoading={createOrderMutation.isPending}>
               Đặt hàng
             </Button>
+            <div className='checkout-security-note'>
+              <LockKeyhole size={16} aria-hidden='true' />
+              <span>
+                {'Giao d\u1ecbch \u0111\u01b0\u1ee3c m\u00e3 h\u00f3a v\u00e0 b\u1ea3o v\u1ec7 an to\u00e0n.'}
+              </span>
+            </div>
             <Link to='/cart' style={{ display: 'inline-block', marginTop: 12, fontSize: 14, ...linkStyle }}>
               Quay lại giỏ hàng
             </Link>

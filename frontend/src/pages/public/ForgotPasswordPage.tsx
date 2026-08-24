@@ -32,7 +32,7 @@ export function ForgotPasswordPage() {
 
     const trimmed = emailOrPhone.trim()
     if (!trimmed) {
-      setErrorMessage('Please enter your email or phone.')
+      setErrorMessage('Vui lòng nhập email hoặc số điện thoại.')
       return
     }
 
@@ -43,7 +43,7 @@ export function ForgotPasswordPage() {
       // the account exists (Req 2.4).
       setSuccessMessage(result.message)
     } catch (err) {
-      setErrorMessage(getAuthApiError(err, 'Unable to process your request. Please try again.'))
+      setErrorMessage(getAuthApiError(err, 'Không thể xử lý yêu cầu. Vui lòng thử lại.'))
     } finally {
       setIsSubmitting(false)
     }
@@ -51,10 +51,10 @@ export function ForgotPasswordPage() {
 
   return (
     <section style={sectionStyle}>
-      <p style={eyebrowStyle}>● Reset password</p>
-      <h1 style={titleStyle}>Forgot your password?</h1>
+      <p style={eyebrowStyle}>● KHÔI PHỤC MẬT KHẨU</p>
+      <h1 style={titleStyle}>Quên mật khẩu?</h1>
       <p style={{ marginTop: 0, marginBottom: 28, color: colors.slate, fontSize: 16 }}>
-        Enter your email or phone to request password reset instructions.
+        Nhập email hoặc số điện thoại để nhận hướng dẫn đặt lại mật khẩu.
       </p>
 
       {successMessage ? (
@@ -65,7 +65,7 @@ export function ForgotPasswordPage() {
 
           <p style={{ marginTop: 24, fontSize: 14, color: colors.slate }}>
             <Link to='/login' style={{ color: colors.ink, fontWeight: 600 }}>
-              Back to log in
+              Quay lại đăng nhập
             </Link>
           </p>
         </>
@@ -79,7 +79,7 @@ export function ForgotPasswordPage() {
 
           <div style={{ marginBottom: 24 }}>
             <Input
-              label='Email or phone'
+              label='Email hoặc số điện thoại'
               name='emailOrPhone'
               type='text'
               autoComplete='username'
@@ -91,13 +91,13 @@ export function ForgotPasswordPage() {
           </div>
 
           <Button type='submit' fullWidth isLoading={isSubmitting} withArrow>
-            Request reset
+            Gửi yêu cầu khôi phục
           </Button>
 
           <p style={{ marginTop: 24, fontSize: 14, color: colors.slate }}>
-            Remembered it?{' '}
+            Đã nhớ mật khẩu?{' '}
             <Link to='/login' style={{ color: colors.ink, fontWeight: 600 }}>
-              Back to log in
+              Quay lại đăng nhập
             </Link>
           </p>
         </form>

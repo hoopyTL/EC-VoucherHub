@@ -21,7 +21,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createBranch, deleteBranch, getPartnerApiError, listBranches, updateBranch } from '../../services/partner'
 import type { Branch, BranchFormValues } from '../../types/partner'
 import { VOUCHER_REGIONS } from '../../constants/voucher'
-import { Button, Input, LoadingSpinner, Modal } from '../../components/ui'
+import { Button, ContentSkeleton, Input, Modal } from '../../components/ui'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
 
 /** Query key for the partner branches list. */
@@ -163,7 +163,7 @@ export function BranchesPage() {
 
       {isLoading && (
         <div style={{ padding: 32 }}>
-          <LoadingSpinner label='Loading branches' />
+          <ContentSkeleton rows={4} variant='cards' label='Đang tải chi nhánh' />
         </div>
       )}
 

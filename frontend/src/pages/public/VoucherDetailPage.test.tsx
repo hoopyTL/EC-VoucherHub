@@ -74,7 +74,7 @@ describe('VoucherDetailPage', () => {
 
     renderDetail('missing')
 
-    expect(await screen.findByRole('heading', { name: /not found/i })).toBeDefined()
+    expect(await screen.findByRole('heading', { name: /không tìm thấy/i })).toBeDefined()
   })
 
   it('falls back to a default terms message when none are provided', async () => {
