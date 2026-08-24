@@ -23,7 +23,8 @@ import { FlashSaleBadge } from '../../components/voucher/FlashSaleBadge'
 import { ReviewSection } from '../../components/voucher/ReviewSection'
 import { formatDateRange } from '../../utils/format'
 import { useAuth } from '../../hooks/useAuth'
-import { addToCart } from '../../services/orders'
+import { addToCart, prepareBuyNow } from '../../services/orders'
+import { saveCheckoutSelection } from '../../services/checkout-selection'
 import { getVoucherDetail, type VoucherDetailResponse } from '../../services/voucher.service'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
 
@@ -162,6 +163,19 @@ export function VoucherDetailPage() {
     }
   })
 
+  const buyNowMutation = useMutation({
+    mutationFn: (qty: number) => prepareBuyNow(id as string, qty),
+    onSuccess: ({ cart, cartItemId }) => {
+      queryClient.setQueryData(['cart'], cart)
+      queryClient.invalidateQueries({ queryKey: ['cart'] })
+      saveCheckoutSelection([cartItemId])
+      navigate('/checkout')
+    },
+    onError: (err) => {
+      toast.error(resolveAddToCartError(err))
+    }
+  })
+
   if (query.isLoading) {
     return (
       <div style={{ padding: '64px 0' }}>
@@ -208,6 +222,14 @@ export function VoucherDetailPage() {
       return
     }
     addMutation.mutate(quantity)
+  }
+
+  function handleBuyNow() {
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: { pathname: `/vouchers/${voucher.id}` } } })
+      return
+    }
+    buyNowMutation.mutate(quantity)
   }
 
   return (
@@ -298,16 +320,27 @@ export function VoucherDetailPage() {
               </span>
             </div>
 
-            <Button
-              variant='primary'
-              size='lg'
-              withArrow
-              disabled={soldOut}
-              isLoading={addMutation.isPending}
-              onClick={handleAddToCart}
-            >
-              {soldOut ? 'Hết hàng' : 'Thêm vào giỏ'}
-            </Button>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <Button
+                variant='primary'
+                size='lg'
+                withArrow
+                disabled={soldOut || buyNowMutation.isPending}
+                isLoading={addMutation.isPending}
+                onClick={handleAddToCart}
+              >
+                {soldOut ? 'Hết hàng' : 'Thêm vào giỏ'}
+              </Button>
+              <Button
+                variant='secondary'
+                size='lg'
+                disabled={soldOut || addMutation.isPending}
+                isLoading={buyNowMutation.isPending}
+                onClick={handleBuyNow}
+              >
+                {soldOut ? 'Hết hàng' : 'Mua ngay'}
+              </Button>
+            </div>
           </>
         ) : (
           <p style={{ ...bodyTextStyle, fontSize: 14 }}>

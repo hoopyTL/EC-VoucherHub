@@ -35,6 +35,7 @@ export interface PartnerVoucher {
   originalPrice: string
   salePrice: string
   totalQuantity: number
+  remainingQuantity: number
   soldQuantity: number
   issuedCodeCount: number
   usedCodeCount: number
@@ -78,6 +79,7 @@ function toPartnerVoucher(voucher: VoucherDto): PartnerVoucher {
     originalPrice: voucher.originalPrice,
     salePrice: voucher.salePrice,
     totalQuantity: voucher.totalQuantity,
+    remainingQuantity: voucher.remainingQuantity,
     soldQuantity: voucher.soldQuantity,
     issuedCodeCount: voucher.issuedCodeCount,
     usedCodeCount: voucher.usedCodeCount,

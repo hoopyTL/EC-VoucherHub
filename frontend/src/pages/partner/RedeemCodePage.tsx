@@ -3,7 +3,7 @@
  *
  * The partner supplies a voucher code (prefilled from the verify page via the
  * `?code=` query param, or typed directly), picks the branch where the voucher
- * is being used, and confirms. The page calls `POST /partner/redeem-code`,
+ * is being used, and confirms. The page calls `POST /voucher-codes/:code/redemption`,
  * which atomically marks a valid, active code as USED and records the branch
  * (Req 19.1). A code may only be redeemed once — a second attempt on a USED
  * code is rejected (Req 19.2) — and the redemption branch must belong to the
@@ -38,7 +38,7 @@ export interface PartnerBranch {
   isActive?: boolean
 }
 
-/** Successful redemption payload (`POST /partner/redeem-code`). */
+/** Successful redemption payload (`POST /voucher-codes/:code/redemption`). */
 export interface RedemptionResult {
   id: string
   code: string

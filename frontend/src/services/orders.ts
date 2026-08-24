@@ -131,6 +131,34 @@ export async function addToCart(voucherId: string, quantity: number): Promise<Ca
   return mapCartData((data as any).data || data)
 }
 
+/**
+ * Put exactly `quantity` units of one voucher in the cart for the Buy now flow.
+ * Unlike `addToCart`, an existing cart line is replaced instead of incremented,
+ * so the quantity selector remains the source of truth.
+ */
+export async function prepareBuyNow(
+  voucherId: string,
+  quantity: number
+): Promise<{ cart: CartResponse; cartItemId: string }> {
+  const currentCart = await getCart()
+  const existingItem = currentCart.items.find((item) => item.voucherId === voucherId)
+
+  let cart: CartResponse
+  if (!existingItem) {
+    cart = await addToCart(voucherId, quantity)
+  } else if (existingItem.quantity === quantity) {
+    cart = currentCart
+  } else {
+    const { data } = await api.patch<{ data: any }>(`/cart/items/${existingItem.id}`, { quantity })
+    cart = mapCartData((data as any).data || data)
+  }
+
+  const selectedItem = cart.items.find((item) => item.voucherId === voucherId)
+  if (!selectedItem) throw new Error('Không thể chuẩn bị voucher để mua ngay.')
+
+  return { cart, cartItemId: selectedItem.id }
+}
+
 /** Create an order from the customer's cart, with optional gift recipient. */
 export async function createOrder(body: CreateOrderRequest): Promise<OrderResponse> {
   const { data } = await api.post<{ data: OrderResponse }>('/orders', body)

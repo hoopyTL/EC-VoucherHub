@@ -14,7 +14,6 @@ import {
   operatingStatusSchema,
   partnerIdSchema,
   partnerListSchema,
-  redeemCodeSchema,
   registerPartnerSchema,
   updateBranchSchema,
   updatePartnerSchema
@@ -41,8 +40,6 @@ partnerRoutes.patch(
   partnerController.updateBranch
 )
 partnerRoutes.delete('/partner/branches/:id', validate({ params: branchIdSchema }), partnerController.deleteBranch)
-partnerRoutes.post('/partner/redeem-code', validate({ body: redeemCodeSchema }), partnerController.redeemCode)
-
 partnerRoutes.use('/admin/partners', authenticate, authorize(RoleName.ADMIN))
 partnerRoutes.get('/admin/partners', validate({ query: partnerListSchema }), partnerController.list)
 partnerRoutes.get('/admin/partners/pending', validate({ query: partnerListSchema }), partnerController.listPending)

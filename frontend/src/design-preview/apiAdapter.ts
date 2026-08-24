@@ -131,6 +131,7 @@ const CODES = [
     ownerId: ORDER.userId,
     redeemedAt: null,
     redemptionBranchId: null,
+    expiresAt: SALE_END,
     createdAt: NOW,
     updatedAt: NOW,
     voucher: {
@@ -297,15 +298,21 @@ function customerPayload(path: string, method: string) {
 
 function partnerPayload(path: string) {
   if (path === '/partner/branches') return BRANCHES
+  if (path === '/voucher-code-branches') return BRANCHES
   if (path === '/partner/vouchers') return PARTNER_VOUCHERS
   if (path.includes('/partner/vouchers/')) return PARTNER_VOUCHERS.vouchers[0]
-  if (path === '/partner/verify-code') {
+  if (/^\/voucher-codes\/[^/]+$/.test(path)) {
     return {
-      ...CODES[0],
-      applicableBranches: BRANCHES
+      code: CODES[0].code,
+      status: CODES[0].status,
+      valid: true,
+      reason: null,
+      remainingUses: 1,
+      expiresAt: CODES[0].expiresAt,
+      voucher: { id: CODES[0].voucherId, name: CODES[0].voucher.title, isMultiUse: false }
     }
   }
-  if (path === '/partner/redeem-code') {
+  if (/^\/voucher-codes\/[^/]+\/redemption$/.test(path)) {
     return { ...CODES[0], status: 'USED', redeemedAt: NOW, redemptionBranchId: BRANCHES[0].id }
   }
   return undefined

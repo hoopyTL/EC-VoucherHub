@@ -1,3 +1,4 @@
+import { OrderStatus } from '@prisma/client'
 import prisma from '~/configs/prisma'
 import { AppError } from '~/utils/app-error'
 
@@ -11,21 +12,26 @@ export async function getPartnerReport(userId: string) {
       id: true,
       name: true,
       status: true,
-      salePrice: true,
-      totalQuantity: true,
-      remainingQuantity: true,
-      issuedVoucherCodes: { select: { id: true, usageLogs: { where: { result: 'SUCCESS' }, select: { id: true } } } }
+      orderItems: {
+        where: { order: { status: OrderStatus.PAID } },
+        select: { quantity: true, unitPrice: true }
+      },
+      issuedVoucherCodes: {
+        where: { order: { status: OrderStatus.PAID } },
+        select: { id: true, usageLogs: { where: { result: 'SUCCESS' }, select: { id: true } } }
+      }
     }
   })
   const vouchers = products.map((product) => {
-    const soldCount = product.totalQuantity - product.remainingQuantity
+    const soldCount = product.orderItems.reduce((sum, item) => sum + item.quantity, 0)
+    const revenue = product.orderItems.reduce((sum, item) => sum + Number(item.unitPrice) * item.quantity, 0)
     const issuedCount = product.issuedVoucherCodes.length
     const usedCount = product.issuedVoucherCodes.filter(({ usageLogs }) => usageLogs.length > 0).length
     return {
       id: product.id,
       name: product.name,
       status: product.status,
-      revenue: Number(product.salePrice) * soldCount,
+      revenue,
       issuedCount,
       soldCount,
       usedCount,

@@ -5,14 +5,12 @@ import prisma from '~/configs/prisma'
 import { AppError } from '~/utils/app-error'
 import { hashPassword } from '~/utils/password'
 import { getCompatibleRoleNames } from '~/utils/role'
-import { redeemVoucherCode } from '~/modules/redemption/redemption.service'
 import type {
   ApprovalDto,
   BranchDto,
   OperatingStatusDto,
   PartnerListDto,
   RegisterPartnerDto,
-  RedeemCodeDto,
   UpdateBranchDto,
   UpdatePartnerDto
 } from './partner.validation'
@@ -44,9 +42,6 @@ async function assertBranchOwnership(userId: string, branchId: number) {
 }
 
 export const partnerService = {
-  async redeemCode(userId: string, dto: RedeemCodeDto) {
-    return redeemVoucherCode(userId, dto.code, dto.branchId)
-  },
   async register(dto: RegisterPartnerDto) {
     const role = await prisma.role.findFirst({
       where: { name: { in: getCompatibleRoleNames(RoleName.PARTNER) } }

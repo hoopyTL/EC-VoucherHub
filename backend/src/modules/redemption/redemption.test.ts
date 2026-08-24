@@ -144,6 +144,19 @@ describe('TASK-013 redemption API', () => {
   it('exposes a report containing only the authenticated partner data', async () => {
     const mine = await fixture()
     await fixture()
+    await prisma.voucherProduct.update({
+      where: { id: mine.code.voucherProductId },
+      data: { remainingQuantity: { decrement: 2 } }
+    })
+    await prisma.order.create({
+      data: {
+        customerId: mine.customer.id,
+        totalAmount: 160000,
+        paymentMethod: 'TEST',
+        status: OrderStatus.PENDING_PAYMENT,
+        orderItems: { create: { voucherProductId: mine.code.voucherProductId, quantity: 2, unitPrice: 80000 } }
+      }
+    })
     const response = await request(app)
       .get('/api/partner/reports')
       .set(authHeader(mine.partnerUser.id, RoleName.PARTNER))

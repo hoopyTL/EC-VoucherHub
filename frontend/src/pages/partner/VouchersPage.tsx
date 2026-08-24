@@ -52,15 +52,11 @@ const ACTION_FN: Record<VoucherAction, (id: string) => Promise<PartnerVoucher>> 
   resume: resumeVoucher
 }
 
-/** Remaining (unsold) inventory for a voucher. */
-function remaining(voucher: PartnerVoucher): number {
-  return voucher.totalQuantity - voucher.soldQuantity
-}
+const PAGE_LIMIT = 5
 
 export function VouchersPage() {
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
-  const pageLimit = 20
 
   // Inline error banner for a failed action (keyed message, not per row, so a
   // single alert region is announced).
@@ -70,7 +66,7 @@ export function VouchersPage() {
 
   const { data, isLoading, isError } = useQuery<ListPartnerVouchersResponse>({
     queryKey: [...PARTNER_VOUCHERS_QUERY_KEY, page],
-    queryFn: () => listPartnerVouchers(page, pageLimit)
+    queryFn: () => listPartnerVouchers(page, PAGE_LIMIT)
   })
 
   const actionMutation = useMutation({
@@ -95,7 +91,11 @@ export function VouchersPage() {
   }
 
   const vouchers = data?.vouchers ?? []
-  const totalPages = Math.max(1, Math.ceil((data?.pagination.total ?? 0) / pageLimit))
+  const totalItems = data?.pagination.total ?? 0
+  const effectiveLimit = data?.pagination.limit ?? PAGE_LIMIT
+  const totalPages = Math.max(1, Math.ceil(totalItems / effectiveLimit))
+  const firstItem = totalItems === 0 ? 0 : (page - 1) * effectiveLimit + 1
+  const lastItem = Math.min(page * effectiveLimit, totalItems)
 
   return (
     <section style={sectionStyle}>
@@ -158,8 +158,8 @@ export function VouchersPage() {
                       (−{discountPercent(voucher.originalPrice, voucher.salePrice)}%)
                     </p>
                     <p style={metaStyle}>
-                      Mở bán: {formatDateRange(voucher.salePeriodStart, voucher.salePeriodEnd)} · {remaining(voucher)}/
-                      {voucher.totalQuantity} còn lại
+                      Mở bán: {formatDateRange(voucher.salePeriodStart, voucher.salePeriodEnd)} ·{' '}
+                      {voucher.remainingQuantity}/{voucher.totalQuantity} còn lại
                     </p>
                     <p style={metaStyle}>
                       Mã phát hành: {voucher.issuedCodeCount} · Đã dùng: {voucher.usedCodeCount} · Hết hạn:{' '}
@@ -197,7 +197,12 @@ export function VouchersPage() {
               )
             })}
           </ul>
-          <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} style={{ marginTop: 20 }} />
+          <div style={paginationRowStyle}>
+            <span style={paginationSummaryStyle}>
+              Hiển thị {firstItem}–{lastItem} trong tổng số {totalItems} voucher
+            </span>
+            <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+          </div>
         </>
       )}
     </section>
@@ -324,5 +329,20 @@ const emptyStyle: CSSProperties = {
   borderRadius: radius.xl,
   color: colors.slate
 }
+
+const paginationRowStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: 14,
+  flexWrap: 'wrap',
+  marginTop: 22,
+  padding: '14px 16px',
+  border: `1px solid ${colors.hairline}`,
+  borderRadius: radius.xl,
+  background: colors.surface
+}
+
+const paginationSummaryStyle: CSSProperties = { color: colors.slate, fontSize: 13 }
 
 export default VouchersPage

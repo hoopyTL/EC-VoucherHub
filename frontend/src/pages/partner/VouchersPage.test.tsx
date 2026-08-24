@@ -17,6 +17,7 @@ function makeVoucher(overrides: Partial<PartnerVoucher> = {}): PartnerVoucher {
     originalPrice: '500000',
     salePrice: '350000',
     totalQuantity: 100,
+    remainingQuantity: 80,
     soldQuantity: 20,
     issuedCodeCount: 20,
     usedCodeCount: 8,
@@ -54,7 +55,7 @@ function toWire(voucher: PartnerVoucher) {
     usageStart: voucher.usagePeriodStart,
     usageEnd: voucher.usagePeriodEnd,
     totalQuantity: voucher.totalQuantity,
-    remainingQuantity: voucher.totalQuantity - voucher.soldQuantity,
+    remainingQuantity: voucher.remainingQuantity,
     isMultiUse: false,
     usesPerCode: null,
     status: voucher.status,
@@ -75,7 +76,7 @@ function mockList(vouchers: PartnerVoucher[]) {
   return vi.spyOn(api, 'get').mockResolvedValue({
     data: {
       success: true,
-      data: { vouchers: vouchers.map(toWire), pagination: { page: 1, limit: 20, total: vouchers.length } }
+      data: { vouchers: vouchers.map(toWire), pagination: { page: 1, limit: 5, total: vouchers.length } }
     }
   } as never)
 }
@@ -153,14 +154,15 @@ describe('VouchersPage', () => {
     const getSpy = vi.spyOn(api, 'get').mockResolvedValue({
       data: {
         success: true,
-        data: { vouchers: [toWire(voucher)], pagination: { page: 1, limit: 20, total: 21 } }
+        data: { vouchers: [toWire(voucher)], pagination: { page: 1, limit: 5, total: 6 } }
       }
     } as never)
     renderPage()
     await screen.findByText('Spa Day')
+    expect(screen.getByText('Hiển thị 1–5 trong tổng số 6 voucher')).toBeDefined()
     fireEvent.click(screen.getByRole('button', { name: '2' }))
 
-    await waitFor(() => expect(getSpy).toHaveBeenCalledWith('/partner/vouchers', { params: { page: 2, limit: 20 } }))
+    await waitFor(() => expect(getSpy).toHaveBeenCalledWith('/partner/vouchers', { params: { page: 2, limit: 5 } }))
   })
 })
 

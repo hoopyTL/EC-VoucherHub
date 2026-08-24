@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { ApprovalStatus, OperatingStatus, VoucherCodeStatus, VoucherStatus } from '@prisma/client'
+import { ApprovalStatus, OperatingStatus, OrderStatus, VoucherCodeStatus, VoucherStatus } from '@prisma/client'
 import { RoleName } from '@voucher/shared'
 import request from 'supertest'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
@@ -126,6 +126,34 @@ describe('voucher partner API', () => {
     expect(list.body.data.vouchers[0].id).toBe(id)
     expect(forbiddenRead.status).toBe(403)
     expect(forbiddenUpdate.status).toBe(403)
+  })
+
+  it('counts only paid order items as sold instead of pending inventory reservations', async () => {
+    const seller = await createPartner('paid-sales@example.com', 'VOUCHER-PAID-SALES')
+    const created = await request(app)
+      .post('/api/vouchers')
+      .set(seller.headers)
+      .send(await voucherPayload(seller.partner.branches.map(({ id }) => id)))
+    const voucherId = created.body.data.id as string
+    const customer = await createUser({ email: 'paid-sales-customer@example.com' })
+
+    await prisma.voucherProduct.update({ where: { id: voucherId }, data: { remainingQuantity: { decrement: 3 } } })
+    const order = await prisma.order.create({
+      data: {
+        customerId: customer.id,
+        totalAmount: 1_197_000,
+        paymentMethod: 'test',
+        status: OrderStatus.PENDING_PAYMENT,
+        orderItems: { create: { voucherProductId: voucherId, quantity: 3, unitPrice: 399_000 } }
+      }
+    })
+
+    const whilePending = await request(app).get(`/api/partner/vouchers/${voucherId}`).set(seller.headers)
+    expect(whilePending.body.data).toMatchObject({ remainingQuantity: 97, soldQuantity: 0 })
+
+    await prisma.order.update({ where: { id: order.id }, data: { status: OrderStatus.PAID, paidAt: new Date() } })
+    const afterPayment = await request(app).get(`/api/partner/vouchers/${voucherId}`).set(seller.headers)
+    expect(afterPayment.body.data).toMatchObject({ remainingQuantity: 97, soldQuantity: 3 })
   })
 
   it('supports draft update, submit, review, publish, pause, resume, and discontinue', async () => {

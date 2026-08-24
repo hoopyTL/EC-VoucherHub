@@ -1,4 +1,4 @@
-import { ApprovalStatus, OperatingStatus, Prisma, VoucherCodeStatus, VoucherStatus } from '@prisma/client'
+import { ApprovalStatus, OperatingStatus, OrderStatus, Prisma, VoucherCodeStatus, VoucherStatus } from '@prisma/client'
 import type { VoucherDto } from '@voucher/shared'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -41,7 +41,11 @@ function assertOwnedImage(imageUrl: string | null | undefined, partnerId: string
   }
 }
 
-function toVoucherDto(voucher: VoucherRecord, codeCounts: VoucherCodeCounts = emptyCodeCounts()): VoucherDto {
+function toVoucherDto(
+  voucher: VoucherRecord,
+  codeCounts: VoucherCodeCounts = emptyCodeCounts(),
+  soldQuantity = 0
+): VoucherDto {
   return {
     id: voucher.id,
     partnerId: voucher.partnerId,
@@ -64,14 +68,14 @@ function toVoucherDto(voucher: VoucherRecord, codeCounts: VoucherCodeCounts = em
     partner: { id: voucher.partner.id, legalName: voucher.partner.legalName },
     category: voucher.category,
     branches: voucher.voucherProductBranches.map(({ branch }) => branch),
-    soldQuantity: voucher.totalQuantity - voucher.remainingQuantity,
+    soldQuantity,
     ...codeCounts,
     createdAt: voucher.createdAt.toISOString(),
     updatedAt: voucher.updatedAt.toISOString()
   }
 }
 
-function toPublicVoucher(voucher: VoucherRecord) {
+function toPublicVoucher(voucher: VoucherRecord, soldQuantity = 0) {
   const originalPrice = Number(voucher.originalPrice)
   const salePrice = Number(voucher.salePrice)
   return {
@@ -82,7 +86,7 @@ function toPublicVoucher(voucher: VoucherRecord) {
     originalPrice: voucher.originalPrice.toString(),
     salePrice: voucher.salePrice.toString(),
     totalQuantity: voucher.totalQuantity,
-    soldQuantity: voucher.totalQuantity - voucher.remainingQuantity,
+    soldQuantity,
     remainingQuantity: voucher.remainingQuantity,
     discountPercentage: Math.round(((originalPrice - salePrice) / originalPrice) * 100),
     salePeriodStart: voucher.saleStart.toISOString(),
@@ -216,10 +220,27 @@ async function loadCodeCounts(voucherIds: string[], tx: Prisma.TransactionClient
   return counts
 }
 
+/** Quantities from completed sales only; pending orders merely reserve inventory. */
+async function loadPaidSoldQuantities(voucherIds: string[], tx: Prisma.TransactionClient = prisma) {
+  const quantities = new Map(voucherIds.map((id) => [id, 0]))
+  if (!voucherIds.length) return quantities
+
+  const groups = await tx.orderItem.groupBy({
+    by: ['voucherProductId'],
+    where: {
+      voucherProductId: { in: voucherIds },
+      order: { status: OrderStatus.PAID }
+    },
+    _sum: { quantity: true }
+  })
+  for (const group of groups) quantities.set(group.voucherProductId, group._sum.quantity ?? 0)
+  return quantities
+}
+
 async function loadVoucherDto(id: string, tx: Prisma.TransactionClient = prisma) {
   const voucher = await loadVoucher(id, tx)
-  const counts = await loadCodeCounts([id], tx)
-  return toVoucherDto(voucher, counts.get(id))
+  const [counts, soldQuantities] = await Promise.all([loadCodeCounts([id], tx), loadPaidSoldQuantities([id], tx)])
+  return toVoucherDto(voucher, counts.get(id), soldQuantities.get(id))
 }
 
 async function listVouchers(
@@ -237,9 +258,10 @@ async function listVouchers(
     }),
     prisma.voucherProduct.count({ where })
   ])
-  const counts = await loadCodeCounts(records.map(({ id }) => id))
+  const voucherIds = records.map(({ id }) => id)
+  const [counts, soldQuantities] = await Promise.all([loadCodeCounts(voucherIds), loadPaidSoldQuantities(voucherIds)])
   return {
-    vouchers: records.map((record) => toVoucherDto(record, counts.get(record.id))),
+    vouchers: records.map((record) => toVoucherDto(record, counts.get(record.id), soldQuantities.get(record.id))),
     pagination: { page: input.page, limit: input.limit, total }
   }
 }
@@ -302,8 +324,10 @@ export const voucherService = {
               ) >= input.minDiscount!
           )
     const start = (input.page - 1) * input.limit
+    const pageRecords = filtered.slice(start, start + input.limit)
+    const soldQuantities = await loadPaidSoldQuantities(pageRecords.map(({ id }) => id))
     return {
-      vouchers: filtered.slice(start, start + input.limit).map(toPublicVoucher),
+      vouchers: pageRecords.map((voucher) => toPublicVoucher(voucher, soldQuantities.get(voucher.id))),
       pagination: { page: input.page, limit: input.limit, total: filtered.length }
     }
   },
@@ -321,7 +345,8 @@ export const voucherService = {
       include: voucherInclude
     })
     if (!voucher) throw AppError.notFound('Voucher')
-    return toPublicVoucher(voucher)
+    const soldQuantities = await loadPaidSoldQuantities([voucher.id])
+    return toPublicVoucher(voucher, soldQuantities.get(voucher.id))
   },
 
   async getPublicFilters() {
@@ -392,8 +417,11 @@ export const voucherService = {
 
   async getMine(userId: string, voucherId: string) {
     const { voucher } = await getOwnedVoucher(userId, voucherId)
-    const counts = await loadCodeCounts([voucher.id])
-    return toVoucherDto(voucher, counts.get(voucher.id))
+    const [counts, soldQuantities] = await Promise.all([
+      loadCodeCounts([voucher.id]),
+      loadPaidSoldQuantities([voucher.id])
+    ])
+    return toVoucherDto(voucher, counts.get(voucher.id), soldQuantities.get(voucher.id))
   },
 
   async update(userId: string, voucherId: string, input: UpdateVoucherInput) {

@@ -84,10 +84,10 @@ async function main() {
   const partnerPage = await partnerContext.newPage()
   partnerPage.on('pageerror', (error) => console.error('PARTNER_PAGE_ERROR', error.message))
   partnerPage.on('request', (request) => {
-    if (request.url().includes('redeem-code')) console.error('REDEEM_REQUEST', request.postData())
+    if (request.url().includes('/redemption')) console.error('REDEEM_REQUEST', request.postData())
   })
   partnerPage.on('response', async (response) => {
-    if (response.url().includes('redeem-code'))
+    if (response.url().includes('/redemption'))
       console.error('REDEEM_RESPONSE', response.status(), await response.text())
   })
   await partnerPage.goto(`${baseURL}/partner`, { waitUntil: 'networkidle' })

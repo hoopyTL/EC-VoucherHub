@@ -30,6 +30,7 @@ function renderDetail(id = 'v1') {
               <Route path='/vouchers/:id' element={<VoucherDetailPage />} />
               <Route path='/vouchers' element={<div>Browse</div>} />
               <Route path='/login' element={<div>Login Page</div>} />
+              <Route path='/checkout' element={<div>Checkout Page</div>} />
             </Routes>
           </MemoryRouter>
         </ToastProvider>
@@ -41,6 +42,7 @@ function renderDetail(id = 'v1') {
 describe('VoucherDetailPage', () => {
   beforeEach(() => {
     localStorage.clear()
+    sessionStorage.clear()
     clearAccessToken()
   })
 
@@ -102,6 +104,29 @@ describe('VoucherDetailPage', () => {
     })
   })
 
+  it('buys the currently selected quantity and opens checkout', async () => {
+    seedSession(UserRole.CUSTOMER)
+    vi.spyOn(voucherService, 'getVoucherDetail').mockResolvedValue(makeVoucherDetail())
+    const buyNowSpy = vi.spyOn(ordersService, 'prepareBuyNow').mockResolvedValue({
+      cart: {
+        items: [{ id: '17', voucherId: 'v1', title: 'Spa Day Package', unitPrice: 75, quantity: 3, subtotal: 225 }],
+        total: 225
+      },
+      cartItemId: '17'
+    })
+
+    renderDetail('v1')
+
+    await screen.findByRole('button', { name: /mua ngay/i })
+    fireEvent.click(screen.getByLabelText('Tăng số lượng'))
+    fireEvent.click(screen.getByLabelText('Tăng số lượng'))
+    fireEvent.click(screen.getByRole('button', { name: /mua ngay/i }))
+
+    await waitFor(() => expect(buyNowSpy).toHaveBeenCalledWith('v1', 3))
+    expect(await screen.findByText('Checkout Page')).toBeDefined()
+    expect(JSON.parse(sessionStorage.getItem('voucherhub_checkout_selection') || '[]')).toEqual(['17'])
+  })
+
   it('redirects an unauthenticated visitor to login instead of adding', async () => {
     vi.spyOn(voucherService, 'getVoucherDetail').mockResolvedValue(makeVoucherDetail())
     const addSpy = vi.spyOn(ordersService, 'addToCart')
@@ -122,8 +147,9 @@ describe('VoucherDetailPage', () => {
 
     renderDetail('v1')
 
-    const soldOutButton = await screen.findByRole('button', { name: /hết hàng/i })
-    expect((soldOutButton as HTMLButtonElement).disabled).toBe(true)
+    const soldOutButtons = await screen.findAllByRole('button', { name: /hết hàng/i })
+    expect(soldOutButtons).toHaveLength(2)
+    expect(soldOutButtons.every((button) => (button as HTMLButtonElement).disabled)).toBe(true)
   })
 
   it('does not offer purchasing to a non-customer (partner) account', async () => {
