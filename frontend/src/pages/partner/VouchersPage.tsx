@@ -20,6 +20,7 @@ import { useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Badge, variantForStatus, Button, ContentSkeleton, Pagination } from '../../components/ui'
+import { VoucherImage } from '../../components/voucher/VoucherImage'
 import {
   availableActions,
   getApiErrorMessage,
@@ -139,11 +140,12 @@ export function VouchersPage() {
               return (
                 <li key={voucher.id} style={rowStyle} data-testid={`voucher-row-${voucher.id}`}>
                   <div style={voucherImageWrapStyle}>
-                    {voucher.imageUrl ? (
-                      <img src={voucher.imageUrl} alt={`Ảnh ${voucher.title}`} style={voucherImageStyle} />
-                    ) : (
-                      <span style={voucherImageFallbackStyle}>VoucherHub</span>
-                    )}
+                    <VoucherImage
+                      src={voucher.imageUrl}
+                      alt={voucher.title}
+                      fallback='VoucherHub'
+                      style={voucher.imageUrl ? voucherImageStyle : voucherImageFallbackStyle}
+                    />
                   </div>
                   <div style={{ flex: 1, minWidth: 220 }}>
                     <div style={titleRowStyle}>
@@ -248,7 +250,7 @@ const rowStyle: CSSProperties = {
   justifyContent: 'space-between',
   gap: 16,
   flexWrap: 'wrap',
-  padding: '14px 16px',
+  padding: 18,
   border: `1px solid ${colors.hairline}`,
   borderRadius: radius.xl,
   background: colors.surface,
@@ -256,8 +258,8 @@ const rowStyle: CSSProperties = {
 }
 
 const voucherImageWrapStyle: CSSProperties = {
-  width: 150,
-  aspectRatio: '16 / 10',
+  width: 200,
+  aspectRatio: '4 / 3',
   flex: '0 0 auto',
   overflow: 'hidden',
   borderRadius: radius.lg,
@@ -268,7 +270,8 @@ const voucherImageStyle: CSSProperties = {
   width: '100%',
   height: '100%',
   display: 'block',
-  objectFit: 'cover'
+  objectFit: 'cover',
+  imageRendering: 'auto'
 }
 
 const voucherImageFallbackStyle: CSSProperties = {

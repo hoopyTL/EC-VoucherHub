@@ -6,6 +6,8 @@ import { AppError } from '~/utils/app-error'
 import { hashPassword } from '~/utils/password'
 import { getCompatibleRoleNames } from '~/utils/role'
 import type {
+  AdminCreatePartnerDto,
+  AdminUpdatePartnerDto,
   ApprovalDto,
   BranchDto,
   OperatingStatusDto,
@@ -42,6 +44,55 @@ async function assertBranchOwnership(userId: string, branchId: number) {
 }
 
 export const partnerService = {
+  async createAsAdmin(dto: AdminCreatePartnerDto) {
+    const created = await this.register(dto)
+    return prisma.partner.update({
+      where: { id: created.partner.id },
+      data: {
+        approvalStatus: ApprovalStatus.APPROVED,
+        operatingStatus: dto.operatingStatus as OperatingStatus,
+        businessCategory: dto.businessCategory,
+        logoUrl: dto.logoUrl
+      },
+      include: partnerInclude
+    })
+  },
+
+  async updateAsAdmin(partnerId: string, dto: AdminUpdatePartnerDto) {
+    const partner = await prisma.partner.findUnique({ where: { id: partnerId }, select: { ownerUserId: true } })
+    if (!partner) throw AppError.notFound('Hồ sơ đối tác')
+    const { email, phone, ...profile } = dto
+    try {
+      return await prisma.$transaction(async (tx) => {
+        if (email !== undefined || phone !== undefined) {
+          await tx.user.update({
+            where: { id: partner.ownerUserId },
+            data: { ...(email !== undefined ? { email } : {}), ...(phone !== undefined ? { phone } : {}) }
+          })
+        }
+        return tx.partner.update({ where: { id: partnerId }, data: profile, include: partnerInclude })
+      })
+    } catch (error) {
+      return mapUniqueConflict(error)
+    }
+  },
+
+  async deleteAsAdmin(partnerId: string) {
+    const partner = await prisma.partner.findUnique({
+      where: { id: partnerId },
+      select: { ownerUserId: true, _count: { select: { voucherProducts: true, staff: true } } }
+    })
+    if (!partner) throw AppError.notFound('Hồ sơ đối tác')
+    if (partner._count.voucherProducts > 0 || partner._count.staff > 0) {
+      throw AppError.conflict('Đối tác đã có voucher hoặc nhân viên; hãy tạm khóa thay vì xóa')
+    }
+    await prisma.$transaction(async (tx) => {
+      await tx.branch.deleteMany({ where: { partnerId } })
+      await tx.partner.delete({ where: { id: partnerId } })
+      await tx.user.delete({ where: { id: partner.ownerUserId } })
+    })
+  },
+
   async register(dto: RegisterPartnerDto) {
     const role = await prisma.role.findFirst({
       where: { name: { in: getCompatibleRoleNames(RoleName.PARTNER) } }
@@ -77,6 +128,8 @@ export const partnerService = {
             legalName: dto.legalName,
             taxCode: dto.taxCode,
             representative: dto.representative,
+            businessCategory: dto.businessCategory,
+            logoUrl: dto.logoUrl,
             branches: { create: dto.branches }
           },
           include: partnerInclude

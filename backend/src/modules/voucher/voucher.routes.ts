@@ -28,6 +28,7 @@ const uploadLimiter = rateLimit({
 
 voucherRoutes.get('/vouchers', validate({ query: publicVoucherSearchSchema }), voucherController.searchPublic)
 voucherRoutes.get('/vouchers/filters', voucherController.getPublicFilters)
+voucherRoutes.get('/vouchers/external', voucherController.listExternal)
 voucherRoutes.get('/vouchers/:id', validate({ params: voucherIdSchema }), voucherController.getPublic)
 
 voucherRoutes.post('/vouchers/images', ...partnerOnly, uploadLimiter, voucherImageUpload, voucherController.uploadImage)

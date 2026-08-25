@@ -2,6 +2,8 @@ import { ApiResponse } from '~/utils/api-response'
 import { asyncHandler } from '~/utils/async-handler'
 import { partnerService } from './partner.service'
 import type {
+  AdminCreatePartnerDto,
+  AdminUpdatePartnerDto,
   ApprovalDto,
   BranchDto,
   OperatingStatusDto,
@@ -12,6 +14,24 @@ import type {
 } from './partner.validation'
 
 export const partnerController = {
+  createAsAdmin: asyncHandler(async (req, res) => {
+    ApiResponse.created(res, await partnerService.createAsAdmin(req.validated?.body as AdminCreatePartnerDto))
+  }),
+
+  updateAsAdmin: asyncHandler(async (req, res) => {
+    const params = req.validated?.params as { id: string }
+    ApiResponse.success(
+      res,
+      await partnerService.updateAsAdmin(params.id, req.validated?.body as AdminUpdatePartnerDto)
+    )
+  }),
+
+  deleteAsAdmin: asyncHandler(async (req, res) => {
+    const params = req.validated?.params as { id: string }
+    await partnerService.deleteAsAdmin(params.id)
+    ApiResponse.noContent(res)
+  }),
+
   register: asyncHandler(async (req, res) => {
     const result = await partnerService.register(req.validated?.body as RegisterPartnerDto)
     ApiResponse.created(res, result)

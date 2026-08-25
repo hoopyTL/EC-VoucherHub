@@ -24,7 +24,12 @@ import type { VoucherSearchParams } from '@ui-contracts'
 import { SearchFilters, type PartnerOption, type VoucherFilterValues } from '../../components/voucher/SearchFilters'
 import { VoucherGrid } from '../../components/voucher/VoucherGrid'
 import { Pagination } from '../../components/ui/Pagination'
-import { getVoucherFilterOptions, searchVouchers, type SearchVouchersResponse } from '../../services/voucher.service'
+import {
+  getVoucherFilterOptions,
+  getExternalPromotions,
+  searchVouchers,
+  type SearchVouchersResponse
+} from '../../services/voucher.service'
 import { colors, fonts, radius } from '../../theme/tokens'
 
 /** Page size for the catalogue listing (matches the backend default). */
@@ -83,6 +88,12 @@ export function VoucherBrowsePage() {
     queryKey: ['vouchers', 'filter-options'],
     queryFn: getVoucherFilterOptions,
     staleTime: 5 * 60 * 1000
+  })
+  const externalQuery = useQuery({
+    queryKey: ['vouchers', 'external'],
+    queryFn: getExternalPromotions,
+    staleTime: 10 * 60 * 1000,
+    enabled: import.meta.env.MODE !== 'test'
   })
 
   // Accumulate partner options across loaded pages so the dropdown persists
@@ -263,6 +274,82 @@ export function VoucherBrowsePage() {
             <div style={{ display: 'flex', justifyContent: 'center' }}>
               <Pagination currentPage={page} totalPages={totalPages} onPageChange={handlePageChange} />
             </div>
+          )}
+          {!filters.keyword && page === 1 && (externalQuery.data?.length ?? 0) > 0 && (
+            <section aria-labelledby='external-promotions-title' style={{ marginTop: 24 }}>
+              <p style={{ margin: '0 0 8px', ...eyebrowStyle, color: colors.accent }}>Ưu đãi từ Internet</p>
+              <h2 id='external-promotions-title' style={{ margin: '0 0 8px', fontFamily: fonts.display, fontSize: 30 }}>
+                Ưu đãi đang diễn ra từ các thương hiệu
+              </h2>
+              <p style={{ margin: '0 0 20px', color: colors.slate }}>
+                Dữ liệu được đồng bộ từ website chính thức của nhà cung cấp. Chọn một ưu đãi để xem đầy đủ điều kiện tại
+                nguồn.
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
+                {externalQuery.data!.slice(0, 12).map((offer) => (
+                  <a
+                    key={offer.id}
+                    href={offer.sourceUrl}
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    style={{
+                      overflow: 'hidden',
+                      borderRadius: radius.lg,
+                      border: `1px solid ${colors.hairline}`,
+                      background: colors.surface,
+                      color: colors.ink,
+                      textDecoration: 'none'
+                    }}
+                  >
+                    {offer.imageUrl && (
+                      <img
+                        src={offer.imageUrl}
+                        alt={offer.name}
+                        loading='lazy'
+                        style={{ display: 'block', width: '100%', aspectRatio: '16 / 9', objectFit: 'cover' }}
+                      />
+                    )}
+                    <div style={{ padding: 18 }}>
+                      <span style={{ ...eyebrowStyle, color: colors.accent }}>
+                        {offer.category ?? offer.source} · {offer.merchant}
+                      </span>
+                      <h3 style={{ margin: '10px 0', fontFamily: fonts.display, fontSize: 18, lineHeight: 1.35 }}>
+                        {offer.name}
+                      </h3>
+                      {offer.description && (
+                        <p style={{ margin: '0 0 12px', color: colors.slate, fontSize: 13, lineHeight: 1.5 }}>
+                          {offer.description}
+                        </p>
+                      )}
+                      {offer.promoCode && (
+                        <strong
+                          style={{
+                            display: 'inline-block',
+                            marginBottom: 12,
+                            padding: '5px 9px',
+                            borderRadius: radius.sm,
+                            background: colors.accentSurface,
+                            color: colors.accentHover
+                          }}
+                        >
+                          Mã: {offer.promoCode}
+                        </strong>
+                      )}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, color: colors.slate }}>
+                        <span>
+                          {offer.salePrice
+                            ? `${Number(offer.salePrice).toLocaleString('vi-VN')} đ`
+                            : offer.discountPercentage
+                              ? `Giảm ${offer.discountPercentage}%`
+                              : 'Xem ưu đãi'}
+                        </span>
+                        <strong style={{ color: colors.accent }}>Mở nguồn ↗</strong>
+                      </div>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </section>
           )}
         </>
       )}

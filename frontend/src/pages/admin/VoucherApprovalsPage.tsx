@@ -26,6 +26,7 @@ import { DataTable } from '../../components/admin/DataTable'
 import { discountPercent, formatCurrency, formatDateRange, formatDateTime, formatStatus } from '../../utils/format'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
 import { VoucherManagementSection } from './VoucherManagementSection'
+import { VoucherImage } from '../../components/voucher/VoucherImage'
 
 /** Page size for the pending-vouchers listing. */
 const PAGE_LIMIT = 20
@@ -163,11 +164,11 @@ export function VoucherApprovalsPage() {
                         <td style={tdStyle}>
                           <div style={voucherCellStyle}>
                             <div style={thumbnailWrapStyle}>
-                              {voucher.imageUrl ? (
-                                <img src={voucher.imageUrl} alt='' style={thumbnailStyle} />
-                              ) : (
-                                <span style={thumbnailFallbackStyle}>VH</span>
-                              )}
+                              <VoucherImage
+                                src={voucher.imageUrl}
+                                alt={voucher.title}
+                                style={voucher.imageUrl ? thumbnailStyle : thumbnailFallbackStyle}
+                              />
                             </div>
                             <div style={{ fontWeight: 600, color: colors.ink }}>{voucher.title}</div>
                           </div>
@@ -255,10 +256,27 @@ export function VoucherApprovalsPage() {
       >
         {detail && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            {detail.imageUrl && <img src={detail.imageUrl} alt={`Ảnh ${detail.title}`} style={detailImageStyle} />}
-            <div style={detailBadgeRowStyle}>
-              <Badge variant={variantForStatus(detail.status)}>{formatStatus(detail.status)}</Badge>
-              <Badge variant='neutral'>{formatStatus(detail.category)}</Badge>
+            <div style={detailHeroStyle}>
+              <div style={detailImageFrameStyle}>
+                <VoucherImage
+                  src={detail.imageUrl}
+                  alt={`Ảnh voucher ${detail.title}`}
+                  style={detail.imageUrl ? detailImageStyle : detailImageFallbackStyle}
+                />
+              </div>
+              <div style={detailHeroContentStyle}>
+                <p style={detailEyebrowStyle}>Thông tin kiểm duyệt</p>
+                <h3 style={detailTitleStyle}>{detail.title}</h3>
+                <p style={{ margin: 0, color: colors.slate }}>{detail.partner.businessName}</p>
+                <div style={detailBadgeRowStyle}>
+                  <Badge variant={variantForStatus(detail.status)}>{formatStatus(detail.status)}</Badge>
+                  <Badge variant='neutral'>{formatStatus(detail.category)}</Badge>
+                </div>
+                <div style={detailPriceStyle}>
+                  {formatCurrency(detail.salePrice)}
+                  <span style={strikeStyle}>{formatCurrency(detail.originalPrice)}</span>
+                </div>
+              </div>
             </div>
 
             {detail.description && (
@@ -442,10 +460,69 @@ const thumbnailFallbackStyle: CSSProperties = {
 const detailImageStyle: CSSProperties = {
   display: 'block',
   width: '100%',
-  maxHeight: 360,
+  height: '100%',
   objectFit: 'cover',
+  background: colors.surfaceMuted
+}
+const detailHeroStyle: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'minmax(260px, 1.15fr) minmax(240px, .85fr)',
+  gap: 20,
+  alignItems: 'stretch'
+}
+const detailImageFrameStyle: CSSProperties = {
+  minHeight: 260,
+  maxHeight: 360,
+  overflow: 'hidden',
+  borderRadius: radius.lg,
+  border: `1px solid ${colors.hairline}`,
+  background: colors.surfaceMuted
+}
+const detailImageFallbackStyle: CSSProperties = {
+  display: 'grid',
+  placeItems: 'center',
+  width: '100%',
+  height: '100%',
+  minHeight: 260,
+  fontFamily: fonts.display,
+  fontWeight: 900,
+  fontSize: 48,
+  color: colors.accentHover
+}
+const detailHeroContentStyle: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'center',
+  gap: 12,
+  padding: 20,
   borderRadius: radius.lg,
   background: colors.surfaceMuted
+}
+const detailEyebrowStyle: CSSProperties = {
+  margin: 0,
+  fontFamily: fonts.display,
+  fontSize: 11,
+  fontWeight: 800,
+  letterSpacing: '.1em',
+  textTransform: 'uppercase',
+  color: colors.accentHover
+}
+const detailTitleStyle: CSSProperties = {
+  margin: 0,
+  fontFamily: fonts.display,
+  fontSize: 24,
+  lineHeight: 1.2,
+  color: colors.ink
+}
+const detailPriceStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'baseline',
+  gap: 10,
+  marginTop: 8,
+  fontFamily: fonts.display,
+  fontSize: 25,
+  fontWeight: 800,
+  color: colors.ink
 }
 
 const tableStyle: CSSProperties = {

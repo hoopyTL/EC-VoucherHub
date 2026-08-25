@@ -26,7 +26,7 @@ import { useEffect, useState, type ChangeEvent, type CSSProperties, type FormEve
 import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { CreateVoucherRequest } from '@ui-contracts'
-import { Button, Input, LoadingSpinner } from '../../components/ui'
+import { Button, ConfirmDialog, Input, LoadingSpinner } from '../../components/ui'
 import { colors, fonts, radius } from '../../theme/tokens'
 import {
   createVoucher,
@@ -164,6 +164,7 @@ export function CreateVoucherPage() {
   // Image upload (future-development.md §4.3): uploading state + any error.
   const [isUploading, setIsUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const [cancelOpen, setCancelOpen] = useState(false)
 
   const branchesQuery = useQuery<PartnerBranch[]>({
     queryKey: PARTNER_BRANCHES_QUERY_KEY,
@@ -571,18 +572,28 @@ export function CreateVoucherPage() {
         </h2>
         <div style={buttonRowStyle}>
           <Button type='submit' isLoading={createMutation.isPending} disabled={createMutation.isPending}>
-            {editId ? 'Lưu thay đổi' : 'Lưu bản nháp'}
+            {editId ? 'Lưu thay đổi' : 'Lưu voucher'}
           </Button>
           <Button
             type='button'
             variant='secondary'
             disabled={createMutation.isPending}
-            onClick={() => navigate('/partner/vouchers')}
+            onClick={() => setCancelOpen(true)}
           >
             Hủy
           </Button>
         </div>
       </form>
+      <ConfirmDialog
+        open={cancelOpen}
+        title='Hủy tạo voucher?'
+        message='Thông tin bạn vừa nhập chưa được lưu. Bạn có chắc muốn rời khỏi trang này không?'
+        cancelLabel='Không, tiếp tục nhập'
+        confirmLabel='Có, hủy thao tác'
+        danger
+        onCancel={() => setCancelOpen(false)}
+        onConfirm={() => navigate('/partner/vouchers')}
+      />
     </section>
   )
 }

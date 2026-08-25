@@ -25,6 +25,8 @@ export const registerPartnerSchema = z
     legalName: z.string().trim().min(1, 'Tên pháp lý không được để trống').max(255),
     taxCode: z.string().trim().min(1, 'Mã số thuế không được để trống').max(32),
     representative: z.string().trim().min(1, 'Người đại diện không được để trống').max(255),
+    businessCategory: z.string().trim().min(1, 'Danh mục kinh doanh không được để trống').max(128).optional(),
+    logoUrl: z.string().trim().url('Logo phải là một URL hợp lệ').max(1024).optional(),
     branches: z.array(branchSchema).min(1, 'Cần ít nhất một chi nhánh').max(50)
   })
   .refine((data) => data.email || data.phone, {
@@ -36,7 +38,9 @@ export const updatePartnerSchema = z
   .object({
     legalName: z.string().trim().min(1).max(255).optional(),
     taxCode: z.string().trim().min(1).max(32).optional(),
-    representative: z.string().trim().min(1).max(255).optional()
+    representative: z.string().trim().min(1).max(255).optional(),
+    businessCategory: z.string().trim().min(1).max(128).optional(),
+    logoUrl: z.union([z.string().trim().url().max(1024), z.null()]).optional()
   })
   .refine((data) => Object.keys(data).length > 0, 'Cần ít nhất một trường để cập nhật')
 
@@ -68,6 +72,23 @@ export const approvalSchema = z
   })
 export const operatingStatusSchema = z.object({ action: z.enum(['lock', 'unlock']) })
 
+export const adminCreatePartnerSchema = registerPartnerSchema.and(
+  z.object({
+    operatingStatus: z.enum(['ACTIVE', 'SUSPENDED']).default('ACTIVE')
+  })
+)
+
+export const adminUpdatePartnerSchema = z
+  .object({
+    legalName: z.string().trim().min(1).max(255).optional(),
+    representative: z.string().trim().min(1).max(255).optional(),
+    businessCategory: z.string().trim().min(1).max(128).optional(),
+    logoUrl: z.union([z.string().trim().url().max(1024), z.null()]).optional(),
+    email: emailSchema.optional(),
+    phone: phoneSchema.optional()
+  })
+  .refine((data) => Object.keys(data).length > 0, 'Cần ít nhất một trường để cập nhật')
+
 export type RegisterPartnerDto = z.infer<typeof registerPartnerSchema>
 export type UpdatePartnerDto = z.infer<typeof updatePartnerSchema>
 export type BranchDto = z.infer<typeof branchSchema>
@@ -75,3 +96,5 @@ export type UpdateBranchDto = z.infer<typeof updateBranchSchema>
 export type PartnerListDto = z.infer<typeof partnerListSchema>
 export type ApprovalDto = z.infer<typeof approvalSchema>
 export type OperatingStatusDto = z.infer<typeof operatingStatusSchema>
+export type AdminCreatePartnerDto = z.infer<typeof adminCreatePartnerSchema>
+export type AdminUpdatePartnerDto = z.infer<typeof adminUpdatePartnerSchema>

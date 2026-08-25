@@ -297,4 +297,51 @@ describe('partner RBAC and branch ownership', () => {
     expect(unlocked.body.data.operatingStatus).toBe(OperatingStatus.ACTIVE)
     expect(restored.status).toBe(200)
   })
+
+  it('allows an admin to create, update, and delete an unused partner account', async () => {
+    const admin = await createUser({ email: 'admin-create-partner@example.com', role: RoleName.ADMIN })
+    const headers = authHeader(admin.id, RoleName.ADMIN)
+    const payload = {
+      ...registration,
+      email: 'created-by-admin@example.com',
+      taxCode: 'ADMIN-CREATE-001',
+      businessCategory: 'F&B',
+      logoUrl: 'https://images.example.com/logo.png',
+      operatingStatus: 'ACTIVE'
+    }
+
+    const created = await request(app).post('/api/admin/partners').set(headers).send(payload)
+    expect(created.status).toBe(201)
+    expect(created.body.data).toMatchObject({
+      legalName: payload.legalName,
+      businessCategory: 'F&B',
+      approvalStatus: ApprovalStatus.APPROVED,
+      operatingStatus: OperatingStatus.ACTIVE
+    })
+
+    const partnerId = created.body.data.id as string
+    const updated = await request(app)
+      .patch(`/api/admin/partners/${partnerId}`)
+      .set(headers)
+      .send({ legalName: 'Thương hiệu đã cập nhật', email: 'updated-partner@example.com' })
+    expect(updated.status).toBe(200)
+    expect(updated.body.data.legalName).toBe('Thương hiệu đã cập nhật')
+    expect(updated.body.data.owner.email).toBe('updated-partner@example.com')
+
+    const removed = await request(app).delete(`/api/admin/partners/${partnerId}`).set(headers)
+    expect(removed.status).toBe(204)
+    expect(await prisma.partner.findUnique({ where: { id: partnerId } })).toBeNull()
+    expect(await prisma.user.findUnique({ where: { email: 'updated-partner@example.com' } })).toBeNull()
+  })
+
+  it('rejects an admin-created partner when the login email already exists', async () => {
+    const admin = await createUser({ email: 'duplicate-admin@example.com', role: RoleName.ADMIN })
+    await createUser({ email: 'already-used@example.com', role: RoleName.CUSTOMER })
+    const response = await request(app)
+      .post('/api/admin/partners')
+      .set(authHeader(admin.id, RoleName.ADMIN))
+      .send({ ...registration, email: 'already-used@example.com', taxCode: 'ADMIN-DUPLICATE-001' })
+
+    expect(response.status).toBe(409)
+  })
 })

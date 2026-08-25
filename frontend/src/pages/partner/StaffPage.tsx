@@ -256,6 +256,8 @@ export function StaffPage() {
             setCreateError(null)
             setNotice(null)
             setCreateOpen(true)
+            window.history.pushState({}, '', '/partner/staff/new')
+            window.dispatchEvent(new PopStateEvent('popstate'))
           }}
         >
           Thêm nhân viên
@@ -300,7 +302,14 @@ export function StaffPage() {
         staff.length === 0 && (
           <div style={emptyStyle}>
             <p style={{ margin: 0 }}>Bạn chưa có nhân viên nào.</p>
-            <Button variant='secondary' onClick={() => setCreateOpen(true)}>
+            <Button
+              variant='secondary'
+              onClick={() => {
+                setCreateOpen(true)
+                window.history.pushState({}, '', '/partner/staff/new')
+                window.dispatchEvent(new PopStateEvent('popstate'))
+              }}
+            >
               Tạo nhân viên đầu tiên
             </Button>
           </div>

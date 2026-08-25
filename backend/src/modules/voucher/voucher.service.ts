@@ -289,6 +289,17 @@ async function updateStatusAtomically(
 }
 
 export const voucherService = {
+  async listExternal() {
+    const records = await prisma.externalPromotion.findMany({ orderBy: { lastSeenAt: 'desc' }, take: 100 })
+    return records.map((record) => ({
+      ...record,
+      originalPrice: record.originalPrice?.toString() ?? null,
+      salePrice: record.salePrice?.toString() ?? null,
+      saleStart: record.saleStart?.toISOString() ?? null,
+      saleEnd: record.saleEnd?.toISOString() ?? null,
+      checkoutAllowed: false
+    }))
+  },
   async searchPublic(input: PublicVoucherSearchInput) {
     const now = new Date()
     const where: Prisma.VoucherProductWhereInput = {

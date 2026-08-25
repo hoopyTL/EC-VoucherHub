@@ -5,6 +5,7 @@ import { api } from '../../services/api'
 import type { MyVoucher } from '../../types/customer'
 import { Badge, Button, ContentSkeleton, Modal } from '../../components/ui'
 import { QRCodeDisplay } from '../../components/common/QRCodeDisplay'
+import { VoucherImage } from '../../components/voucher/VoucherImage'
 import { formatDate, formatDateTime } from '../../utils/format'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
 
@@ -100,17 +101,27 @@ export function MyVouchersPage() {
       )}
 
       {!isLoading && !isError && visibleVouchers.length > 0 && (
-        <div style={gridStyle}>
+        <div className='my-voucher-grid' style={gridStyle}>
           {visibleVouchers.map((code) => {
             const status = statusPresentation(code)
             const usable = groupFor(code) === 'unused'
             return (
-              <article key={code.id} style={cardStyle}>
+              <article key={code.id} className={`my-voucher-card my-voucher-card--${groupFor(code)}`} style={cardStyle}>
                 <div style={imageWrapStyle}>
-                  {code.voucher.imageUrl ? (
-                    <img src={code.voucher.imageUrl} alt='' style={imageStyle} />
-                  ) : (
-                    <span style={imageFallbackStyle}>{code.voucher.name.slice(0, 2).toLocaleUpperCase('vi')}</span>
+                  <VoucherImage
+                    src={code.voucher.imageUrl}
+                    alt={code.voucher.name}
+                    fallback={code.voucher.name.slice(0, 2).toLocaleUpperCase('vi')}
+                    style={{
+                      ...(code.voucher.imageUrl ? imageStyle : imageFallbackStyle),
+                      filter: usable ? 'none' : 'grayscale(.7)',
+                      opacity: usable ? 1 : 0.68
+                    }}
+                  />
+                  {!usable && (
+                    <span style={statusOverlayStyle(groupFor(code))}>
+                      {groupFor(code) === 'used' ? 'ĐÃ DÙNG' : 'HẾT HẠN'}
+                    </span>
                   )}
                 </div>
 
@@ -156,14 +167,23 @@ export function MyVouchersPage() {
       >
         {selectedCode && (
           <div style={qrContentStyle}>
+            <div style={qrHeaderStyle}>
+              <span style={qrBrandStyle}>VH</span>
+              <span>
+                <strong>VoucherHub Pass</strong>
+                <small style={{ display: 'block', color: colors.slate }}>Quét để xác nhận sử dụng</small>
+              </span>
+            </div>
             <QRCodeDisplay value={selectedCode.code} size={280} style={{ maxWidth: '100%', height: 'auto' }} />
             <strong style={qrCodeStyle}>{selectedCode.code}</strong>
-            <Badge variant='warning'>Chưa sử dụng</Badge>
-            <span>
+            <Badge variant='warning'>Sẵn sàng sử dụng</Badge>
+            <span style={{ color: colors.slate }}>
               Còn {selectedCode.remainingUses}/{selectedCode.totalUses} lượt · Hết hạn{' '}
               {formatDate(selectedCode.expiresAt)}
             </span>
-            <small>Đưa mã QR này cho nhân viên tại điểm sử dụng voucher.</small>
+            <small style={qrHintStyle}>
+              Không chia sẻ ảnh mã này. Hãy đưa trực tiếp cho nhân viên tại điểm sử dụng voucher.
+            </small>
           </div>
         )}
       </Modal>
@@ -222,7 +242,7 @@ function countStyle(active: boolean): CSSProperties {
 }
 const gridStyle: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(330px, 1fr))',
+  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
   gap: 18
 }
 const cardStyle: CSSProperties = {
@@ -235,7 +255,7 @@ const cardStyle: CSSProperties = {
   borderRadius: radius.xl,
   boxShadow: shadows.card
 }
-const imageWrapStyle: CSSProperties = { minHeight: 180, background: colors.surfaceMuted }
+const imageWrapStyle: CSSProperties = { position: 'relative', minHeight: 180, background: colors.surfaceMuted }
 const imageStyle: CSSProperties = { width: '100%', height: '100%', objectFit: 'cover', display: 'block' }
 const imageFallbackStyle: CSSProperties = {
   display: 'flex',
@@ -308,6 +328,53 @@ const qrCodeStyle: CSSProperties = {
   fontFamily: fonts.mono,
   letterSpacing: '0.08em',
   overflowWrap: 'anywhere'
+}
+const qrHeaderStyle: CSSProperties = {
+  display: 'flex',
+  width: '100%',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 10,
+  paddingBottom: 12,
+  borderBottom: `1px solid ${colors.hairline}`,
+  textAlign: 'left'
+}
+const qrBrandStyle: CSSProperties = {
+  display: 'grid',
+  placeItems: 'center',
+  width: 42,
+  height: 42,
+  borderRadius: radius.md,
+  background: colors.ink,
+  color: colors.onInk,
+  fontFamily: fonts.display,
+  fontWeight: 900
+}
+const qrHintStyle: CSSProperties = {
+  display: 'block',
+  padding: '10px 14px',
+  borderRadius: radius.md,
+  background: colors.accentSurface,
+  color: colors.accentHover,
+  lineHeight: 1.5
+}
+
+function statusOverlayStyle(group: VoucherTab): CSSProperties {
+  return {
+    position: 'absolute',
+    top: 14,
+    left: -30,
+    width: 130,
+    padding: '6px 0',
+    transform: 'rotate(-38deg)',
+    textAlign: 'center',
+    color: '#fff',
+    background: group === 'used' ? 'rgba(23, 91, 66, .92)' : 'rgba(154, 35, 35, .92)',
+    fontFamily: fonts.display,
+    fontSize: 11,
+    fontWeight: 800,
+    letterSpacing: '.08em'
+  }
 }
 
 export default MyVouchersPage

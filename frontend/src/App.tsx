@@ -44,10 +44,13 @@ import { VouchersPage as PartnerVouchersPage } from './pages/partner/VouchersPag
 import { CreateVoucherPage as PartnerCreateVoucherPage } from './pages/partner/CreateVoucherPage'
 import { DashboardPage as PartnerDashboardPage } from './pages/partner/DashboardPage'
 import { BranchesPage as PartnerBranchesPage } from './pages/partner/BranchesPage'
+import { BranchCreatePage } from './pages/partner/BranchCreatePage'
 import { RedeemCodePage } from './pages/partner/RedeemCodePage'
 import { ProfilePage as PartnerProfilePage } from './pages/partner/ProfilePage'
-import { PartnerReportsPage } from './pages/partner/PartnerReportsPage'
+import { RevenueReportPage } from './pages/partner/RevenueReportPage'
+import { VoucherPerformancePage } from './pages/partner/VoucherPerformancePage'
 import { StaffPage as PartnerStaffPage } from './pages/partner/StaffPage'
+import { StaffCreatePage } from './pages/partner/StaffCreatePage'
 import { DashboardPage as AdminDashboardPage } from './pages/admin/DashboardPage'
 import { UsersPage as AdminUsersPage } from './pages/admin/UsersPage'
 import { PartnerApprovalsPage as AdminPartnerApprovalsPage } from './pages/admin/PartnerApprovalsPage'
@@ -221,6 +224,14 @@ export function AppRoutes() {
           }
         />
         <Route
+          path='branches/new'
+          element={
+            <ProtectedRoute allowedRoles={['PARTNER']}>
+              <BranchCreatePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path='vouchers'
           element={
             <ProtectedRoute allowedRoles={['PARTNER']}>
@@ -252,12 +263,29 @@ export function AppRoutes() {
             </ProtectedRoute>
           }
         />
-        <Route path='redeem' element={<RedeemCodePage />} />
         <Route
-          path='reports'
+          path='staff/new'
           element={
             <ProtectedRoute allowedRoles={['PARTNER']}>
-              <PartnerReportsPage />
+              <StaffCreatePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route path='redeem' element={<RedeemCodePage />} />
+        <Route path='reports' element={<Navigate to='/partner/reports/revenue' replace />} />
+        <Route
+          path='reports/revenue'
+          element={
+            <ProtectedRoute allowedRoles={['PARTNER']}>
+              <RevenueReportPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='reports/vouchers'
+          element={
+            <ProtectedRoute allowedRoles={['PARTNER']}>
+              <VoucherPerformancePage />
             </ProtectedRoute>
           }
         />
