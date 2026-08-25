@@ -2,8 +2,8 @@
   "name": "@voucher/shared",
   "version": "1.0.0",
   "private": true,
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
     "build": "rimraf dist tsconfig.tsbuildinfo && tsc -b --force",
     "typecheck": "tsc -b --force"
