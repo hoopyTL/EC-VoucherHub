@@ -21,6 +21,7 @@ import type {
   PartnerDto,
   PartnerStaffDto,
   UpdatePartnerDto,
+  UpdateBranchDto,
   UpdatePartnerStaffDto
 } from '@voucher/shared'
 import type { Branch, BranchFormValues, PartnerVouchersResponse } from '../types/partner'
@@ -72,7 +73,7 @@ export async function createBranch(body: BranchFormValues): Promise<Branch> {
 }
 
 /** Update an existing branch's details (Req 7.2). */
-export async function updateBranch(id: number, body: BranchFormValues): Promise<Branch> {
+export async function updateBranch(id: number, body: UpdateBranchDto): Promise<Branch> {
   const { data } = await api.patch<ApiEnvelope<Branch>>(`/partner/branches/${id}`, body)
   return data.data
 }

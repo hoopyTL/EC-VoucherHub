@@ -58,7 +58,7 @@ export function deriveDashboardStats(branches: Branch[], vouchers: PartnerVouche
 
   return {
     totalBranches: branches.length,
-    activeBranches: branches.length,
+    activeBranches: branches.filter((branch) => branch.isActive).length,
     totalVouchers: vouchers.length,
     approvedVouchers,
     unitsSold,
@@ -147,8 +147,8 @@ function DashboardContent({ stats }: { stats: PartnerDashboardStats }) {
       <div style={cardGridStyle}>
         <StatCard
           label='Chi nhánh hoạt động'
-          value={`${stats.activeBranches} / ${stats.totalBranches}`}
-          footer={<Link to='/partner/branches'>Quản lý chi nhánh →</Link>}
+          value={String(stats.activeBranches)}
+          footer={<Link to='/partner/branches'>{stats.totalBranches} chi nhánh tổng cộng →</Link>}
         />
         <StatCard
           label='Voucher'

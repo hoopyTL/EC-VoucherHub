@@ -71,7 +71,7 @@ function StaffCard({
   item: PartnerStaff
   branches: Branch[]
   saving: boolean
-  onSave: (id: string, body: StaffInput) => void
+  onSave: (id: string, body: StaffInput) => Promise<PartnerStaff>
 }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState<StaffForm>({
@@ -145,15 +145,19 @@ function StaffCard({
             <Button
               disabled={!draft.fullName.trim() || !draft.email.trim() || draft.branchIds.length === 0}
               isLoading={saving}
-              onClick={() => {
-                onSave(item.id, {
-                  ...draft,
-                  fullName: draft.fullName.trim(),
-                  email: draft.email.trim(),
-                  phone: draft.phone.trim() || undefined,
-                  password: draft.password || undefined
-                })
-                setEditing(false)
+              onClick={async () => {
+                try {
+                  await onSave(item.id, {
+                    ...draft,
+                    fullName: draft.fullName.trim(),
+                    email: draft.email.trim(),
+                    phone: draft.phone.trim() || undefined,
+                    password: draft.password || undefined
+                  })
+                  setEditing(false)
+                } catch {
+                  // Keep the editor open so the partner can correct and retry.
+                }
               }}
             >
               Lưu thay đổi
@@ -164,14 +168,27 @@ function StaffCard({
 
       {!editing && (
         <div style={cardActionsStyle}>
-          <Button variant='secondary' size='sm' onClick={() => setEditing(true)}>
+          <Button
+            variant='secondary'
+            size='sm'
+            onClick={() => {
+              const activeIds = new Set(branches.map((branch) => branch.id))
+              setDraft((current) => ({
+                ...current,
+                branchIds: item.assignments
+                  .map((assignment) => assignment.branchId)
+                  .filter((branchId) => activeIds.has(branchId))
+              }))
+              setEditing(true)
+            }}
+          >
             Chỉnh sửa
           </Button>
           <Button
             variant='secondary'
             size='sm'
             disabled={saving}
-            onClick={() => onSave(item.id, { locked: !isLocked })}
+            onClick={() => void onSave(item.id, { locked: !isLocked }).catch(() => undefined)}
           >
             {isLocked ? 'Mở khóa tài khoản' : 'Khóa tài khoản'}
           </Button>
@@ -179,7 +196,7 @@ function StaffCard({
             variant='secondary'
             size='sm'
             disabled={saving}
-            onClick={() => onSave(item.id, { status: isInactive ? 'ACTIVE' : 'INACTIVE' })}
+            onClick={() => void onSave(item.id, { status: isInactive ? 'ACTIVE' : 'INACTIVE' }).catch(() => undefined)}
           >
             {isInactive ? 'Kích hoạt lại' : 'Ngừng hoạt động'}
           </Button>
@@ -241,7 +258,7 @@ export function StaffPage() {
     })
   }
 
-  const branches = branchesQuery.data ?? []
+  const branches = (branchesQuery.data ?? []).filter((branch) => branch.isActive)
   const staff = staffQuery.data ?? []
 
   return (
@@ -318,7 +335,7 @@ export function StaffPage() {
                 item={item}
                 branches={branches}
                 saving={changeMutation.isPending}
-                onSave={(id, body) => changeMutation.mutate({ id, body })}
+                onSave={(id, body) => changeMutation.mutateAsync({ id, body })}
               />
             ))}
           </div>

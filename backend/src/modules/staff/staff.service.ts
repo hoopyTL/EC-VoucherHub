@@ -16,8 +16,10 @@ async function ownerPartner(ownerUserId: string) {
 }
 async function assertBranches(partnerId: string, branchIds: number[]) {
   const ids = [...new Set(branchIds)]
-  const count = await prisma.branch.count({ where: { partnerId, id: { in: ids } } })
-  if (count !== ids.length) throw AppError.forbidden('Có chi nhánh không thuộc đối tác của bạn')
+  const count = await prisma.branch.count({ where: { partnerId, id: { in: ids }, isActive: true } })
+  if (count !== ids.length) {
+    throw AppError.forbidden('Có chi nhánh không thuộc đối tác hoặc đang ngừng hoạt động')
+  }
   return ids
 }
 async function ownedStaff(ownerUserId: string, staffId: string) {

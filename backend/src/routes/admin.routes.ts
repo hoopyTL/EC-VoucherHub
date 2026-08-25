@@ -1,6 +1,6 @@
 import { Request, Router } from 'express'
 import { ApprovalStatus, OperatingStatus, UserStatus, VoucherStatus } from '@prisma/client'
-import { asyncHandler } from '../middlewares/error.middleware'
+import { asyncHandler } from '../middlewares/async-handler'
 import {
   cancelAdminOrder,
   archiveAdminContent,

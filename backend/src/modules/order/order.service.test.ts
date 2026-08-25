@@ -1,7 +1,7 @@
 import { Decimal } from '@prisma/client/runtime/library'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import prisma from '../../configs/prisma'
-import { ConflictError, ForbiddenError, ValidationError } from '../../middleware/error-handler'
+import { ConflictError, ForbiddenError, ValidationError } from '../../middlewares/error-handler'
 import { createOrder, getOrderDetail, processPayment } from './order.service'
 
 vi.mock('../../configs/prisma', () => ({

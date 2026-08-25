@@ -161,6 +161,7 @@ model Branch {
   name      String @db.VarChar(255)
   address   String @db.Text
   region    String @db.VarChar(128)
+  isActive  Boolean @default(true) @map("is_active")
 
   // Relations
   partner                Partner                @relation(fields: [partnerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
@@ -169,6 +170,7 @@ model Branch {
   staffAssignments       PartnerStaffBranch[]
 
   @@index([partnerId])
+  @@index([partnerId, isActive])
   @@index([region])
   @@map("branches")
 }

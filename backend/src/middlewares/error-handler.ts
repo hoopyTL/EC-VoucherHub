@@ -3,6 +3,42 @@ import type { Request, Response, NextFunction } from 'express'
 import { AppError } from '~/utils/app-error'
 import { ErrorCode } from '~/utils/error-codes'
 
+export class NotFoundError extends AppError {
+  constructor(message = 'Không tìm thấy dữ liệu') {
+    super(message, 404, ErrorCode.RESOURCE_NOT_FOUND)
+  }
+}
+
+export class ValidationError extends AppError {
+  constructor(message = 'Dữ liệu không hợp lệ', details?: Array<{ field: string; message: string }>) {
+    super(message, 422, ErrorCode.UNPROCESSABLE_ENTITY, details)
+  }
+}
+
+export class BadRequestError extends AppError {
+  constructor(message = 'Yêu cầu không hợp lệ', details?: Array<{ field: string; message: string }>) {
+    super(message, 400, ErrorCode.BAD_REQUEST, details)
+  }
+}
+
+export class ConflictError extends AppError {
+  constructor(message = 'Xung đột trạng thái') {
+    super(message, 409, ErrorCode.CONFLICT)
+  }
+}
+
+export class ForbiddenError extends AppError {
+  constructor(message = 'Không đủ quyền') {
+    super(message, 403, ErrorCode.FORBIDDEN)
+  }
+}
+
+export class UnauthorizedError extends AppError {
+  constructor(message = 'Chưa xác thực') {
+    super(message, 401, ErrorCode.UNAUTHORIZED)
+  }
+}
+
 interface ErrorResponseBody {
   success: false
   error: {

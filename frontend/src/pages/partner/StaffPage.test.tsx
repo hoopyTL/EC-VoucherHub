@@ -9,7 +9,8 @@ const branch = {
   partnerId: 'partner-1',
   name: 'Lotus Spa Quận 1',
   address: '1 Nguyễn Huệ',
-  region: 'TP. Hồ Chí Minh'
+  region: 'TP. Hồ Chí Minh',
+  isActive: true
 }
 
 const staff = {
@@ -92,5 +93,23 @@ describe('StaffPage', () => {
 
     expect(screen.getByText('Bạn cần tạo chi nhánh trước khi phân công nhân viên.')).toBeDefined()
     expect(screen.getByRole('button', { name: 'Tạo nhân viên' }).hasAttribute('disabled')).toBe(true)
+  })
+
+  it('keeps the editor open when updating a staff account fails', async () => {
+    mockQueries()
+    vi.spyOn(api, 'patch').mockRejectedValue({
+      response: { status: 409, data: { error: { message: 'Email đã được sử dụng' } } }
+    })
+    renderPage()
+    await screen.findByText('Gia Huy')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Chỉnh sửa' }))
+    const nameInput = screen.getByLabelText('Họ tên') as HTMLInputElement
+    fireEvent.change(nameInput, { target: { value: 'Tên đang sửa' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu thay đổi' }))
+
+    expect(await screen.findByText('Email đã được sử dụng')).toBeDefined()
+    expect(screen.getByLabelText('Họ tên')).toBeDefined()
+    expect((screen.getByLabelText('Họ tên') as HTMLInputElement).value).toBe('Tên đang sửa')
   })
 })

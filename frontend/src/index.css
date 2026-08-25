@@ -1430,3 +1430,15 @@ canvas {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+@media (max-width: 820px) {
+  .redeem-workspace {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .redeem-action-row > button {
+    width: 100% !important;
+  }
+}

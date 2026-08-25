@@ -199,7 +199,7 @@ export function CreateVoucherPage() {
       usagePeriodEnd: voucher.usagePeriodEnd.slice(0, 16),
       imageUrl: voucher.imageUrl ?? ''
     })
-    setSelectedBranchIds(voucher.voucherBranches.map((link) => link.branchId))
+    setSelectedBranchIds(voucher.voucherBranches.filter((link) => link.branch.isActive).map((link) => link.branchId))
   }, [voucherQuery.data])
 
   useEffect(() => {
@@ -208,7 +208,7 @@ export function CreateVoucherPage() {
     }
   }, [categoriesQuery.data, editId, form.category])
 
-  const activeBranches = branchesQuery.data ?? []
+  const activeBranches = (branchesQuery.data ?? []).filter((branch) => branch.isActive)
 
   const createMutation = useMutation({
     mutationFn: (body: CreateVoucherRequest) => (editId ? updatePartnerVoucher(editId, body) : createVoucher(body)),

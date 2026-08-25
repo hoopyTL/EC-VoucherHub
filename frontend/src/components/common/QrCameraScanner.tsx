@@ -81,17 +81,17 @@ export function QrCameraScanner({ open, onClose, onResult }: QrCameraScannerProp
     <Modal
       isOpen={open}
       onClose={onClose}
-      title='Quét mã QR voucher'
+      title='Quét QR voucher'
       size='md'
       footer={
         <Button type='button' variant='secondary' onClick={onClose}>
-          Đóng camera
+          Đóng
         </Button>
       }
     >
       <div style={contentStyle}>
         <video ref={videoRef} muted playsInline autoPlay style={videoStyle} aria-label='Camera quét mã QR voucher' />
-        <p style={helpStyle}>Đưa mã QR vào giữa khung hình. Camera sẽ tự nhận diện mã.</p>
+        <p style={helpStyle}>Đưa mã QR vào giữa khung hình để hệ thống tự nhận diện.</p>
         {error && (
           <div role='alert' style={errorStyle} data-testid='qr-camera-error'>
             {error}

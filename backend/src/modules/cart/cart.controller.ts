@@ -1,5 +1,5 @@
 import { Request, Response } from 'express'
-import { asyncHandler } from '../../middleware/async-handler'
+import { asyncHandler } from '../../middlewares/async-handler'
 import { successResponse } from '../../utils/response'
 import * as cartService from './cart.service'
 

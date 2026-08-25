@@ -141,6 +141,25 @@ describe('TASK-013 redemption API', () => {
     expect(await prisma.usageLog.count()).toBe(0)
   })
 
+  it('hides inactive branches and rejects redemption at them', async () => {
+    const data = await fixture()
+    const branchId = data.partner.branches[0].id
+    await prisma.branch.update({ where: { id: branchId }, data: { isActive: false } })
+    const headers = authHeader(data.partnerUser.id, RoleName.PARTNER)
+
+    const listed = await request(app).get('/api/voucher-code-branches').set(headers)
+    const redeemed = await request(app)
+      .post(`/api/voucher-codes/${data.code.code}/redemption`)
+      .set(headers)
+      .send({ branchId })
+
+    expect(listed.status).toBe(200)
+    expect(listed.body.data.map((branch: { id: number }) => branch.id)).not.toContain(branchId)
+    expect(redeemed.status).toBe(409)
+    expect(redeemed.body.error.message).toBe('Chi nhánh đang ngừng hoạt động')
+    expect(await prisma.usageLog.count()).toBe(0)
+  })
+
   it('exposes a report containing only the authenticated partner data', async () => {
     const mine = await fixture()
     await fixture()

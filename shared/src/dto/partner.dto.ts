@@ -6,7 +6,9 @@ export interface CreateBranchDto {
   region: string
 }
 
-export type UpdateBranchDto = Partial<CreateBranchDto>
+export type UpdateBranchDto = Partial<CreateBranchDto> & {
+  isActive?: boolean
+}
 
 export interface RegisterPartnerDto {
   email?: string
@@ -30,6 +32,7 @@ export interface BranchDto {
   name: string
   address: string
   region: string
+  isActive: boolean
 }
 
 export interface PartnerDto {

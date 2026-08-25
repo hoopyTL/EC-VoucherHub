@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { authenticate } from '~/middlewares/authenticate'
 import { authorize } from '~/middlewares/authorize'
 import { RoleName } from '@voucher/shared'
-import { validate } from '../../middleware/validate'
+import { validate } from '../../middlewares/validate'
 import { addCartItemSchema, updateCartItemSchema } from '@voucher/shared'
 import * as cartController from './cart.controller'
 

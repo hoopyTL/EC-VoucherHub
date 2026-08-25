@@ -40,9 +40,12 @@ export const updatePartnerSchema = z
   })
   .refine((data) => Object.keys(data).length > 0, 'Cần ít nhất một trường để cập nhật')
 
-export const updateBranchSchema = branchSchema.partial().refine((data) => Object.keys(data).length > 0, {
-  message: 'Cần ít nhất một trường để cập nhật'
-})
+export const updateBranchSchema = branchSchema
+  .partial()
+  .extend({ isActive: z.boolean().optional() })
+  .refine((data) => Object.keys(data).length > 0, {
+    message: 'Cần ít nhất một trường để cập nhật'
+  })
 
 export const partnerIdSchema = z.object({ id: z.string().uuid('Partner ID không hợp lệ') })
 export const branchIdSchema = z.object({ id: z.coerce.number().int().positive('Branch ID không hợp lệ') })

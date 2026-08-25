@@ -1,8 +1,8 @@
 import { Request, Response } from 'express'
-import { asyncHandler } from '../../middleware/async-handler'
+import { asyncHandler } from '../../middlewares/async-handler'
 import { successResponse } from '../../utils/response'
 import { paymentService } from './payment.service'
-import { NotFoundError, ForbiddenError } from '../../middleware/error-handler'
+import { NotFoundError, ForbiddenError } from '../../middlewares/error-handler'
 import prisma from '../../configs/prisma'
 
 /**

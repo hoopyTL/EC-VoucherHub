@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client'
 import prisma from '../../configs/prisma'
-import { NotFoundError, ValidationError, ForbiddenError } from '../../middleware/error-handler'
+import { NotFoundError, ValidationError, ForbiddenError } from '../../middlewares/error-handler'
 import type { AddCartItemDto, UpdateCartItemDto, CartResponse, CartItemResponse } from '@voucher/shared'
 import { Decimal } from '@prisma/client/runtime/library'
 

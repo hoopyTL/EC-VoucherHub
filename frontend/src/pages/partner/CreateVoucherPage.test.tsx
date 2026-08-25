@@ -12,7 +12,14 @@ vi.mock('react-router-dom', async () => {
   return { ...actual, useNavigate: () => mockNavigate }
 })
 
-const branch = { id: 1, partnerId: 'partner-1', name: 'Downtown', address: '1 Main St', region: 'Hà Nội' }
+const branch = {
+  id: 1,
+  partnerId: 'partner-1',
+  name: 'Downtown',
+  address: '1 Main St',
+  region: 'Hà Nội',
+  isActive: true
+}
 const category = { id: 7, name: 'Ẩm thực', parentId: null }
 
 function mockReferenceData() {

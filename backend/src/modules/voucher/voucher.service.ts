@@ -110,7 +110,7 @@ function toPublicVoucher(voucher: VoucherRecord, soldQuantity = 0) {
         address: branch.address,
         region: branch.region,
         contact: '',
-        isActive: true
+        isActive: branch.isActive
       }
     }))
   }
@@ -144,8 +144,10 @@ async function validateRelations(
     throw AppError.validation('Danh mục không tồn tại')
   }
   if (input.branchIds?.length) {
-    const count = await tx.branch.count({ where: { id: { in: input.branchIds }, partnerId } })
-    if (count !== input.branchIds.length) throw AppError.forbidden('Một hoặc nhiều chi nhánh nằm ngoài phạm vi đối tác')
+    const count = await tx.branch.count({ where: { id: { in: input.branchIds }, partnerId, isActive: true } })
+    if (count !== input.branchIds.length) {
+      throw AppError.forbidden('Một hoặc nhiều chi nhánh nằm ngoài phạm vi đối tác hoặc đang ngừng hoạt động')
+    }
   }
 }
 

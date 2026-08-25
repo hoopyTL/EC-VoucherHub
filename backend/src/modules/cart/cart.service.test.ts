@@ -16,7 +16,7 @@ vi.mock('../../configs/prisma', () => {
 // Chú ý import prisma sau khi setup mock
 import prisma from '../../configs/prisma'
 import * as cartService from './cart.service'
-import { NotFoundError, ValidationError } from '../../middleware/error-handler'
+import { NotFoundError, ValidationError } from '../../middlewares/error-handler'
 
 const prismaMock = prisma as any
 

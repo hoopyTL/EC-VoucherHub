@@ -72,6 +72,7 @@ export async function listRedemptionBranches(userId: string) {
   return prisma.branch.findMany({
     where: {
       partnerId: scope.partnerId,
+      isActive: true,
       ...(scope.assignedBranchIds ? { id: { in: scope.assignedBranchIds } } : {})
     },
     orderBy: { id: 'asc' }
@@ -145,8 +146,12 @@ export async function listMyVouchers(userId: string) {
 export async function redeemVoucherCode(userId: string, rawCode: string, branchId: number) {
   return prisma.$transaction(async (tx) => {
     const scope = await getActorScope(tx as typeof prisma, userId)
-    const branch = await tx.branch.findUnique({ where: { id: branchId }, select: { id: true, partnerId: true } })
+    const branch = await tx.branch.findUnique({
+      where: { id: branchId },
+      select: { id: true, partnerId: true, isActive: true }
+    })
     if (!branch || branch.partnerId !== scope.partnerId) throw AppError.forbidden('Chi nhánh nằm ngoài phạm vi đối tác')
+    if (!branch.isActive) throw AppError.conflict('Chi nhánh đang ngừng hoạt động')
     if (scope.assignedBranchIds && !scope.assignedBranchIds.includes(branchId)) {
       throw AppError.forbidden('Nhân viên chưa được phân công tại chi nhánh này')
     }

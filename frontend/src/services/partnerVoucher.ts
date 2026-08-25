@@ -66,7 +66,7 @@ export const PARTNER_BRANCHES_QUERY_KEY = ['partner-branches'] as const
 export const VOUCHER_CATEGORIES_QUERY_KEY = ['voucher-categories'] as const
 
 function toPartnerBranch(branch: BranchDto): PartnerBranch {
-  return { ...branch, id: String(branch.id), isActive: true }
+  return { ...branch, id: String(branch.id) }
 }
 
 function toPartnerVoucher(voucher: VoucherDto): PartnerVoucher {

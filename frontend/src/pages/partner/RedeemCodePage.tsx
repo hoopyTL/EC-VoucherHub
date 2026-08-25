@@ -127,8 +127,6 @@ export function RedeemCodePage() {
     queryFn: fetchBranches
   })
 
-  // Older database rows do not carry an `isActive` column; they are active by
-  // default. Only an explicit false value hides a branch.
   const activeBranches = useMemo(() => (branches ?? []).filter((branch) => branch.isActive !== false), [branches])
 
   const mutation = useMutation({
@@ -165,102 +163,157 @@ export function RedeemCodePage() {
     mutation.mutate({ code: trimmed, branchId })
   }
 
+  const resetFlow = () => {
+    setCode('')
+    setBranchId('')
+    validation.reset()
+    mutation.reset()
+  }
+
   const result = mutation.data
   const errorMessage = mutation.isError ? resolveRedeemError(mutation.error) : null
   const redeemedBranch = result
     ? activeBranches.find((b) => String(b.id) === String(result.redemptionBranchId))
     : undefined
+  const selectedBranch = activeBranches.find((branch) => String(branch.id) === branchId)
 
   return (
-    <section style={{ maxWidth: 620, margin: '0 auto' }}>
-      <h1 style={titleStyle}>Xác nhận sử dụng voucher</h1>
-      <p style={subtitleStyle}>
-        Chọn chi nhánh và nhập mã để xác nhận khách đã sử dụng voucher. Mỗi mã chỉ được sử dụng một lần.
-      </p>
+    <section style={pageStyle}>
+      <header style={heroStyle}>
+        <p style={eyebrowStyle}>Đối soát tại quầy</p>
+        <h1 style={titleStyle}>Xác nhận sử dụng voucher</h1>
+        <p style={subtitleStyle}>Kiểm tra mã, chọn đúng chi nhánh và xác nhận trong một quy trình ngắn gọn.</p>
+      </header>
 
-      <form onSubmit={submit} style={formStyle} noValidate>
-        <Input
-          label='Mã voucher'
-          placeholder='Ví dụ: SPA-AAAA-1111'
-          value={code}
-          onChange={(e) => changeCode(e.target.value)}
-          autoComplete='off'
-          disabled={Boolean(result)}
-          data-testid='redeem-code-input'
-        />
-
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <Button
-            type='button'
-            onClick={() => validation.mutate(trimmed)}
-            isLoading={validation.isPending}
-            disabled={!canValidate}
-            data-testid='validate-code-btn'
-          >
-            Kiểm tra mã
-          </Button>
-          <Button type='button' variant='secondary' onClick={scanQr} data-testid='scan-qr-btn'>
-            Quét QR bằng camera
-          </Button>
-        </div>
-
-        {validation.data && (
-          <div data-testid='code-status' role='status' style={validation.data.valid ? successStyle : alertStyle}>
-            <strong>{validation.data.voucher.name}</strong>
-            <div>{validation.data.valid ? 'Mã hợp lệ' : validation.data.reason}</div>
+      <div className='redeem-workspace' style={workspaceStyle}>
+        <form onSubmit={submit} style={formStyle} noValidate>
+          <div style={sectionHeaderStyle}>
+            <span style={stepStyle}>01</span>
             <div>
-              Còn {validation.data.remainingUses} lượt · Hạn {formatDateTime(validation.data.expiresAt)}
+              <h2 style={sectionTitleStyle}>Kiểm tra mã voucher</h2>
+              <p style={sectionDescriptionStyle}>Nhập mã hoặc quét QR trên voucher của khách hàng.</p>
             </div>
           </div>
-        )}
-        {validation.isError && (
-          <div role='alert' style={alertStyle} data-testid='validate-error'>
-            {resolveRedeemError(validation.error)}
-          </div>
-        )}
 
-        <div>
-          <label htmlFor='redeem-branch' style={labelStyle}>
-            Chi nhánh sử dụng
-          </label>
-          {branchesLoading ? (
-            <LoadingSpinner label='Đang tải chi nhánh' />
-          ) : branchesError ? (
-            <div role='alert' style={alertStyle}>
-              Không thể tải danh sách chi nhánh.{' '}
-              <button type='button' onClick={() => refetchBranches()} style={linkButtonStyle}>
-                Thử lại
-              </button>
-            </div>
-          ) : activeBranches.length === 0 ? (
-            <p style={{ color: colors.slate, margin: 0 }}>
-              Chưa có chi nhánh đang hoạt động. Hãy thêm chi nhánh trước khi xác nhận mã.
-            </p>
-          ) : (
-            <select
-              id='redeem-branch'
-              value={branchId}
-              onChange={(e) => setBranchId(e.target.value)}
-              disabled={Boolean(result)}
-              style={selectStyle}
-              data-testid='branch-select'
+          <Input
+            label='Mã voucher'
+            placeholder='Ví dụ: SPA-AAAA-1111'
+            value={code}
+            onChange={(e) => changeCode(e.target.value)}
+            autoComplete='off'
+            disabled={Boolean(result)}
+            data-testid='redeem-code-input'
+          />
+
+          <div className='redeem-action-row' style={actionRowStyle}>
+            <Button
+              type='button'
+              onClick={() => validation.mutate(trimmed)}
+              isLoading={validation.isPending}
+              disabled={!canValidate}
+              data-testid='validate-code-btn'
             >
-              <option value=''>Chọn chi nhánh…</option>
-              {activeBranches.map((branch) => (
-                <option key={branch.id} value={branch.id}>
-                  {branch.name} — {branch.region}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
+              Kiểm tra mã
+            </Button>
+            <Button type='button' variant='secondary' onClick={scanQr} data-testid='scan-qr-btn'>
+              Quét QR
+            </Button>
+          </div>
 
-        {!result && (
-          <Button type='submit' isLoading={mutation.isPending} disabled={!canSubmit} data-testid='confirm-redeem-btn'>
-            Xác nhận sử dụng
-          </Button>
-        )}
-      </form>
+          {validation.data && (
+            <div data-testid='code-status' role='status' style={validation.data.valid ? validCodeStyle : alertStyle}>
+              <div style={statusTitleRowStyle}>
+                <strong>{validation.data.voucher.name}</strong>
+                <Badge variant={validation.data.valid ? 'success' : 'danger'}>
+                  {validation.data.valid ? 'Mã hợp lệ' : 'Không hợp lệ'}
+                </Badge>
+              </div>
+              {!validation.data.valid && <div>{validation.data.reason}</div>}
+              <div style={statusMetaStyle}>
+                Còn {validation.data.remainingUses} lượt · Hạn {formatDateTime(validation.data.expiresAt)}
+              </div>
+            </div>
+          )}
+          {validation.isError && (
+            <div role='alert' style={alertStyle} data-testid='validate-error'>
+              {resolveRedeemError(validation.error)}
+            </div>
+          )}
+
+          <div style={dividerStyle} />
+
+          <div style={sectionHeaderStyle}>
+            <span style={stepStyle}>02</span>
+            <div>
+              <h2 style={sectionTitleStyle}>Chọn nơi sử dụng</h2>
+              <p style={sectionDescriptionStyle}>Chỉ các chi nhánh đang hoạt động mới được xác nhận mã.</p>
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor='redeem-branch' style={labelStyle}>
+              Chi nhánh sử dụng
+            </label>
+            {branchesLoading ? (
+              <LoadingSpinner label='Đang tải chi nhánh' />
+            ) : branchesError ? (
+              <div role='alert' style={alertStyle}>
+                Không thể tải danh sách chi nhánh.{' '}
+                <button type='button' onClick={() => refetchBranches()} style={linkButtonStyle}>
+                  Thử lại
+                </button>
+              </div>
+            ) : activeBranches.length === 0 ? (
+              <p style={{ color: colors.slate, margin: 0 }}>
+                Chưa có chi nhánh đang hoạt động. Hãy kích hoạt chi nhánh trước khi xác nhận mã.
+              </p>
+            ) : (
+              <>
+                <select
+                  id='redeem-branch'
+                  value={branchId}
+                  onChange={(e) => setBranchId(e.target.value)}
+                  disabled={Boolean(result)}
+                  style={selectStyle}
+                  data-testid='branch-select'
+                >
+                  <option value=''>Chọn chi nhánh…</option>
+                  {activeBranches.map((branch) => (
+                    <option key={branch.id} value={branch.id}>
+                      {branch.name} — {branch.region}
+                    </option>
+                  ))}
+                </select>
+                {selectedBranch && <p style={branchAddressStyle}>{selectedBranch.address}</p>}
+              </>
+            )}
+          </div>
+
+          {!result && (
+            <Button
+              type='submit'
+              size='lg'
+              fullWidth
+              isLoading={mutation.isPending}
+              disabled={!canSubmit}
+              data-testid='confirm-redeem-btn'
+            >
+              Xác nhận sử dụng
+            </Button>
+          )}
+        </form>
+
+        <aside style={guideStyle}>
+          <span style={guideKickerStyle}>Quy trình an toàn</span>
+          <h2 style={guideTitleStyle}>Kiểm tra trước khi xác nhận</h2>
+          <ol style={guideListStyle}>
+            <li>Đối chiếu tên voucher và thời hạn sử dụng.</li>
+            <li>Chọn đúng chi nhánh khách đang sử dụng.</li>
+            <li>Chỉ xác nhận khi dịch vụ đã được cung cấp.</li>
+          </ol>
+          <p style={guideNoteStyle}>Sau khi xác nhận, giao dịch được ghi vào lịch sử và không thể hoàn tác.</p>
+        </aside>
+      </div>
 
       {errorMessage && (
         <div role='alert' style={alertStyle} data-testid='redeem-error'>
@@ -285,6 +338,9 @@ export function RedeemCodePage() {
             <dt style={dtStyle}>Lượt còn lại</dt>
             <dd style={ddStyle}>{result.remainingUses}</dd>
           </dl>
+          <Button type='button' variant='secondary' onClick={resetFlow} style={{ marginTop: 18 }}>
+            Xác nhận mã khác
+          </Button>
         </div>
       )}
 
@@ -297,26 +353,84 @@ export function RedeemCodePage() {
 /* Styles                                                                     */
 /* -------------------------------------------------------------------------- */
 
+const pageStyle: CSSProperties = { maxWidth: 1040, margin: '0 auto' }
+
+const heroStyle: CSSProperties = {
+  padding: 'clamp(26px, 5vw, 44px)',
+  borderRadius: '18px 52px 18px 18px',
+  background:
+    'radial-gradient(circle at 88% 8%, rgba(91, 229, 190, .42), transparent 31%), linear-gradient(135deg, #064e3b, #087f68)',
+  boxShadow: '0 24px 56px rgba(6, 78, 59, .18)',
+  marginBottom: 22
+}
+
+const eyebrowStyle: CSSProperties = {
+  margin: '0 0 10px',
+  color: '#b7f7e2',
+  fontSize: 12,
+  fontWeight: 800,
+  letterSpacing: '.14em',
+  textTransform: 'uppercase'
+}
+
+const workspaceStyle: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'minmax(0, 1fr) minmax(250px, .42fr)',
+  gap: 20,
+  alignItems: 'start'
+}
+
 const formStyle: CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
-  gap: 16,
-  marginTop: 16
+  gap: 18,
+  padding: 'clamp(22px, 4vw, 32px)',
+  borderRadius: radius.xl,
+  border: `1px solid ${colors.hairline}`,
+  background: colors.surface,
+  boxShadow: shadows.card
 }
 
 const titleStyle: CSSProperties = {
-  marginTop: 0,
+  margin: 0,
   fontFamily: fonts.display,
-  fontSize: 'clamp(32px, 5vw, 40px)',
+  fontSize: 'clamp(32px, 5vw, 46px)',
   fontWeight: 800,
   letterSpacing: '-0.03em',
-  color: colors.ink
+  color: '#fff'
 }
 
 const subtitleStyle: CSSProperties = {
-  color: colors.slate,
-  marginTop: 0
+  color: 'rgba(255,255,255,.78)',
+  margin: '12px 0 0',
+  maxWidth: 650,
+  lineHeight: 1.65
 }
+
+const sectionHeaderStyle: CSSProperties = { display: 'flex', alignItems: 'flex-start', gap: 12 }
+const stepStyle: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: 34,
+  height: 34,
+  flex: '0 0 34px',
+  borderRadius: 999,
+  color: '#076752',
+  background: '#dff9ef',
+  fontSize: 12,
+  fontWeight: 800
+}
+const sectionTitleStyle: CSSProperties = {
+  margin: 0,
+  color: colors.ink,
+  fontFamily: fonts.display,
+  fontSize: 18,
+  fontWeight: 800
+}
+const sectionDescriptionStyle: CSSProperties = { margin: '4px 0 0', color: colors.slate, fontSize: 13, lineHeight: 1.5 }
+const actionRowStyle: CSSProperties = { display: 'flex', gap: 10, flexWrap: 'wrap' }
+const dividerStyle: CSSProperties = { height: 1, background: colors.hairline, margin: '2px 0' }
 
 const labelStyle: CSSProperties = {
   display: 'block',
@@ -328,25 +442,42 @@ const labelStyle: CSSProperties = {
 
 const selectStyle: CSSProperties = {
   width: '100%',
-  padding: '8px 12px',
-  fontSize: 14,
+  padding: '13px 14px',
+  fontSize: 15,
   fontFamily: fonts.body,
   color: colors.ink,
   background: colors.surface,
   border: `1px solid ${colors.hairlineStrong}`,
-  borderRadius: radius.md,
+  borderRadius: radius.lg,
   boxSizing: 'border-box'
 }
 
+const branchAddressStyle: CSSProperties = { margin: '7px 2px 0', color: colors.slate, fontSize: 12 }
+
 const alertStyle: CSSProperties = {
-  marginTop: 16,
-  padding: '10px 12px',
+  padding: '13px 14px',
   borderRadius: radius.md,
   background: colors.dangerSurface,
   border: `1px solid ${colors.dangerSurface}`,
   color: colors.onDangerSurface,
   fontSize: 14
 }
+
+const validCodeStyle: CSSProperties = {
+  padding: 16,
+  borderRadius: radius.lg,
+  border: '1px solid #a7e7d1',
+  background: '#effcf7',
+  color: colors.ink
+}
+const statusTitleRowStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: 12,
+  marginBottom: 8
+}
+const statusMetaStyle: CSSProperties = { color: colors.slate, fontSize: 13, lineHeight: 1.5 }
 
 const linkButtonStyle: CSSProperties = {
   background: 'none',
@@ -366,6 +497,43 @@ const successStyle: CSSProperties = {
   border: `1px solid ${colors.hairline}`,
   background: colors.successSurface,
   boxShadow: shadows.card
+}
+
+const guideStyle: CSSProperties = {
+  padding: 24,
+  borderRadius: radius.xl,
+  color: '#fff',
+  background: colors.ink,
+  boxShadow: shadows.card
+}
+const guideKickerStyle: CSSProperties = {
+  color: '#efc16f',
+  fontSize: 11,
+  fontWeight: 800,
+  letterSpacing: '.12em',
+  textTransform: 'uppercase'
+}
+const guideTitleStyle: CSSProperties = {
+  margin: '10px 0 14px',
+  fontFamily: fonts.display,
+  fontSize: 20,
+  lineHeight: 1.3
+}
+const guideListStyle: CSSProperties = {
+  margin: 0,
+  paddingLeft: 20,
+  display: 'grid',
+  gap: 12,
+  lineHeight: 1.55,
+  fontSize: 14
+}
+const guideNoteStyle: CSSProperties = {
+  margin: '20px 0 0',
+  paddingTop: 16,
+  borderTop: '1px solid rgba(255,255,255,.16)',
+  color: 'rgba(255,255,255,.68)',
+  fontSize: 12,
+  lineHeight: 1.6
 }
 
 const successHeaderStyle: CSSProperties = {

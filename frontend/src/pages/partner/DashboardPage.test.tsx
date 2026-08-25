@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { DashboardPage, deriveDashboardStats } from './DashboardPage'
@@ -14,6 +14,7 @@ function makeBranch(overrides: Partial<Branch> = {}): Branch {
     address: '1 Main St',
     region: 'Hà Nội',
     partnerId: 'p-1',
+    isActive: true,
     ...overrides
   }
 }
@@ -135,7 +136,7 @@ describe('DashboardPage', () => {
 
   it('renders derived overview stats from branches and vouchers', async () => {
     mockApi(
-      [makeBranch(), makeBranch({ id: 2 })],
+      [makeBranch(), makeBranch({ id: 2, isActive: false })],
       [
         makeVoucher({ id: 'v-1', status: 'ON_SALE', soldQuantity: 4 }),
         makeVoucher({ id: 'v-2', status: 'DRAFT', soldQuantity: 0 })
@@ -144,8 +145,10 @@ describe('DashboardPage', () => {
 
     renderPage()
 
-    // Every persisted branch is active in the current schema.
-    expect(await screen.findByText('2 / 2')).toBeDefined()
+    const branchCard = (await screen.findByText('Chi nhánh hoạt động')).closest('div')
+    expect(branchCard).not.toBeNull()
+    expect(within(branchCard as HTMLElement).getByText('1')).toBeDefined()
+    expect(within(branchCard as HTMLElement).getByText(/2 chi nhánh tổng cộng/)).toBeDefined()
     // Units sold card.
     expect(screen.getByText('4')).toBeDefined()
     // Status breakdown lists both statuses.

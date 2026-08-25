@@ -9,6 +9,7 @@ import {
   type PartnerProfile
 } from '../../services/partner'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
+import { formatStatus } from '../../utils/format'
 
 const PROFILE_QUERY_KEY = ['partner', 'profile'] as const
 interface ProfileForm {
@@ -86,8 +87,8 @@ export function ProfilePage() {
       <div style={headingRowStyle}>
         <h1 style={titleStyle}>{profile.legalName}</h1>
         <div style={badgeRowStyle}>
-          <Badge variant={variantForStatus(profile.approvalStatus)}>{profile.approvalStatus}</Badge>
-          <Badge variant={variantForStatus(profile.operatingStatus)}>{profile.operatingStatus}</Badge>
+          <Badge variant={variantForStatus(profile.approvalStatus)}>{formatStatus(profile.approvalStatus)}</Badge>
+          <Badge variant={variantForStatus(profile.operatingStatus)}>{formatStatus(profile.operatingStatus)}</Badge>
         </div>
       </div>
       <p style={subtitleStyle}>Quản lý thông tin pháp lý và người đại diện của doanh nghiệp.</p>

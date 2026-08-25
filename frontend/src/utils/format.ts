@@ -87,6 +87,7 @@ export function formatDateTime(iso: string | null | undefined): string {
 export function formatStatus(status: string): string {
   const labels: Record<string, string> = {
     ACTIVE: 'Đang hoạt động',
+    SUSPENDED: 'Tạm khóa',
     INACTIVE: 'Ngừng hoạt động',
     LOCKED: 'Đã khóa',
     APPROVED: 'Đã duyệt',

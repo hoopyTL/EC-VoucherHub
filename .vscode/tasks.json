@@ -1,0 +1,65 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "VoucherHub: Chạy Backend (localhost:4000)",
+      "type": "shell",
+      "command": "npm.cmd",
+      "args": ["run", "dev", "--workspace=backend"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": false,
+        "clear": true
+      },
+      "runOptions": {
+        "instanceLimit": 1
+      }
+    },
+    {
+      "label": "VoucherHub: Chạy Frontend (localhost:5173)",
+      "type": "shell",
+      "command": "npm.cmd",
+      "args": ["run", "dev", "--workspace=frontend"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": false,
+        "clear": true
+      },
+      "runOptions": {
+        "instanceLimit": 1
+      }
+    },
+    {
+      "label": "VoucherHub: Mở Database Prisma Studio (localhost:5555)",
+      "type": "shell",
+      "command": "npm.cmd",
+      "args": ["run", "db:studio", "--workspace=backend", "--", "--port", "5555"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": false,
+        "clear": true
+      },
+      "runOptions": {
+        "instanceLimit": 1
+      }
+    }
+  ]
+}

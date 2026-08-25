@@ -40,9 +40,9 @@ type FormErrors = Partial<Record<keyof BranchFormValues, string>>
 /** Validate the branch form client-side (all fields required, Req 7.1). */
 export function validateBranchForm(values: BranchFormValues): FormErrors {
   const errors: FormErrors = {}
-  if (!values.name.trim()) errors.name = 'Name is required'
-  if (!values.address.trim()) errors.address = 'Address is required'
-  if (!values.region.trim()) errors.region = 'Region is required'
+  if (!values.name.trim()) errors.name = 'Tên chi nhánh là bắt buộc.'
+  if (!values.address.trim()) errors.address = 'Địa chỉ là bắt buộc.'
+  if (!values.region.trim()) errors.region = 'Khu vực là bắt buộc.'
   return errors
 }
 
@@ -60,6 +60,7 @@ export function BranchesPage() {
   // Branch pending deletion confirmation (null when no prompt is shown).
   const [removing, setRemoving] = useState<Branch | null>(null)
   const [removeError, setRemoveError] = useState<string | null>(null)
+  const [statusError, setStatusError] = useState<string | null>(null)
 
   // Transient success banner for completed actions.
   const [notice, setNotice] = useState<string | null>(null)
@@ -80,11 +81,11 @@ export function BranchesPage() {
     mutationFn: (values: BranchFormValues) => (editing ? updateBranch(editing.id, values) : createBranch(values)),
     onSuccess: async () => {
       await invalidate()
-      setNotice(editing ? 'Branch updated.' : 'Branch added.')
+      setNotice(editing ? 'Đã cập nhật chi nhánh.' : 'Đã thêm chi nhánh.')
       closeForm()
     },
     onError: (err) => {
-      setFormError(getPartnerApiError(err, 'Could not save the branch. Please try again.'))
+      setFormError(getPartnerApiError(err, 'Không thể lưu chi nhánh. Vui lòng thử lại.'))
     }
   })
 
@@ -92,11 +93,27 @@ export function BranchesPage() {
     mutationFn: (branch: Branch) => deleteBranch(branch.id),
     onSuccess: async () => {
       await invalidate()
-      setNotice('Branch deleted.')
+      setNotice('Đã xóa chi nhánh.')
       setRemoving(null)
     },
     onError: (err) => {
-      setRemoveError(getPartnerApiError(err, 'Could not delete the branch. Please try again.'))
+      setRemoveError(getPartnerApiError(err, 'Không thể xóa chi nhánh. Vui lòng thử lại.'))
+    }
+  })
+
+  const statusMutation = useMutation({
+    mutationFn: (branch: Branch) => updateBranch(branch.id, { isActive: !branch.isActive }),
+    onSuccess: async (branch) => {
+      await Promise.all([
+        invalidate(),
+        queryClient.invalidateQueries({ queryKey: ['partner-branches'] }),
+        queryClient.invalidateQueries({ queryKey: ['partner', 'staff'] })
+      ])
+      setStatusError(null)
+      setNotice(branch.isActive ? 'Đã kích hoạt lại chi nhánh.' : 'Đã ngừng hoạt động chi nhánh.')
+    },
+    onError: (err) => {
+      setStatusError(getPartnerApiError(err, 'Không thể thay đổi trạng thái chi nhánh. Vui lòng thử lại.'))
     }
   })
 
@@ -151,13 +168,19 @@ export function BranchesPage() {
   return (
     <section style={{ maxWidth: 900, margin: '0 auto' }}>
       <div style={headerRowStyle}>
-        <h1 style={titleStyle}>Branches</h1>
-        <Button onClick={openAdd}>Add branch</Button>
+        <h1 style={titleStyle}>Quản lý chi nhánh</h1>
+        <Button onClick={openAdd}>Thêm chi nhánh</Button>
       </div>
 
       {notice && (
         <div role='status' style={noticeStyle}>
           {notice}
+        </div>
+      )}
+
+      {statusError && (
+        <div role='alert' style={alertStyle}>
+          {statusError}
         </div>
       )}
 
@@ -169,17 +192,17 @@ export function BranchesPage() {
 
       {!isLoading && isError && (
         <div role='alert' style={alertStyle}>
-          We couldn&apos;t load your branches.{' '}
+          Không thể tải danh sách chi nhánh.{' '}
           <button type='button' style={linkButtonStyle} onClick={() => refetch()}>
-            Retry
+            Thử lại
           </button>
         </div>
       )}
 
       {!isLoading && !isError && branches && branches.length === 0 && (
         <div style={emptyStyle}>
-          <p style={{ margin: 0 }}>You haven&apos;t added any branches yet.</p>
-          <Button onClick={openAdd}>Add your first branch</Button>
+          <p style={{ margin: 0 }}>Bạn chưa có chi nhánh nào.</p>
+          <Button onClick={openAdd}>Thêm chi nhánh đầu tiên</Button>
         </div>
       )}
 
@@ -190,6 +213,9 @@ export function BranchesPage() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontWeight: 600 }}>{branch.name}</span>
+                  <span style={branch.isActive ? activeStatusStyle : inactiveStatusStyle}>
+                    {branch.isActive ? 'Đang hoạt động' : 'Ngừng hoạt động'}
+                  </span>
                 </div>
                 <p style={metaStyle}>{branch.address}</p>
                 <p style={metaStyle}>{branch.region}</p>
@@ -197,11 +223,24 @@ export function BranchesPage() {
               <div style={{ display: 'flex', gap: 8 }}>
                 <Button
                   size='sm'
+                  variant={branch.isActive ? 'danger' : 'secondary'}
+                  disabled={statusMutation.isPending}
+                  onClick={() => {
+                    setStatusError(null)
+                    setNotice(null)
+                    statusMutation.mutate(branch)
+                  }}
+                  aria-label={`${branch.isActive ? 'Ngừng hoạt động' : 'Kích hoạt lại'} ${branch.name}`}
+                >
+                  {branch.isActive ? 'Ngừng hoạt động' : 'Kích hoạt lại'}
+                </Button>
+                <Button
+                  size='sm'
                   variant='secondary'
                   onClick={() => openEdit(branch)}
-                  aria-label={`Edit ${branch.name}`}
+                  aria-label={`Chỉnh sửa ${branch.name}`}
                 >
-                  Edit
+                  Chỉnh sửa
                 </Button>
                 <Button
                   size='sm'
@@ -211,9 +250,9 @@ export function BranchesPage() {
                     setNotice(null)
                     setRemoving(branch)
                   }}
-                  aria-label={`Delete ${branch.name}`}
+                  aria-label={`Xóa ${branch.name}`}
                 >
-                  Delete
+                  Xóa
                 </Button>
               </div>
             </li>
@@ -225,14 +264,14 @@ export function BranchesPage() {
       <Modal
         isOpen={formOpen}
         onClose={closeForm}
-        title={editing ? 'Edit branch' : 'Add branch'}
+        title={editing ? 'Chỉnh sửa chi nhánh' : 'Thêm chi nhánh'}
         footer={
           <>
             <Button variant='secondary' onClick={closeForm} type='button'>
-              Cancel
+              Hủy
             </Button>
             <Button type='submit' form='branch-form' isLoading={saveMutation.isPending}>
-              {editing ? 'Save changes' : 'Add branch'}
+              {editing ? 'Lưu thay đổi' : 'Thêm chi nhánh'}
             </Button>
           </>
         }
@@ -245,14 +284,14 @@ export function BranchesPage() {
           )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <Input
-              label='Branch name'
+              label='Tên chi nhánh'
               required
               value={form.name}
               error={formErrors.name}
               onChange={(e) => handleField('name', e.target.value)}
             />
             <Input
-              label='Address'
+              label='Địa chỉ'
               required
               value={form.address}
               error={formErrors.address}
@@ -260,7 +299,7 @@ export function BranchesPage() {
             />
             <div>
               <label htmlFor='branch-region' style={selectLabelStyle}>
-                Region
+                Khu vực
                 <span aria-hidden='true' style={{ color: colors.danger, marginLeft: 2 }}>
                   *
                 </span>
@@ -272,7 +311,7 @@ export function BranchesPage() {
                 aria-invalid={formErrors.region ? true : undefined}
                 style={selectStyle(Boolean(formErrors.region))}
               >
-                <option value=''>Select a region…</option>
+                <option value=''>Chọn khu vực…</option>
                 {VOUCHER_REGIONS.map((region) => (
                   <option key={region} value={region}>
                     {region}
@@ -293,19 +332,19 @@ export function BranchesPage() {
       <Modal
         isOpen={removing !== null}
         onClose={() => setRemoving(null)}
-        title='Delete branch'
+        title='Xóa chi nhánh'
         size='sm'
         footer={
           <>
             <Button variant='secondary' onClick={() => setRemoving(null)} type='button'>
-              Cancel
+              Hủy
             </Button>
             <Button
               variant='danger'
               isLoading={removeMutation.isPending}
               onClick={() => removing && removeMutation.mutate(removing)}
             >
-              Delete
+              Xóa
             </Button>
           </>
         }
@@ -316,8 +355,8 @@ export function BranchesPage() {
           </div>
         )}
         <p style={{ margin: 0 }}>
-          Delete <strong>{removing?.name}</strong>? This action is permanent. Branches referenced by vouchers or usage
-          history cannot be deleted.
+          Bạn có chắc muốn xóa <strong>{removing?.name}</strong>? Thao tác này không thể hoàn tác. Chi nhánh đang được
+          voucher, nhân viên hoặc lịch sử sử dụng tham chiếu sẽ không thể xóa.
         </p>
       </Modal>
     </section>
@@ -369,6 +408,27 @@ const rowStyle: CSSProperties = {
 const metaStyle: CSSProperties = {
   margin: '4px 0 0',
   fontSize: 13,
+  color: colors.slate
+}
+
+const branchStatusStyle: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  padding: '3px 8px',
+  borderRadius: 999,
+  fontSize: 11,
+  fontWeight: 700
+}
+
+const activeStatusStyle: CSSProperties = {
+  ...branchStatusStyle,
+  background: colors.successSurface,
+  color: colors.onSuccessSurface
+}
+
+const inactiveStatusStyle: CSSProperties = {
+  ...branchStatusStyle,
+  background: colors.surfaceMuted,
   color: colors.slate
 }
 

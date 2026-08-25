@@ -1,5 +1,5 @@
 import { Request, Response } from 'express'
-import { asyncHandler } from '../../middleware/async-handler'
+import { asyncHandler } from '../../middlewares/async-handler'
 import { successResponse, createdResponse } from '../../utils/response'
 import { OrderStatus } from '@voucher/shared'
 import * as orderService from './order.service'

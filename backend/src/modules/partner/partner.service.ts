@@ -113,7 +113,23 @@ export const partnerService = {
 
   async updateBranch(userId: string, branchId: number, dto: UpdateBranchDto) {
     await assertBranchOwnership(userId, branchId)
-    return prisma.branch.update({ where: { id: branchId }, data: dto })
+    return prisma.$transaction(async (tx) => {
+      const branch = await tx.branch.update({ where: { id: branchId }, data: dto })
+      if (dto.isActive === false) {
+        await tx.voucherProduct.updateMany({
+          where: {
+            partnerId: branch.partnerId,
+            status: VoucherStatus.ON_SALE,
+            voucherProductBranches: {
+              some: { branchId },
+              every: { branch: { isActive: false } }
+            }
+          },
+          data: { status: VoucherStatus.PAUSED }
+        })
+      }
+      return branch
+    })
   },
 
   async deleteBranch(userId: string, branchId: number) {
@@ -212,6 +228,22 @@ export const partnerService = {
     const branch = await prisma.branch.findUnique({ where: { id: branchId } })
     if (!branch) throw AppError.notFound('Chi nhánh')
     if (branch.partnerId !== partnerId) throw AppError.forbidden('Chi nhánh nằm ngoài phạm vi đối tác')
-    return prisma.branch.update({ where: { id: branchId }, data: dto })
+    return prisma.$transaction(async (tx) => {
+      const updated = await tx.branch.update({ where: { id: branchId }, data: dto })
+      if (dto.isActive === false) {
+        await tx.voucherProduct.updateMany({
+          where: {
+            partnerId,
+            status: VoucherStatus.ON_SALE,
+            voucherProductBranches: {
+              some: { branchId },
+              every: { branch: { isActive: false } }
+            }
+          },
+          data: { status: VoucherStatus.PAUSED }
+        })
+      }
+      return updated
+    })
   }
 }

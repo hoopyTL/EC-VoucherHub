@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client'
 import prisma from '../../configs/prisma'
-import { NotFoundError, ValidationError, ForbiddenError, ConflictError } from '../../middleware/error-handler'
+import { NotFoundError, ValidationError, ForbiddenError, ConflictError } from '../../middlewares/error-handler'
 import type {
   CreateOrderDto,
   OrderResponse,
