@@ -17,6 +17,8 @@ export interface RegisterPartnerDto {
   legalName: string
   taxCode: string
   representative: string
+  businessCategory?: string
+  logoUrl?: string
   branches: CreateBranchDto[]
 }
 
@@ -24,6 +26,8 @@ export interface UpdatePartnerDto {
   legalName?: string
   taxCode?: string
   representative?: string
+  businessCategory?: string
+  logoUrl?: string | null
 }
 
 export interface BranchDto {
@@ -41,6 +45,8 @@ export interface PartnerDto {
   legalName: string
   taxCode: string
   representative: string
+  businessCategory: string | null
+  logoUrl: string | null
   approvalStatus: ApprovalStatus
   rejectReason: string | null
   operatingStatus: OperatingStatus

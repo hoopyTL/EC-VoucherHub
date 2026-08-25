@@ -181,6 +181,50 @@ export async function changePartnerOperatingStatus(id: string, action: 'lock' | 
   return data.data
 }
 
+export interface AdminPartnerFormValues {
+  legalName: string
+  representative: string
+  email: string
+  phone?: string
+  taxCode: string
+  businessCategory: string
+  logoUrl?: string
+  address: string
+  region: string
+  operatingStatus: 'ACTIVE' | 'SUSPENDED'
+}
+
+export async function createPartnerAsAdmin(values: AdminPartnerFormValues): Promise<AdminPartnerDto> {
+  const { address, region, ...profile } = values
+  const { data } = await api.post<ApiEnvelope<AdminPartnerDto>>('/admin/partners', {
+    ...profile,
+    phone: profile.phone || undefined,
+    logoUrl: profile.logoUrl || undefined,
+    password: '12345678',
+    branches: [{ name: `${values.legalName} - Chi nhánh chính`, address, region }]
+  })
+  return data.data
+}
+
+export async function updatePartnerAsAdmin(
+  id: string,
+  values: Pick<
+    AdminPartnerFormValues,
+    'legalName' | 'representative' | 'email' | 'phone' | 'businessCategory' | 'logoUrl'
+  >
+): Promise<AdminPartnerDto> {
+  const { data } = await api.patch<ApiEnvelope<AdminPartnerDto>>(`/admin/partners/${id}`, {
+    ...values,
+    phone: values.phone || undefined,
+    logoUrl: values.logoUrl || null
+  })
+  return data.data
+}
+
+export async function deletePartnerAsAdmin(id: string): Promise<void> {
+  await api.delete(`/admin/partners/${id}`)
+}
+
 /** Correct a Partner branch as an administrator. */
 export async function updatePartnerBranch(
   partnerId: string,

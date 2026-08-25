@@ -13,6 +13,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { colors, fonts, radius, glass, shadows } from '../../theme/tokens'
 import { ConfirmDialog } from '../ui'
 import { Home, LogOut, ShoppingCart } from 'lucide-react'
+import { setLanguage, type Lang } from '../../i18n'
 
 interface NavItem {
   to: string
@@ -55,7 +56,7 @@ function renderNavLink({ to, label }: NavItem) {
 
 export function Header() {
   const { isAuthenticated, user, logout } = useAuth()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [logoutOpen, setLogoutOpen] = useState(false)
   const initial = (user?.name?.trim().charAt(0) || 'K').toLocaleUpperCase('vi')
 
@@ -138,6 +139,26 @@ export function Header() {
 
       {/* Account actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <button
+          type='button'
+          aria-label={`${t('common.language')}: ${i18n.language.startsWith('en') ? 'English' : 'Tiếng Việt'}`}
+          title={i18n.language.startsWith('en') ? 'Chuyển sang tiếng Việt' : 'Switch to English'}
+          onClick={() => setLanguage((i18n.language.startsWith('en') ? 'vi' : 'en') as Lang)}
+          style={{
+            minWidth: 48,
+            minHeight: 42,
+            borderRadius: radius.full,
+            border: `1px solid ${colors.hairline}`,
+            background: colors.surface,
+            padding: '0 12px',
+            fontWeight: 800,
+            letterSpacing: '.04em',
+            color: colors.ink,
+            cursor: 'pointer'
+          }}
+        >
+          {i18n.language.startsWith('en') ? 'EN' : 'VI'}
+        </button>
         {isAuthenticated && user ? (
           <>
             {user.role === 'CUSTOMER' && (
@@ -232,10 +253,10 @@ export function Header() {
       </div>
       <ConfirmDialog
         open={logoutOpen}
-        title='Đăng xuất VoucherHub?'
-        message='Bạn có chắc muốn kết thúc phiên đăng nhập trên thiết bị này không?'
-        cancelLabel='Ở lại'
-        confirmLabel='Đăng xuất'
+        title={t('logout.title')}
+        message={t('logout.message')}
+        cancelLabel={t('logout.cancel')}
+        confirmLabel={t('logout.confirm')}
         danger
         onCancel={() => setLogoutOpen(false)}
         onConfirm={() => {

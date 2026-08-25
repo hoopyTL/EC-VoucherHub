@@ -16,7 +16,7 @@
  */
 import type { CSSProperties } from 'react'
 import QRCode from 'qrcode'
-import { colors, radius } from '../../theme/tokens'
+import { colors, radius, shadows } from '../../theme/tokens'
 
 export interface QRCodeDisplayProps {
   /** The voucher code value the QR encodes. */
@@ -75,10 +75,11 @@ export function QRCodeDisplay({ value, size = 192, className, style }: QRCodeDis
     justifyContent: 'center',
     width: size,
     height: size,
-    padding: 8,
+    padding: 14,
     background: BG,
-    border: `1px solid ${colors.hairline}`,
-    borderRadius: radius.md,
+    border: `1px solid ${colors.accent}`,
+    borderRadius: radius.xl,
+    boxShadow: shadows.card,
     boxSizing: 'border-box',
     ...style
   }

@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import type { CSSProperties } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import {
@@ -24,27 +25,28 @@ interface SidebarItem {
   icon: LucideIcon
 }
 const ADMIN_ITEMS: SidebarItem[] = [
-  { to: '/admin', label: 'Tổng quan', icon: LayoutDashboard },
-  { to: '/admin/users', label: 'Người dùng', icon: Users },
-  { to: '/admin/partners', label: 'Duyệt đối tác', icon: Building2 },
-  { to: '/admin/vouchers', label: 'Duyệt voucher', icon: PackageCheck },
-  { to: '/admin/orders', label: 'Đơn hàng', icon: ClipboardList },
-  { to: '/admin/content', label: 'Quản lý nội dung', icon: FileText },
-  { to: '/admin/audit-logs', label: 'Nhật ký hệ thống', icon: ScrollText }
+  { to: '/admin', label: 'overview', icon: LayoutDashboard },
+  { to: '/admin/users', label: 'users', icon: Users },
+  { to: '/admin/partners', label: 'partnerApproval', icon: Building2 },
+  { to: '/admin/vouchers', label: 'voucherApproval', icon: PackageCheck },
+  { to: '/admin/orders', label: 'orders', icon: ClipboardList },
+  { to: '/admin/content', label: 'content', icon: FileText },
+  { to: '/admin/audit-logs', label: 'auditLogs', icon: ScrollText }
 ]
 const PARTNER_ITEMS: SidebarItem[] = [
-  { to: '/partner', label: 'Tổng quan', icon: LayoutDashboard },
-  { to: '/partner/profile', label: 'Hồ sơ doanh nghiệp', icon: UserRound },
-  { to: '/partner/branches', label: 'Chi nhánh', icon: MapPin },
-  { to: '/partner/vouchers', label: 'Kho voucher', icon: PackageCheck },
-  { to: '/partner/staff', label: 'Nhân viên', icon: UserCog },
-  { to: '/partner/redeem', label: 'Xác nhận sử dụng', icon: CheckCircle2 },
-  { to: '/partner/reports', label: 'Báo cáo', icon: TrendingUp }
+  { to: '/partner', label: 'overview', icon: LayoutDashboard },
+  { to: '/partner/profile', label: 'businessProfile', icon: UserRound },
+  { to: '/partner/branches', label: 'branches', icon: MapPin },
+  { to: '/partner/vouchers', label: 'voucherInventory', icon: PackageCheck },
+  { to: '/partner/staff', label: 'staff', icon: UserCog },
+  { to: '/partner/redeem', label: 'redeem', icon: CheckCircle2 },
+  { to: '/partner/reports', label: 'reports', icon: TrendingUp }
 ]
 export interface SidebarProps {
   variant: SidebarVariant
 }
 export function Sidebar({ variant }: SidebarProps) {
+  const { t } = useTranslation()
   const { user } = useAuth()
   const items =
     variant === 'admin'
@@ -67,7 +69,7 @@ export function Sidebar({ variant }: SidebarProps) {
     >
       <div style={{ margin: '0 10px 22px' }}>
         <span style={{ display: 'block', fontSize: 16, fontWeight: 800 }}>
-          {variant === 'admin' ? 'Trung tâm vận hành' : 'Không gian đối tác'}
+          {variant === 'admin' ? t('workspace.adminTitle') : t('workspace.partnerTitle')}
         </span>
         <span
           style={{
@@ -79,10 +81,10 @@ export function Sidebar({ variant }: SidebarProps) {
             textTransform: 'uppercase'
           }}
         >
-          {variant === 'admin' ? 'VoucherHub Admin' : 'Merchant Studio'}
+          {variant === 'admin' ? t('workspace.adminSubtitle') : t('workspace.partnerSubtitle')}
         </span>
       </div>
-      <nav aria-label={`${variant} navigation`} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <nav aria-label={t('workspace.navigation')} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {items.map((item) => {
           const Icon = item.icon
           return (
@@ -101,7 +103,7 @@ export function Sidebar({ variant }: SidebarProps) {
               <span aria-hidden='true' style={{ width: 28, display: 'inline-flex', justifyContent: 'center' }}>
                 <Icon size={19} strokeWidth={1.8} />
               </span>
-              <span>{item.label}</span>
+              <span>{t(`workspace.${item.label}`)}</span>
             </NavLink>
           )
         })}

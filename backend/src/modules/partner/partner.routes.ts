@@ -7,6 +7,8 @@ import { rateLimit } from '~/middlewares/rate-limit'
 import { validate } from '~/middlewares/validate'
 import { partnerController } from './partner.controller'
 import {
+  adminCreatePartnerSchema,
+  adminUpdatePartnerSchema,
   adminBranchIdSchema,
   approvalSchema,
   branchIdSchema,
@@ -41,6 +43,7 @@ partnerRoutes.patch(
 )
 partnerRoutes.delete('/partner/branches/:id', validate({ params: branchIdSchema }), partnerController.deleteBranch)
 partnerRoutes.use('/admin/partners', authenticate, authorize(RoleName.ADMIN))
+partnerRoutes.post('/admin/partners', validate({ body: adminCreatePartnerSchema }), partnerController.createAsAdmin)
 partnerRoutes.get('/admin/partners', validate({ query: partnerListSchema }), partnerController.list)
 partnerRoutes.get('/admin/partners/pending', validate({ query: partnerListSchema }), partnerController.listPending)
 partnerRoutes.patch(
@@ -48,6 +51,12 @@ partnerRoutes.patch(
   validate({ params: partnerIdSchema, body: approvalSchema }),
   partnerController.review
 )
+partnerRoutes.patch(
+  '/admin/partners/:id',
+  validate({ params: partnerIdSchema, body: adminUpdatePartnerSchema }),
+  partnerController.updateAsAdmin
+)
+partnerRoutes.delete('/admin/partners/:id', validate({ params: partnerIdSchema }), partnerController.deleteAsAdmin)
 partnerRoutes.patch(
   '/admin/partners/:id/lock',
   validate({ params: partnerIdSchema, body: operatingStatusSchema }),

@@ -144,7 +144,7 @@ describe('CreateVoucherPage', () => {
     await screen.findByText('Downtown')
     fillValidForm()
     fireEvent.change(screen.getByLabelText(/giá bán/i), { target: { value: '600000' } })
-    fireEvent.click(screen.getByRole('button', { name: /lưu bản nháp/i }))
+    fireEvent.click(screen.getByRole('button', { name: /lưu voucher/i }))
 
     expect(await screen.findByText(/giá bán phải thấp hơn giá gốc/i)).toBeDefined()
     expect(screen.getByText(/chọn ít nhất một chi nhánh/i)).toBeDefined()
@@ -160,7 +160,7 @@ describe('CreateVoucherPage', () => {
     fireEvent.click(screen.getByLabelText(/cho phép một mã sử dụng nhiều lượt/i))
     fireEvent.change(screen.getByLabelText(/số lượt mỗi mã/i), { target: { value: '3' } })
     fireEvent.click(screen.getByLabelText(/Downtown/))
-    fireEvent.click(screen.getByRole('button', { name: /lưu bản nháp/i }))
+    fireEvent.click(screen.getByRole('button', { name: /lưu voucher/i }))
 
     await waitFor(() => expect(postSpy).toHaveBeenCalledTimes(1))
     expect(postSpy).toHaveBeenCalledWith(
