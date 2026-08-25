@@ -88,14 +88,15 @@ export const authService = {
   async login(dto: LoginDto) {
     const user = await prisma.user.findFirst({
       where: { OR: [{ email: dto.identifier }, { phone: dto.identifier }] },
-      include: {
-        role: true,
+      select: {
+        id: true,
+        passwordHash: true,
+        tokenVersion: true,
+        status: true,
+        role: { select: { name: true } },
         partner: { select: { id: true, approvalStatus: true, operatingStatus: true } },
         staffProfile: {
-          select: {
-            status: true,
-            partner: { select: { id: true, approvalStatus: true, operatingStatus: true } }
-          }
+          select: { status: true, partner: { select: { id: true, approvalStatus: true, operatingStatus: true } } }
         }
       }
     })

@@ -69,7 +69,8 @@ router.get(
       q: typeof req.query.q === 'string' ? req.query.q : undefined,
       from: typeof req.query.from === 'string' ? req.query.from : undefined,
       to: typeof req.query.to === 'string' ? req.query.to : undefined,
-      limit: typeof req.query.limit === 'string' ? req.query.limit : undefined
+      limit: typeof req.query.limit === 'string' ? req.query.limit : undefined,
+      cursor: typeof req.query.cursor === 'string' ? req.query.cursor : undefined
     })
     res.status(200).json({ success: true, data: orders })
   })

@@ -19,13 +19,18 @@ import type { Order } from '../../types/customer'
 import { Badge, ContentSkeleton, variantForStatus } from '../../components/ui'
 import { formatCurrency, formatDate, formatStatus } from '../../utils/format'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
+import { useEffect, useState, useRef } from 'react'
 
 /** Fetch the customer's orders (newest first per the backend ordering). */
-async function fetchOrders(): Promise<Order[]> {
-  const { data } = await api.get<any>('/orders')
+async function fetchOrders(view: string, cursor?: string): Promise<{ items: Order[]; nextCursor: string | null }> {
+  const params: Record<string, any> = { limit: 20 }
+  if (cursor) params.cursor = cursor
+  if (view === 'processing') params.status = 'PENDING_PAYMENT'
+  else if (view === 'purchased') params.status = 'PAID'
+  else if (view === 'history') params.status = 'CANCELLED,REFUNDED'
+  const { data } = await api.get<any>('/orders', { params })
   const unwrapped = (data as any).data || data
-  // Backend returns { items: Order[], nextCursor } via OrderListResponse
-  return unwrapped.items || unwrapped || []
+  return { items: unwrapped.items || [], nextCursor: unwrapped.nextCursor ?? null }
 }
 
 /** Total number of voucher units in an order (sum of line quantities). */
@@ -37,22 +42,29 @@ export type OrderHistoryView = 'processing' | 'purchased' | 'history' | 'all'
 
 export function OrdersPage({ view = 'all' }: { view?: OrderHistoryView }) {
   const navigate = useNavigate()
-  const {
-    data: orders,
-    isLoading,
-    isError
-  } = useQuery({
-    queryKey: ['orders'],
-    queryFn: fetchOrders
+  const [cursor, setCursor] = useState<string | undefined>(undefined)
+  const [history, setHistory] = useState<string[]>([])
+  const lastDataRef = useRef<{ items: Order[]; nextCursor: string | null } | null>(null)
+
+  type OrdersResult = { items: Order[]; nextCursor: string | null }
+  const { data, isLoading, isError, isFetching } = useQuery<OrdersResult, Error, OrdersResult, (string | undefined)[]>({
+    queryKey: ['orders', view, cursor],
+    queryFn: () => fetchOrders(view, cursor),
+    placeholderData: () => lastDataRef.current ?? undefined
   })
 
-  const visibleOrders = (orders ?? []).filter((order) => {
-    const status = order.status as string
-    if (view === 'processing') return status === 'PENDING_PAYMENT'
-    if (view === 'purchased') return status === 'PAID'
-    if (view === 'history') return status === 'CANCELLED' || status === 'REFUNDED'
-    return true
-  })
+  useEffect(() => {
+    if (data) lastDataRef.current = data
+  }, [data])
+
+  useEffect(() => {
+    // reset pagination when view changes
+    setCursor(undefined)
+    setHistory([])
+    lastDataRef.current = null
+  }, [view])
+
+  const visibleOrders = data?.items ?? []
 
   const heading =
     view === 'processing'
@@ -113,6 +125,33 @@ export function OrdersPage({ view = 'all' }: { view?: OrderHistoryView }) {
             </li>
           ))}
         </ul>
+      )}
+      {!isLoading && !isError && (
+        <div style={{ display: 'flex', gap: 8, marginTop: 16, alignItems: 'center' }}>
+          <button
+            type='button'
+            onClick={() => {
+              const prev = history.pop()
+              setHistory([...history])
+              setCursor(prev)
+            }}
+            disabled={history.length === 0}
+          >
+            Prev
+          </button>
+          <button
+            type='button'
+            onClick={() => {
+              if (data?.nextCursor) {
+                setHistory((h) => [...h, cursor ?? ''])
+                setCursor(data.nextCursor ?? undefined)
+              }
+            }}
+            disabled={!data?.nextCursor}
+          >
+            Next {isFetching ? '…' : ''}
+          </button>
+        </div>
       )}
     </section>
   )

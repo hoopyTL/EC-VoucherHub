@@ -11,7 +11,11 @@ export class AppError extends Error {
     this.statusCode = statusCode
     this.code = code
     this.details = details
-    Object.setPrototypeOf(this, AppError.prototype)
+    // Ensure subclass instanceof checks work correctly when extended.
+    // Use the actual constructor's prototype (new.target.prototype) so
+    // subclasses like NotFoundError remain instances of their class.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    Object.setPrototypeOf(this, (new.target as any).prototype)
   }
 
   // Factory methods

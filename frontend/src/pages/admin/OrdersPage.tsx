@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { useState, type CSSProperties } from 'react'
-import { Badge, Button, ContentSkeleton, Input, variantForStatus } from '../../components/ui'
+import { useState, useRef, useEffect, type CSSProperties } from 'react'
+import { Badge, Button, Input, variantForStatus } from '../../components/ui'
 import { DataTable } from '../../components/admin/DataTable'
 import { api } from '../../services/api'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
@@ -15,9 +15,13 @@ interface AdminOrder {
   customer: { fullName: string; email?: string | null }
   items: Array<{ voucherName: string; quantity: number }>
 }
-async function loadOrders(q: string): Promise<AdminOrder[]> {
-  const response = await api.get('/admin/orders', { params: { q: q || undefined, limit: 100 } })
-  return response.data.data.items
+async function loadOrders(q: string, cursor?: string) {
+  const params: Record<string, any> = { limit: 20 }
+  if (q) params.q = q
+  if (cursor) params.cursor = cursor
+  const response = await api.get('/admin/orders', { params })
+  const unwrapped = response.data.data || response.data
+  return { items: unwrapped.items || [], nextCursor: unwrapped.nextCursor ?? null }
 }
 
 function paymentMethodLabel(method: string): string {
@@ -34,15 +38,28 @@ function paymentMethodLabel(method: string): string {
 export function OrdersPage() {
   const [input, setInput] = useState('')
   const [query, setQuery] = useState('')
-  const orders = useQuery({ queryKey: ['admin-orders', query], queryFn: () => loadOrders(query) })
-  const paid = orders.data?.filter((item) => item.status === 'PAID') ?? []
+  const [cursor, setCursor] = useState<string | undefined>(undefined)
+  const [history, setHistory] = useState<string[]>([])
+  const lastDataRef = useRef<{ items: AdminOrder[]; nextCursor: string | null } | null>(null)
+
+  type OrdersResult = { items: AdminOrder[]; nextCursor: string | null }
+  const ordersQuery = useQuery<OrdersResult, Error, OrdersResult, (string | undefined)[]>({
+    queryKey: ['admin-orders', query, cursor],
+    queryFn: () => loadOrders(query, cursor),
+    placeholderData: () => lastDataRef.current ?? undefined
+  })
+
+  useEffect(() => {
+    if (ordersQuery.data) lastDataRef.current = ordersQuery.data
+  }, [ordersQuery.data])
+  const paid = (ordersQuery.data?.items ?? []).filter((item) => item.status === 'PAID')
   return (
     <section style={{ maxWidth: 1120, margin: '0 auto' }}>
       <p style={eyebrowStyle}>● Vận hành thương mại</p>
       <h1 style={titleStyle}>Quản lý đơn hàng</h1>
       <p style={subtitleStyle}>Theo dõi thanh toán và tra cứu toàn bộ đơn hàng từ dữ liệu thực.</p>
       <div style={summaryStyle}>
-        <Summary value={String(orders.data?.length ?? 0)} label='Đơn đang hiển thị' />
+        <Summary value={String(ordersQuery.data?.items.length ?? 0)} label='Đơn đang hiển thị' />
         <Summary value={String(paid.length)} label='Đã thanh toán' />
         <Summary
           value={formatCurrency(paid.reduce((sum, item) => sum + item.totalAmount, 0))}
@@ -54,6 +71,8 @@ export function OrdersPage() {
         onSubmit={(event) => {
           event.preventDefault()
           setQuery(input.trim())
+          setCursor(undefined)
+          setHistory([])
         }}
       >
         <Input
@@ -65,9 +84,7 @@ export function OrdersPage() {
         />
         <Button type='submit'>Tìm kiếm</Button>
       </form>
-      {orders.isLoading ? (
-        <ContentSkeleton rows={6} label='Đang tải đơn hàng' />
-      ) : orders.isError ? (
+      {!ordersQuery.isLoading && ordersQuery.isError ? (
         <div role='alert' style={{ padding: 18, color: colors.danger }}>
           Không thể tải đơn hàng. Vui lòng thử lại.
         </div>
@@ -84,7 +101,7 @@ export function OrdersPage() {
               </tr>
             </thead>
             <tbody>
-              {orders.data?.map((order) => (
+              {ordersQuery.data?.items.map((order) => (
                 <tr key={order.id}>
                   <td style={tdStyle}>
                     <strong>#{order.id.slice(0, 8).toUpperCase()}</strong>
@@ -115,6 +132,32 @@ export function OrdersPage() {
           </DataTable>
         </div>
       )}
+      <div style={{ display: 'flex', gap: 8, marginTop: 16, alignItems: 'center' }}>
+        <button
+          type='button'
+          onClick={() => {
+            const prev = history.pop()
+            setHistory([...history])
+            setCursor(prev)
+          }}
+          disabled={history.length === 0}
+        >
+          Prev
+        </button>
+        <button
+          type='button'
+          onClick={() => {
+            const next = ordersQuery.data?.nextCursor
+            if (next) {
+              setHistory((h) => [...h, cursor ?? ''])
+              setCursor(next)
+            }
+          }}
+          disabled={!ordersQuery.data?.nextCursor}
+        >
+          Next {ordersQuery.isFetching ? '…' : ''}
+        </button>
+      </div>
     </section>
   )
 }

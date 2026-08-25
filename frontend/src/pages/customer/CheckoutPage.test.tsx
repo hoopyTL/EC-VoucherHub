@@ -82,7 +82,8 @@ describe('CheckoutPage', () => {
 
     expect(await screen.findByText('Spa Day Pass')).toBeDefined()
     expect(screen.getByText('Dinner for Two')).toBeDefined()
-    expect(screen.getByTestId('cart-total').textContent).toBe('130.00')
+    // Ensure the UI uses the application's formatter (locale-aware)
+    expect(screen.getByTestId('cart-total').textContent).toBe(ordersApi.formatMoney(SAMPLE_CART.total))
   })
 
   it('shows an empty-cart message and hides the order form', async () => {

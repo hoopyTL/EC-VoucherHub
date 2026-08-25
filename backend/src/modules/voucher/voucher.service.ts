@@ -322,20 +322,37 @@ export const voucherService = {
         salePrice: { gte: input.minPrice, lte: input.maxPrice }
       })
     }
+    if (input.minDiscount === undefined) {
+      // Let DB do pagination and counting when no minDiscount filter is present
+      const [records, total] = await prisma.$transaction([
+        prisma.voucherProduct.findMany({
+          where,
+          include: voucherInclude,
+          orderBy: { createdAt: 'desc' },
+          skip: (input.page - 1) * input.limit,
+          take: input.limit
+        }),
+        prisma.voucherProduct.count({ where })
+      ])
+      const soldQuantities = await loadPaidSoldQuantities(records.map(({ id }) => id))
+      return {
+        vouchers: records.map((voucher) => toPublicVoucher(voucher, soldQuantities.get(voucher.id))),
+        pagination: { page: input.page, limit: input.limit, total }
+      }
+    }
+
+    // When minDiscount is provided, preserve existing in-memory filter semantics.
     const records = await prisma.voucherProduct.findMany({
       where,
       include: voucherInclude,
       orderBy: { createdAt: 'desc' }
     })
-    const filtered =
-      input.minDiscount === undefined
-        ? records
-        : records.filter(
-            (voucher) =>
-              Math.round(
-                ((Number(voucher.originalPrice) - Number(voucher.salePrice)) / Number(voucher.originalPrice)) * 100
-              ) >= input.minDiscount!
-          )
+    const filtered = records.filter(
+      (voucher) =>
+        Math.round(
+          ((Number(voucher.originalPrice) - Number(voucher.salePrice)) / Number(voucher.originalPrice)) * 100
+        ) >= input.minDiscount!
+    )
     const start = (input.page - 1) * input.limit
     const pageRecords = filtered.slice(start, start + input.limit)
     const soldQuantities = await loadPaidSoldQuantities(pageRecords.map(({ id }) => id))

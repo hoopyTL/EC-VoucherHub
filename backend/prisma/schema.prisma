@@ -127,6 +127,7 @@ model User {
   auditLogs          AuditLog[]
   reviews            Review[]
 
+  @@index([createdAt])
   @@map("users")
 }
 
@@ -261,8 +262,11 @@ model VoucherProduct {
   reviews                Review[]
 
   @@index([partnerId])
+  @@index([partnerId, createdAt])
+  @@index([partnerId, status])
   @@index([categoryId])
   @@index([status])
+  @@index([status, createdAt])
   @@index([saleStart, saleEnd])
   @@index([usageStart, usageEnd])
   @@index([remainingQuantity])
@@ -372,7 +376,10 @@ model Order {
   reviews             Review[]
 
   @@index([customerId])
+  @@index([customerId, createdAt])
   @@index([status])
+  @@index([status, createdAt])
+  @@index([status, paidAt])
   @@map("orders")
 }
 
@@ -422,6 +429,7 @@ model PaymentTransaction {
   order Order @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@index([orderId])
+  @@index([orderId, status, paidAt])
   @@index([gateway])
   @@index([status])
   @@index([gatewayTransId])
@@ -457,6 +465,7 @@ model IssuedVoucherCode {
   @@index([orderId])
   @@index([orderItemId])
   @@index([voucherProductId])
+  @@index([voucherProductId, status])
   @@index([ownerUserId])
   @@index([status])
   @@map("issued_voucher_codes")

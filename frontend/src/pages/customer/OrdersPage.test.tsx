@@ -57,7 +57,8 @@ describe('OrdersPage', () => {
   })
 
   it('renders the order list with status and total (Req 17.1)', async () => {
-    vi.spyOn(api, 'get').mockResolvedValue({ data: [makeOrder()] } as never)
+    // Backend now returns { items, nextCursor } envelope for cursor pagination
+    vi.spyOn(api, 'get').mockResolvedValue({ data: { items: [makeOrder()], nextCursor: null } } as never)
     renderPage()
 
     expect(await screen.findByText(/Đơn #order-12/i)).toBeDefined()
@@ -67,7 +68,7 @@ describe('OrdersPage', () => {
   })
 
   it('shows an empty state when there are no orders', async () => {
-    vi.spyOn(api, 'get').mockResolvedValue({ data: [] } as never)
+    vi.spyOn(api, 'get').mockResolvedValue({ data: { items: [], nextCursor: null } } as never)
     renderPage()
 
     expect(await screen.findByText(/chưa có đơn hàng nào/i)).toBeDefined()

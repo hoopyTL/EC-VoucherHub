@@ -28,7 +28,7 @@ export async function resetUsers(): Promise<void> {
   await prisma.branch.deleteMany()
   await prisma.partner.deleteMany()
   await prisma.user.deleteMany()
-  await prisma.role.deleteMany({ where: { name: { in: ['QUAN_TRI_VIEN', 'DOI_TAC', 'NHAN_VIEN', 'KHACH_HANG'] } } })
+  // Keep role rows intact for tests — `seedRoles` seeds them as needed.
 }
 
 interface CreateUserOptions {

@@ -205,12 +205,18 @@ function mapOrder(order: Prisma.OrderGetPayload<{ include: typeof orderInclude }
   }
 }
 
-export async function listAdminOrders(query: ListOrdersQuery) {
-  const limit = Math.min(Number(query.limit) || 50, 100)
-  const status = parseOrderStatus(query.status)
+export async function listAdminOrders(query: ListOrdersQuery & { cursor?: string }) {
+  const limit = Math.min(Number(query.limit) || 20, 100)
+  const statuses = query.status
+    ? query.status
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .map((s) => parseOrderStatus(s))
+    : undefined
 
   const where: Prisma.OrderWhereInput = {
-    ...(status ? { status } : {}),
+    ...(statuses && statuses.length ? { status: { in: statuses as any } } : {}),
     ...(query.from || query.to
       ? {
           createdAt: {
@@ -232,16 +238,29 @@ export async function listAdminOrders(query: ListOrdersQuery) {
       : {})
   }
 
+  const take = limit
   const orders = await prisma.order.findMany({
     where,
     include: orderInclude,
     orderBy: { createdAt: 'desc' },
-    take: limit
+    take: take + 1,
+    ...(query.cursor
+      ? {
+          cursor: { id: query.cursor },
+          skip: 1
+        }
+      : {})
   })
+
+  let nextCursor: string | null = null
+  if (orders.length > take) {
+    orders.pop()
+    nextCursor = orders[orders.length - 1]?.id ?? null
+  }
 
   return {
     items: orders.map(mapOrder),
-    nextCursor: null
+    nextCursor
   }
 }
 
@@ -444,52 +463,120 @@ export async function getAdminDashboardStats() {
   startWeek.setDate(startToday.getDate() - ((startToday.getDay() + 6) % 7))
   const startMonth = new Date(now.getFullYear(), now.getMonth(), 1)
 
-  const [revenueRows, statusRows, topRows, partners] = await Promise.all([
-    prisma.order.findMany({
-      where: { status: OrderStatus.PAID },
-      select: { totalAmount: true, paidAt: true, createdAt: true }
-    }),
+  // Use aggregates instead of fetching full tables into memory to reduce
+  // memory pressure and number of queries.
+  const [statusRows, topRows] = await Promise.all([
     prisma.order.groupBy({ by: ['status'], _count: { _all: true } }),
     prisma.orderItem.groupBy({
       by: ['voucherProductId'],
       _sum: { quantity: true },
       orderBy: { _sum: { quantity: 'desc' } },
       take: 5
-    }),
-    prisma.partner.findMany({
-      select: {
-        id: true,
-        legalName: true,
-        voucherProducts: {
-          select: {
-            orderItems: { select: { quantity: true, unitPrice: true, order: { select: { status: true } } } }
-          }
-        },
-        _count: { select: { voucherProducts: true } }
-      }
     })
   ])
 
-  const sumSince = (from?: Date) =>
-    revenueRows.reduce((sum, row) => {
-      const date = row.paidAt ?? row.createdAt
-      return !from || date >= from ? sum + Number(row.totalAmount) : sum
-    }, 0)
+  // Compute revenue aggregates for ranges using prisma.aggregate
+  const [paidToday, paidWeek, paidMonth, paidTotal] = await Promise.all([
+    prisma.order.aggregate({
+      where: { status: OrderStatus.PAID, OR: [{ paidAt: { gte: startToday } }, { createdAt: { gte: startToday } }] },
+      _sum: { totalAmount: true }
+    }),
+    prisma.order.aggregate({
+      where: { status: OrderStatus.PAID, OR: [{ paidAt: { gte: startWeek } }, { createdAt: { gte: startWeek } }] },
+      _sum: { totalAmount: true }
+    }),
+    prisma.order.aggregate({
+      where: { status: OrderStatus.PAID, OR: [{ paidAt: { gte: startMonth } }, { createdAt: { gte: startMonth } }] },
+      _sum: { totalAmount: true }
+    }),
+    prisma.order.aggregate({ where: { status: OrderStatus.PAID }, _sum: { totalAmount: true } })
+  ])
+
+  const sumSince = (agg?: { _sum: { totalAmount: Prisma.Decimal | null } }) => Number(agg?._sum.totalAmount ?? 0)
+
   const ids = topRows.map((row) => row.voucherProductId)
-  const products = await prisma.voucherProduct.findMany({
-    where: { id: { in: ids } },
-    select: { id: true, name: true, salePrice: true, partner: { select: { legalName: true } } }
-  })
+  const products = ids.length
+    ? await prisma.voucherProduct.findMany({
+        where: { id: { in: ids } },
+        select: { id: true, name: true, salePrice: true, partner: { select: { legalName: true } } }
+      })
+    : []
   const productMap = new Map(products.map((item) => [item.id, item]))
   const ordersByStatus = Object.fromEntries(Object.values(OrderStatus).map((status) => [status, 0]))
   for (const row of statusRows) ordersByStatus[row.status] = row._count._all
 
+  // Recent orders kept as before (small number)
+  const recentOrders = await prisma.order.findMany({
+    include: orderInclude,
+    orderBy: { createdAt: 'desc' },
+    take: 6
+  })
+  // partner performance: aggregate at the DB using groupBy on order items
+  // (voucherProductId + unitPrice) then map vouchers -> partners in-memory
+  const itemGroups = await prisma.orderItem.groupBy({
+    by: ['voucherProductId', 'unitPrice'],
+    where: { order: { status: OrderStatus.PAID } },
+    _sum: { quantity: true }
+  })
+
+  // build voucher-level stats (quantity, revenue)
+  const voucherStats = new Map<string, { qty: number; revenue: number }>()
+  for (const g of itemGroups) {
+    const qty = g._sum.quantity ?? 0
+    const revenue = qty * Number(g.unitPrice)
+    const current = voucherStats.get(g.voucherProductId) ?? { qty: 0, revenue: 0 }
+    current.qty += qty
+    current.revenue += revenue
+    voucherStats.set(g.voucherProductId, current)
+  }
+
+  // fetch lightweight voucher -> partner mapping for affected vouchers
+  const voucherIds = Array.from(voucherStats.keys())
+  const vouchers = voucherIds.length
+    ? await prisma.voucherProduct.findMany({
+        where: { id: { in: voucherIds } },
+        select: { id: true, partner: { select: { id: true, legalName: true } } }
+      })
+    : []
+
+  // aggregate per partner
+  const partnerAgg = new Map<
+    string,
+    { partnerId: string; legalName: string; voucherSet: Set<string>; orderCount: number; revenue: number }
+  >()
+  for (const v of vouchers) {
+    const stats = voucherStats.get(v.id) ?? { qty: 0, revenue: 0 }
+    const pid = v.partner.id
+    const entry = partnerAgg.get(pid) ?? {
+      partnerId: pid,
+      legalName: v.partner.legalName,
+      voucherSet: new Set<string>(),
+      orderCount: 0,
+      revenue: 0
+    }
+    entry.voucherSet.add(v.id)
+    entry.orderCount += stats.qty
+    entry.revenue += stats.revenue
+    partnerAgg.set(pid, entry)
+  }
+
+  const partnerPerformance = Array.from(partnerAgg.values())
+    .map((e) => ({
+      partnerId: e.partnerId,
+      businessName: e.legalName,
+      voucherCount: e.voucherSet.size,
+      orderCount: e.orderCount,
+      revenue: e.revenue
+    }))
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 20)
+
   return {
     revenue: {
-      today: sumSince(startToday),
-      thisWeek: sumSince(startWeek),
-      thisMonth: sumSince(startMonth),
-      total: sumSince()
+      today: sumSince(paidToday),
+      thisWeek: sumSince(paidWeek),
+      thisMonth: sumSince(paidMonth),
+      total: sumSince(paidTotal)
     },
     ordersByStatus,
     topVouchers: topRows.map((row) => {
@@ -502,20 +589,8 @@ export async function getAdminDashboardStats() {
         partnerName: product?.partner.legalName ?? 'Đối tác'
       }
     }),
-    partnerPerformance: partners
-      .map((partner) => {
-        const paidItems = partner.voucherProducts
-          .flatMap((voucher) => voucher.orderItems)
-          .filter((item) => item.order.status === OrderStatus.PAID)
-        return {
-          partnerId: partner.id,
-          businessName: partner.legalName,
-          voucherCount: partner._count.voucherProducts,
-          orderCount: paidItems.length,
-          revenue: paidItems.reduce((sum, item) => sum + item.quantity * Number(item.unitPrice), 0)
-        }
-      })
-      .sort((a, b) => b.revenue - a.revenue)
+    partnerPerformance,
+    recentOrders: recentOrders.map(mapOrder)
   }
 }
 
@@ -524,15 +599,18 @@ export async function getAdminAnalytics(daysInput = 30) {
   const start = new Date()
   start.setHours(0, 0, 0, 0)
   start.setDate(start.getDate() - days + 1)
-  const [orders, signups, categoryRows, totals] = await Promise.all([
+  // Only read paid orders for revenue/time series aggregation at DB level,
+  // and aggregate order items by voucherProductId+unitPrice for category breakdown.
+  const [paidOrders, signups, categoryGroups, totals] = await Promise.all([
     prisma.order.findMany({
-      where: { createdAt: { gte: start } },
-      select: { status: true, totalAmount: true, createdAt: true, paidAt: true }
+      where: { createdAt: { gte: start }, status: OrderStatus.PAID },
+      select: { totalAmount: true, createdAt: true, paidAt: true }
     }),
     prisma.user.findMany({ where: { createdAt: { gte: start } }, select: { createdAt: true } }),
-    prisma.orderItem.findMany({
-      where: { order: { status: OrderStatus.PAID } },
-      select: { quantity: true, unitPrice: true, voucherProduct: { select: { category: { select: { name: true } } } } }
+    prisma.orderItem.groupBy({
+      by: ['voucherProductId', 'unitPrice'],
+      where: { order: { status: OrderStatus.PAID }, voucherProductId: { not: undefined } },
+      _sum: { quantity: true }
     }),
     prisma.order.groupBy({ by: ['status'], _count: { _all: true } })
   ])
@@ -543,8 +621,7 @@ export async function getAdminAnalytics(daysInput = 30) {
   })
   const revenue = new Map(keys.map((key) => [key, { date: key, revenue: 0, orders: 0 }]))
   const signup = new Map(keys.map((key) => [key, { date: key, signups: 0 }]))
-  for (const order of orders) {
-    if (order.status !== OrderStatus.PAID) continue
+  for (const order of paidOrders) {
     const point = revenue.get((order.paidAt ?? order.createdAt).toISOString().slice(0, 10))
     if (point) {
       point.revenue += Number(order.totalAmount)
@@ -555,12 +632,23 @@ export async function getAdminAnalytics(daysInput = 30) {
     const point = signup.get(user.createdAt.toISOString().slice(0, 10))
     if (point) point.signups += 1
   }
+  // Map category stats from aggregated order items
   const categories = new Map<string, { category: string; revenue: number; unitsSold: number }>()
-  for (const item of categoryRows) {
-    const name = item.voucherProduct.category?.name ?? 'Khác'
+  // collect voucher ids from groups
+  const voucherIds = Array.from(new Set(categoryGroups.map((g) => g.voucherProductId)))
+  const voucherCategories = voucherIds.length
+    ? await prisma.voucherProduct.findMany({
+        where: { id: { in: voucherIds } },
+        select: { id: true, category: { select: { name: true } } }
+      })
+    : []
+  const voucherToCategory = new Map(voucherCategories.map((v) => [v.id, v.category?.name ?? 'Khác']))
+  for (const group of categoryGroups) {
+    const name = voucherToCategory.get(group.voucherProductId) ?? 'Khác'
     const current = categories.get(name) ?? { category: name, revenue: 0, unitsSold: 0 }
-    current.unitsSold += item.quantity
-    current.revenue += item.quantity * Number(item.unitPrice)
+    const qty = group._sum.quantity ?? 0
+    current.unitsSold += qty
+    current.revenue += qty * Number(group.unitPrice)
     categories.set(name, current)
   }
   const count = (status: OrderStatus) => totals.find((row) => row.status === status)?._count._all ?? 0

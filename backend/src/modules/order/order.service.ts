@@ -267,26 +267,39 @@ export const createOrder = async (customerId: string, dto: CreateOrderDto): Prom
 /**
  * Danh sách đơn hàng của khách (cursor pagination).
  */
-export const getMyOrders = async (customerId: string, cursor?: string, limit?: number): Promise<OrderListResponse> => {
+export const getMyOrders = async (
+  customerId: string,
+  cursor?: string,
+  limit?: number,
+  statuses?: string[]
+): Promise<OrderListResponse> => {
   const take = Math.min(limit ?? DEFAULT_PAGE_LIMIT, MAX_PAGE_LIMIT)
 
+  const where: Prisma.OrderWhereInput = {
+    customerId,
+    ...(statuses && statuses.length ? { status: { in: statuses as any } } : {})
+  }
+
   const orders = await prisma.order.findMany({
-    where: { customerId },
+    where,
     include: orderInclude,
     orderBy: { createdAt: 'desc' },
-    take: take + 1, // lấy thêm 1 để xác định nextCursor
+    take: take + 1, // fetch extra to determine nextCursor
     ...(cursor
       ? {
           cursor: { id: cursor },
-          skip: 1 // skip cursor item
+          skip: 1
         }
       : {})
   })
 
   let nextCursor: string | null = null
   if (orders.length > take) {
-    const lastItem = orders.pop()!
-    nextCursor = lastItem.id
+    // pop the extra record used to detect next page
+    orders.pop()
+    // nextCursor should be the id of the last item remaining on this page
+    const lastRemaining = orders[orders.length - 1]
+    nextCursor = lastRemaining?.id ?? null
   }
 
   return {

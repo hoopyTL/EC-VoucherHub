@@ -22,9 +22,19 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
  * GET /api/orders — Lịch sử đơn của khách
  */
 export const getMyOrders = asyncHandler(async (req: Request, res: Response) => {
-  const cursor = req.query.cursor as string | undefined
+  const cursor = typeof req.query.cursor === 'string' ? req.query.cursor : undefined
   const limit = req.query.limit ? Number(req.query.limit) : undefined
-  const result = await orderService.getMyOrders(req.user!.sub, cursor, limit)
+  const statusParam = typeof req.query.status === 'string' ? req.query.status : undefined
+  let statuses: string[] | undefined
+  if (statusParam) {
+    statuses = statusParam
+      .split(',')
+      .map((s) => s.trim().toUpperCase())
+      .filter(Boolean)
+    const invalid = statuses.find((s) => !Object.values(OrderStatus).includes(s as OrderStatus))
+    if (invalid) throw ApiError.badRequest('Trạng thái đơn không hợp lệ')
+  }
+  const result = await orderService.getMyOrders(req.user!.sub, cursor, limit, statuses)
   successResponse(res, result)
 })
 

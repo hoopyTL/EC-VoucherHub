@@ -36,7 +36,8 @@ const ORDER_STATUS_ORDER: OrderStatus[] = [OrderStatus.PENDING_PAYMENT, OrderSta
 export function DashboardPage() {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: STATS_QUERY_KEY,
-    queryFn: getDashboardStats
+    queryFn: getDashboardStats,
+    staleTime: 60_000
   })
 
   return (
@@ -78,7 +79,8 @@ function AnalyticsSection() {
   const days = period === 'day' ? 7 : period === 'week' ? 84 : 365
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: [...ANALYTICS_QUERY_KEY, days],
-    queryFn: () => getAnalytics(days)
+    queryFn: () => getAnalytics(days),
+    staleTime: 120_000
   })
 
   return (

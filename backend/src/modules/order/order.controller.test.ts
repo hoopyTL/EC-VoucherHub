@@ -70,7 +70,7 @@ describe('order controller routes', () => {
     const detail = await request(app).get('/api/orders/order-1')
 
     expect(list.status).toBe(200)
-    expect(serviceMock.getMyOrders).toHaveBeenCalledWith('customer-1', 'cursor-1', 5)
+    expect(serviceMock.getMyOrders).toHaveBeenCalledWith('customer-1', 'cursor-1', 5, undefined)
     expect(detail.body.data.id).toBe('order-1')
   })
 

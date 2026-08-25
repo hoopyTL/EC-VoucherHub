@@ -27,7 +27,7 @@ export async function getPartnerReport(): Promise<PartnerReport> {
 const percent = (ratio: number) => `${Math.round(ratio * 100)}%`
 
 export function PartnerReportsPage() {
-  const report = useQuery({ queryKey: ['partner', 'reports'], queryFn: getPartnerReport })
+  const report = useQuery({ queryKey: ['partner', 'reports'], queryFn: getPartnerReport, staleTime: 60_000 })
   if (report.isLoading) return <LoadingSpinner label='Đang tải báo cáo đối tác' />
   if (report.isError)
     return (
