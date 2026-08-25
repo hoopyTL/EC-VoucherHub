@@ -45,6 +45,7 @@ backend/.env.test
 # Prisma
 backend/prisma/*.db
 backend/prisma/*.db-journal
+*.backup
 
 # TypeScript cache
 *.tsbuildinfo

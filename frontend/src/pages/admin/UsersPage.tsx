@@ -16,7 +16,7 @@
  *
  * _Requirements: 5.1, 5.2, 5.3, 5.4_
  */
-import { useState, type CSSProperties, type FormEvent } from 'react'
+import { useState, useEffect, type CSSProperties, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AccountStatus, UserRole } from '@ui-contracts'
 import { changeUserRole, getAdminApiError, listUsers, lockUser, unlockUser } from '../../services/admin'
@@ -109,6 +109,16 @@ export function UsersPage() {
     setCursorHistory([undefined])
     setSearchTerm(searchInput.trim())
   }
+
+  // Debounce live input so we don't call the API on every keystroke. When the
+  // debounced term changes we reset pagination to page 1.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setCursorHistory([undefined])
+      setSearchTerm(searchInput.trim())
+    }, 300)
+    return () => clearTimeout(t)
+  }, [searchInput])
 
   function openConfirm(account: AdminAccount) {
     setActionError(null)
