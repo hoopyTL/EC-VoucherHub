@@ -53,7 +53,7 @@ flowchart TD
     empty -->|Không| check{Mọi mục còn đủ tồn kho?}
     check -->|Không| eStock[Từ chối: vượt tồn kho] --> add
     check -->|Có| order[Tạo đơn trạng thái chờ thanh toán, tổng = tạm tính]
-    order --> pay[/Thanh toán mô phỏng/]
+    order --> pay[/Thanh toán qua cổng Sandbox/]
     pay --> ok{Thanh toán thành công?}
     ok -->|Không| fail[Giữ chờ thanh toán, KHÔNG phát hành mã] --> done
     ok -->|Có| tx[/BẮT ĐẦU transaction/]
@@ -64,7 +64,7 @@ flowchart TD
     deduct --> paid[Đơn → đã thanh toán]
     paid --> issue[Phát hành N mã duy nhất CSPRNG ≥12, chua_su_dung, set issued_at/expires_at]
     issue --> commit[/COMMIT/]
-    commit --> show[Hiển thị mã + QR mô phỏng cho khách]
+    commit --> show[Hiển thị voucher code + mã QR chuẩn cho khách]
     show --> done([Kết thúc])
 ```
 
@@ -129,7 +129,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    start([Bắt đầu]) --> scan[/Nhập mã hoặc quét QR mô phỏng/]
+    start([Bắt đầu]) --> scan[/Nhập mã hoặc quét QR bằng camera/]
     scan --> exist{Mã tồn tại?}
     exist -->|Không| eExist[Mã không hợp lệ] --> done
     exist -->|Có| scope{Thuộc phạm vi đối tác/chi nhánh?}

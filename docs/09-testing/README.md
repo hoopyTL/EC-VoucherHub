@@ -11,9 +11,9 @@
 | Tầng | Công cụ | Phạm vi | Ranh giới test |
 | --- | --- | --- | --- |
 | Unit / ví dụ | Vitest | hàm thuần, validation, máy trạng thái | gọi service trực tiếp |
-| Property-based | fast-check | 22 bất biến nghiệp vụ | service + repo in-memory, ≥100 vòng |
+| Property-based | fast-check | các bất biến đã tự động hóa trong ma trận 22 property | hàm thuần/service, ≥100 vòng khi áp dụng |
 | Integration | Vitest + supertest | luồng API đầu-cuối qua HTTP | real boundary + test DB (Prisma) |
-| E2E | Playwright | 12 FLOW qua UI | trình duyệt thật, tag `@FLOW-XXX` |
+| E2E | Playwright | các FLOW đã có file thực tế trong mục 4 | trình duyệt thật, tag `@FLOW-XXX` |
 
 Quy ước nhãn property test: **`Feature: voucher-ecommerce-platform, Property {số}: {nội dung}`**, `fc.assert(..., { numRuns: 100 })`.
 
@@ -36,9 +36,9 @@ Mỗi FR phủ tối thiểu 3 trường hợp: **happy** (đường thành côn
 | FR-11 Hồ sơ Đối tác | đăng ký → `PENDING` | thiếu pháp lý/trùng định danh → từ chối | CRUD + ownership chi nhánh | TASK-006 | `modules/partner/partner.test.ts` |
 | FR-12 Tạo/quản lý voucher | tạo → `nhap` | giá bán ≥ gốc → từ chối | branch ngoài ownership → rollback | TASK-007 | `modules/voucher/voucher.test.ts` |
 | FR-13 Gửi duyệt voucher | `nhap` → `cho_duyet` | transition sai → 422 | re-submit: `tu_choi` → `nhap` → `cho_duyet` | TASK-007 | `modules/voucher/voucher.test.ts` |
-| FR-14 Kiểm tra mã | hiển thị trạng thái mã | mã không tồn tại → invalid | mã đối tác khác → ngoài phạm vi | TASK-013 | `redeem/validate.test.ts` |
-| FR-15 Xác nhận sử dụng | mã hợp lệ → `da_su_dung` + log | mã đã dùng → từ chối | multi-use giảm lượt | TASK-013 | `redeem/redeem.test.ts` |
-| FR-16 Báo cáo Đối tác | tổng hợp trong phạm vi | — | đối tác khác → không thấy | TASK-016 | `report/partner.test.ts` |
+| FR-14 Kiểm tra mã | hiển thị trạng thái mã | mã không tồn tại → invalid | mã đối tác khác → ngoài phạm vi | TASK-013 | `modules/redemption/redemption.test.ts`, `pages/partner/RedeemCodePage.test.tsx` |
+| FR-15 Xác nhận sử dụng | mã hợp lệ → `da_su_dung` + log | mã đã dùng → từ chối | multi-use giảm lượt | TASK-013 | `modules/redemption/redemption.test.ts`, `pages/partner/RedeemCodePage.test.tsx` |
+| FR-16 Báo cáo Đối tác | tổng hợp trong phạm vi | — | đối tác khác → không thấy | TASK-016/021 | `modules/redemption/redemption.test.ts`, `pages/partner/PartnerReportsPage.test.tsx` |
 | FR-17 Quản lý người dùng | tra cứu/khóa/đổi vai trò | non-admin → 403 | mở khóa idempotent | TASK-004 | `admin/users.test.ts` |
 | FR-18 Quản lý Đối tác | duyệt → `APPROVED` | non-admin → 403, review lặp → 409 | khóa chặn token cũ | TASK-006 | `modules/partner/partner.test.ts` |
 | FR-19 Duyệt voucher | duyệt/công bố | công bố khi chưa `da_duyet` → từ chối | tạm ngưng/mở lại/ngừng bán | TASK-007 | `modules/voucher/voucher.test.ts` |
@@ -49,7 +49,7 @@ Mỗi FR phủ tối thiểu 3 trường hợp: **happy** (đường thành côn
 
 ## 3. Property-based tests (22 bất biến)
 
-Mỗi property = **một** test fast-check ≥100 vòng. Cột Property ↔ TASK ánh xạ theo kế hoạch triển khai (đã phủ 22/22).
+Mỗi property mục tiêu = **một** test fast-check ≥100 vòng. Bảng dưới là ma trận yêu cầu; không đồng nghĩa toàn bộ 22 property đã có automation. Automation fast-check hiện tập trung ở state machine, Auth/RBAC và QR round-trip; các property domain còn lại cần được đối chiếu bằng test integration hoặc bổ sung PBT trước checkpoint cuối.
 
 | Property | Nội dung | Validates (R) | TASK |
 | --- | --- | --- | --- |
@@ -80,20 +80,20 @@ Mỗi property = **một** test fast-check ≥100 vòng. Cột Property ↔ TASK
 
 Mỗi FLOW trong `docs/02-srs` → một test Playwright tag `@FLOW-XXX`, chạy qua UI thật. Selector ưu tiên `data-testid` (xem `docs/08-frontend-design`).
 
-| FLOW | Tên | E2E file | Tag |
+| FLOW | Tên | E2E file hiện có | Trạng thái |
 | --- | --- | --- | --- |
-| FLOW-001 | Đăng ký & đăng nhập KH | `e2e/auth.spec.ts` | `@FLOW-001` |
-| FLOW-002 | Tìm kiếm → chi tiết | `e2e/browse.spec.ts` | `@FLOW-002` |
-| FLOW-003 | Giỏ → đơn → thanh toán → nhận mã | `e2e/purchase.spec.ts` | `@FLOW-003` |
-| FLOW-004 | Đánh giá voucher | `e2e/review.spec.ts` | `@FLOW-004` |
-| FLOW-005 | Đăng ký Đối tác → duyệt → CRUD chi nhánh | `e2e/task006-partner-onboarding.spec.ts` | `@FLOW-005` |
-| FLOW-006 | Tạo → gửi duyệt → duyệt → công bố | `e2e/voucher-lifecycle.spec.ts` | `@FLOW-006` |
-| FLOW-007 | Kiểm tra → xác nhận sử dụng | `e2e/redeem.spec.ts` | `@FLOW-007` |
-| FLOW-008 | Báo cáo Đối tác | `e2e/partner-report.spec.ts` | `@FLOW-008` |
-| FLOW-009 | Quản lý & phân quyền người dùng | `e2e/admin-users.spec.ts` | `@FLOW-009` |
-| FLOW-010 | Hủy / hoàn tiền đơn | `e2e/admin-orders.spec.ts` | `@FLOW-010` |
-| FLOW-011 | Quản lý nội dung & dashboard | `e2e/admin-content.spec.ts` | `@FLOW-011` |
-| FLOW-012 | Ghi & tra cứu nhật ký | `e2e/admin-audit.spec.ts` | `@FLOW-012` |
+| FLOW-001 | Đăng ký & đăng nhập KH | `e2e/task004-auth.spec.ts` (`@FLOW-001`) | Có |
+| FLOW-002 | Tìm kiếm → chi tiết | — | Chưa có E2E riêng |
+| FLOW-003 | Giỏ → đơn → thanh toán → nhận mã | — | Chưa có E2E riêng |
+| FLOW-004 | Đánh giá voucher | — | Có unit/service test, chưa có E2E riêng |
+| FLOW-005 | Đăng ký Đối tác → duyệt → CRUD chi nhánh | `e2e/task006-partner-onboarding.spec.ts` (`@FLOW-005`) | Có |
+| FLOW-006 | Tạo → gửi duyệt → duyệt → công bố | `e2e/task007-voucher-product.spec.ts` (`@FLOW-006`) | Có |
+| FLOW-007 | Kiểm tra → xác nhận sử dụng | `e2e/task021-partner-workspace.spec.ts` (`@FLOW-007`) | Có |
+| FLOW-008 | Báo cáo Đối tác | `e2e/task021-partner-workspace.spec.ts` (`@FLOW-008`) | Có |
+| FLOW-009 | Quản lý & phân quyền người dùng | `e2e/task004-admin-users.spec.ts` (`@FLOW-009`) | Có |
+| FLOW-010 | Hủy / hoàn tiền đơn | — | Chưa có E2E riêng |
+| FLOW-011 | Quản lý nội dung & dashboard | — | Chưa có E2E riêng |
+| FLOW-012 | Ghi & tra cứu nhật ký | — | Chưa có E2E riêng |
 
 Chạy một flow: `npm run test:e2e -- --grep @FLOW-003`.
 
@@ -109,7 +109,7 @@ Không chạy E2E nếu `backend/.env.test` không trỏ chính xác tới Postg
 
 ### TASK-006 automation hiện có
 
-- `backend/src/modules/partner/partner.test.ts`: 8 integration tests qua Express + Prisma test DB, không mock database. Phủ validation trước ghi DB, transaction đăng ký, duplicate rollback, pending login, approval/rejection, RBAC, branch ownership/CRUD và lock/unlock áp dụng ngay lên token cũ.
+- `backend/src/modules/partner/partner.test.ts`: 12 integration tests qua Express + Prisma test DB, không mock database. Phủ validation trước ghi DB, transaction đăng ký, duplicate rollback, pending login, approval/rejection, RBAC, branch ownership/CRUD, `isActive` và lock/unlock áp dụng ngay lên token cũ.
 - `frontend/src/pages/public/RegisterPartnerPage.test.tsx`: kiểm tra form và payload đăng ký canonical (`legalName`, `taxCode`, `representative`, branches).
 - `frontend/src/pages/admin/PartnerApprovalsPage.test.tsx`: kiểm tra envelope, danh sách pending và endpoint approval dùng `{ action, reason? }`.
 - `frontend/src/pages/partner/BranchesPage.test.tsx`: kiểm tra GET/POST/PATCH/DELETE, validation và refetch cache.
@@ -127,7 +127,7 @@ npm run test:e2e -- --grep @FLOW-005
 
 ### TASK-007 automation hiện có
 
-- `backend/src/modules/voucher/voucher.test.ts`: 12 integration tests qua Express + PostgreSQL thật; phủ partner approval/status, validation, transaction rollback, category/branch ownership, CRUD draft, state machine, Admin RBAC/review/publish, pagination/filter, race giữa khóa Partner và publish, magic bytes cùng rate limit upload.
+- `backend/src/modules/voucher/voucher.test.ts`: 18 integration tests qua Express + PostgreSQL thật; phủ partner approval/status, validation, transaction rollback, category/branch ownership, CRUD draft, state machine, Admin RBAC/review/publish, pagination/filter, race giữa khóa Partner và publish, magic bytes cùng rate limit upload.
 - Frontend tests khóa mapper field/envelope, category/branch ID boundary, endpoint canonical, action theo trạng thái và dashboard `ON_SALE`.
 - `e2e/task007-voucher-product.spec.ts`: FLOW-006 chạy Chromium thật từ Partner tạo/gửi duyệt, Admin duyệt/công bố, đến Partner tạm dừng.
 - Kết quả ngày 2026-08-16: backend 12 files/126 tests pass, coverage 89,42% statements / 76,08% branches / 95,72% functions / 92,43% lines; frontend 33 files/228 tests pass; lint, typecheck, build và toàn bộ E2E 7/7 đều pass.
@@ -140,12 +140,28 @@ npm test --workspace=frontend -- CreateVoucherPage.test.tsx VouchersPage.test.ts
 npm run test:e2e -- --grep @FLOW-006
 ```
 
+### TASK-013, TASK-014 và TASK-021 automation hiện có
+
+- `backend/src/modules/redemption/redemption.test.ts`: 7 integration tests cho tra cứu mã, single-use, multi-use, sai chi nhánh, chi nhánh ngừng hoạt động và báo cáo đúng phạm vi.
+- `backend/src/modules/review/review.service.test.ts`: 7 unit tests cho điều kiện đơn `PAID`, chống đánh giá trùng, thống kê, sửa/xóa và ownership.
+- Tám file test trong `frontend/src/pages/partner` hiện có tổng **51 test** cho dashboard, hồ sơ, chi nhánh, voucher, nhân viên, redeem và báo cáo.
+- `frontend/src/components/voucher/ReviewSection.test.tsx` kiểm tra trạng thái rỗng và hiển thị danh sách/thống kê review.
+- `e2e/task021-partner-workspace.spec.ts` chứa cả `@FLOW-007` và `@FLOW-008`.
+
+Ghi nhận gần nhất ngày 2026-08-25: typecheck `shared`, `backend`, `frontend` đạt; bộ test frontend Partner đạt 51/51 và test trang redeem sau lần chỉnh giao diện đạt 11/11. Backend integration/E2E chưa được chạy lại ở máy hiện tại vì chưa có `backend/.env.test`; không được trỏ runner test vào database `voucherhub` đang dùng.
+
+```bash
+npm test --workspace=backend -- redemption.test.ts review.service.test.ts
+npm test --workspace=frontend -- RedeemCodePage.test.tsx ReviewSection.test.tsx
+npm run test:e2e -- --grep "@FLOW-007|@FLOW-008"
+```
+
 ## 5. Integration test (luồng lõi)
 
 | Kịch bản | Phủ | TASK |
 | --- | --- | --- |
-| Mua → thanh toán → phát hành → xác thực sử dụng (1–3 biến thể) | R6.1, R7.1, R7.2, R7.6, R8.1, R13.1, R14.1 | TASK-021 |
-| Hủy/hoàn tiền → hoàn kho + mã `bi_huy` | R19.2, R19.3, R19.4 | TASK-021 |
+| Mua → thanh toán → phát hành → xác thực sử dụng (1–3 biến thể) | R6.1, R7.1, R7.2, R7.6, R8.1, R13.1, R14.1 | TASK-010, 013, 021 |
+| Hủy/hoàn tiền → hoàn kho + mã `bi_huy` | R19.2, R19.3, R19.4 | TASK-015 |
 
 Test qua HTTP boundary (supertest) với test DB Prisma riêng; reset `deleteMany` trong `beforeEach`; không mock Prisma (chỉ mock Payment Sim).
 

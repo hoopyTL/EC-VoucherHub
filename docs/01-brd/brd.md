@@ -107,7 +107,7 @@ Sinh viên cần thể hiện năng lực khảo sát nghiệp vụ, phân tích
 
 ### 5.1 Phạm vi trong dự án
 
-Quản lý người dùng, đối tác, voucher, giỏ hàng, đơn hàng, thanh toán mô phỏng, phát hành mã voucher, xác thực sử dụng, quản lý nội dung và báo cáo thống kê.
+Quản lý người dùng, đối tác, voucher, giỏ hàng, đơn hàng, thanh toán qua cổng Sandbox, phát hành mã voucher, xác thực sử dụng, quản lý nội dung và báo cáo thống kê.
 
 ### 5.2 Ngoài phạm vi
 
@@ -139,7 +139,7 @@ Tạo đối tác → duyệt đối tác → tạo voucher → duyệt voucher 
 | --- | --- | --- | --- |
 | BR-01 | Quản lý tài khoản người dùng | Hệ thống phải cho phép đăng ký, đăng nhập, đổi mật khẩu, quên mật khẩu, cập nhật hồ sơ và quản lý phiên làm việc theo vai trò. | Cao |
 | BR-02 | Quản lý danh mục và nội dung voucher | Hệ thống phải cho phép tạo, phân loại, hiển thị, tạm ngưng và ngừng bán voucher theo điều kiện kinh doanh. | Cao |
-| BR-03 | Mua hàng trực tuyến | Hệ thống phải hỗ trợ chọn voucher, giỏ hàng, tạo đơn, thanh toán mô phỏng và xác nhận đơn hàng. | Cao |
+| BR-03 | Mua hàng trực tuyến | Hệ thống phải hỗ trợ chọn voucher, giỏ hàng, tạo đơn, thanh toán qua cổng Sandbox và xác nhận đơn hàng. | Cao |
 | BR-04 | Phát hành và quản lý voucher code | Hệ thống phải sinh mã voucher điện tử duy nhất cho từng giao dịch hợp lệ và theo dõi vòng đời sử dụng. | Cao |
 | BR-05 | Kiểm tra và xác thực voucher | Hệ thống phải hỗ trợ đối tác tra cứu, xác minh và xác nhận việc sử dụng voucher tại chi nhánh. | Cao |
 | BR-06 | Kiểm duyệt và giám sát hệ thống | Hệ thống phải cho phép quản trị viên duyệt đối tác, duyệt voucher, quản lý đơn hàng và giám sát hoạt động. | Cao |
@@ -154,8 +154,8 @@ Tạo đối tác → duyệt đối tác → tạo voucher → duyệt voucher 
 | BR-CUS-03 | Tìm kiếm voucher | Khách hàng có thể tìm kiếm theo từ khóa và lọc theo danh mục, khu vực, giá, mức giảm, đối tác và trạng thái hiệu lực. | Cao |
 | BR-CUS-04 | Xem chi tiết voucher | Hệ thống hiển thị đầy đủ tên voucher, ảnh, giá gốc, giá bán, điều kiện áp dụng, thời hạn, số lượng còn lại, chi nhánh và chính sách hoàn hủy. | Cao |
 | BR-CUS-05 | Quản lý giỏ hàng | Khách hàng có thể thêm, cập nhật, xóa voucher trong giỏ và xem tổng tiền tạm tính. | Cao |
-| BR-CUS-06 | Tạo đơn hàng | Khách hàng có thể tạo đơn từ giỏ hàng, khai báo người mua hoặc người nhận quà tặng và chọn phương thức thanh toán mô phỏng. | Cao |
-| BR-CUS-07 | Nhận voucher đã mua | Sau thanh toán thành công, khách hàng xem được voucher code, QR mô phỏng, trạng thái sử dụng và lịch sử đơn hàng. | Cao |
+| BR-CUS-06 | Tạo đơn hàng | Khách hàng có thể tạo đơn từ giỏ hàng, khai báo người mua hoặc người nhận quà tặng và chọn cổng thanh toán Sandbox. | Cao |
+| BR-CUS-07 | Nhận voucher đã mua | Sau thanh toán thành công, khách hàng xem được voucher code, mã QR chuẩn, trạng thái sử dụng và lịch sử đơn hàng. | Cao |
 | BR-CUS-08 | Đánh giá và phản hồi | Khách hàng có thể đánh giá voucher đã mua hoặc đã sử dụng, chăm sao, bình luận và gửi phản hồi/khiếu nại. | Trung bình |
 
 ### 7.3 Yêu cầu nghiệp vụ cho đối tác
@@ -166,7 +166,7 @@ Tạo đối tác → duyệt đối tác → tạo voucher → duyệt voucher 
 | BR-PAR-02 | Tạo voucher | Đối tác có thể tạo mới voucher với các thông tin giá, mô tả, thời gian bán, thời gian sử dụng, chi nhánh áp dụng và số lượng phát hành. | Cao |
 | BR-PAR-03 | Gửi duyệt voucher | Đối tác có thể gửi voucher ở trạng thái chờ duyệt và theo dõi kết quả phê duyệt từ quản trị viên. | Cao |
 | BR-PAR-04 | Quản lý voucher | Đối tác có thể cập nhật voucher trước khi duyệt hoặc trong phạm vi được phép; xem số lượng bán, đã dùng, hết hạn. | Cao |
-| BR-PAR-05 | Kiểm tra voucher code | Đối tác hoặc nhân viên đối tác có thể nhập mã hoặc quét QR mô phỏng để kiểm tra tình trạng hợp lệ của voucher. | Cao |
+| BR-PAR-05 | Kiểm tra voucher code | Đối tác hoặc nhân viên đối tác có thể nhập mã hoặc quét QR bằng camera để kiểm tra tình trạng hợp lệ của voucher. | Cao |
 | BR-PAR-06 | Xác nhận sử dụng voucher | Đối tác có thể xác nhận voucher đã sử dụng khi thỏa điều kiện; hệ thống cập nhật nhật ký sử dụng và ngăn dùng lại. | Cao |
 | BR-PAR-07 | Báo cáo đối tác | Đối tác có thể xem doanh thu, số lượng phát hành, số lượng bán, tỷ lệ sử dụng và hiệu quả theo từng chương trình voucher. | Trung bình |
 
@@ -230,9 +230,9 @@ Tạo đối tác → duyệt đối tác → tạo voucher → duyệt voucher 
 
 | Mã | Nội dung |
 | --- | --- |
-| ASM-01 | Thanh toán được mô phỏng; không bắt buộc tích hợp cổng thanh toán thật. |
+| ASM-01 | Yêu cầu gốc cho phép mô phỏng thanh toán; bản triển khai hiện tại dùng VNPay, PayPal, OnePay và Stripe Sandbox, đồng thời giữ endpoint mô phỏng cho kiểm thử/fallback. |
 | ASM-02 | OTP, email hoặc SMS có thể mô phỏng bằng thông báo trong hệ thống. |
-| ASM-03 | Quét QR có thể mô phỏng bằng nhập mã hoặc hiển thị QR ảnh. |
+| ASM-03 | Bản triển khai hiện tại sinh mã QR chuẩn từ voucher code và hỗ trợ quét bằng camera thật; vẫn cho phép nhập mã thủ công. |
 | ASM-04 | Dữ liệu dùng cho mục đích học tập và demo, không phải môi trường sản xuất. |
 
 ### 11.2 Ràng buộc

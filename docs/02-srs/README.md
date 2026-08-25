@@ -12,7 +12,7 @@ Tài liệu này chuyển hóa các yêu cầu nghiệp vụ (BRD) thành yêu c
 
 ### 1.2 Phạm vi
 
-Sàn trung gian ba vai trò kết nối Khách_hàng với Đối_tác, hỗ trợ trọn vòng đời: đăng ký đối tác → duyệt → tạo voucher → duyệt → công bố bán → mua → thanh toán mô phỏng → phát hành mã → sử dụng/xác thực → báo cáo. Thanh toán, OTP, email/SMS, quét QR đều **mô phỏng** (ASM-01..04). Dữ liệu lưu trong CSDL quan hệ (CON-02).
+Sàn trung gian kết nối Khách_hàng với Đối_tác, hỗ trợ trọn vòng đời: đăng ký đối tác → duyệt → tạo voucher → duyệt → công bố bán → mua → thanh toán Sandbox → phát hành mã → sử dụng/xác thực → báo cáo. Thanh toán hiện hỗ trợ VNPay, PayPal, OnePay và Stripe Sandbox; QR được sinh chuẩn và quét bằng camera thật. OTP, email/SMS vẫn mô phỏng trong hệ thống. Dữ liệu lưu trong CSDL quan hệ (CON-02).
 
 ### 1.3 Actors
 
@@ -95,11 +95,11 @@ Mỗi FR truy vết về yêu cầu gốc `R<n>` trong BRD/requirements. Accepta
 - **AC**:
   - AC1: tạo đơn từ giỏ có ≥ 1 mục → đơn `cho_thanh_toan`, tổng = tổng tạm tính.
   - AC2: chọn quà tặng → lưu thông tin người nhận cùng đơn.
-  - AC3: ghi nhận phương thức thanh toán mô phỏng.
+  - AC3: ghi nhận phương thức thanh toán được chọn.
   - AC4: giỏ rỗng → từ chối, thông báo giỏ rỗng.
   - AC5: bất kỳ mục vượt tồn kho → từ chối, thông báo vượt tồn kho.
 
-#### FR-08 — Thanh toán mô phỏng & Phát hành voucher code `(R7)`
+#### FR-08 — Thanh toán Sandbox & Phát hành voucher code `(R7)`
 - **Processing**: trong **một transaction**: khóa + re-check tồn kho → trừ tồn kho → chuyển đơn `da_thanh_toan` → phát hành N mã duy nhất.
 - **AC**:
   - AC1: đơn `cho_thanh_toan` thanh toán thành công → `da_thanh_toan`.
@@ -113,7 +113,7 @@ Mỗi FR truy vết về yêu cầu gốc `R<n>` trong BRD/requirements. Accepta
 
 #### FR-09 — Nhận voucher đã mua & Lịch sử đơn `(R8)`
 - **AC**:
-  - AC1: mở đơn đã thanh toán của mình → hiển thị mã, QR mô phỏng, trạng thái mã.
+  - AC1: mở đơn đã thanh toán của mình → hiển thị voucher code, mã QR chuẩn và trạng thái mã.
   - AC2: hiển thị danh sách đơn của chính khách kèm trạng thái.
   - AC3: chỉ cho xem mã thuộc đơn của chính khách (phạm vi sở hữu).
 
@@ -152,7 +152,7 @@ Mỗi FR truy vết về yêu cầu gốc `R<n>` trong BRD/requirements. Accepta
 
 #### FR-14 — Kiểm tra voucher code `(R13)`
 - **AC**:
-  - AC1: nhập mã/quét QR mô phỏng → hiển thị trạng thái mã + thông tin voucher.
+  - AC1: nhập mã hoặc quét QR thật bằng camera → hiển thị trạng thái mã + thông tin voucher.
   - AC2: mã không tồn tại → "mã không hợp lệ".
   - AC3: mã thuộc đối tác khác → từ chối, "ngoài phạm vi".
   - AC4: hợp lệ để dùng ⇔ `chua_su_dung` và chưa quá `expires_at`.
@@ -217,7 +217,7 @@ Mỗi FR truy vết về yêu cầu gốc `R<n>` trong BRD/requirements. Accepta
 
 - **FLOW-001**: nhập định danh + mật khẩu → kiểm tra trùng/độ dài → tạo tài khoản (băm) → gửi mã mô phỏng → đăng nhập → tạo phiên (chặn nếu `bi_khoa`).
 - **FLOW-002**: nhập từ khóa + bộ lọc → trả voucher `dang_ban` thỏa AND → mở chi tiết → nếu hết hàng vô hiệu "thêm giỏ".
-- **FLOW-003** (lõi): thêm giỏ → tính tạm tính → tạo đơn (`cho_thanh_toan`, check tồn kho) → thanh toán mô phỏng → [thành công] TX: khóa+trừ tồn kho, đơn `da_thanh_toan`, phát hành mã duy nhất, hiển thị mã / [thất bại] giữ `cho_thanh_toan`.
+- **FLOW-003** (lõi): thêm giỏ → tính tạm tính → tạo đơn (`cho_thanh_toan`, giữ tồn kho) → thanh toán qua VNPay/PayPal/OnePay/Stripe Sandbox → [thành công] TX: đơn `da_thanh_toan`, phát hành mã duy nhất, hiển thị mã / [thất bại] giữ `cho_thanh_toan`; endpoint mô phỏng chỉ dùng cho kiểm thử/fallback.
 - **FLOW-004**: chọn voucher đã mua/dùng → kiểm tra điều kiện → gửi sao [1–5] + nhận xét → lưu.
 - **FLOW-005**: đối tác đăng ký (pháp lý + đại diện) → hồ sơ `cho_duyet` → admin duyệt/từ chối → `da_duyet`/`tu_choi`+lý do.
 - **FLOW-006**: tạo voucher `nhap` (validate giá/thời gian) → gửi duyệt `cho_duyet` → admin duyệt `da_duyet` / từ chối `tu_choi` → `nhap` (sửa lại) → gửi duyệt lại; admin thu hồi duyệt `da_duyet` → `tu_choi`; công bố `dang_ban`.

@@ -64,7 +64,7 @@ npm run dev
 | --- | --- | --- |
 | 1 | Thêm voucher vào giỏ, chỉnh số lượng | Tổng tạm tính = Σ(giá bán × số lượng) |
 | 2 | Tạo đơn từ giỏ | Đơn `cho_thanh_toan`, tổng đúng |
-| 3 | Thanh toán mô phỏng **thành công** | Đơn → `da_thanh_toan`; phát hành 1 mã/đơn vị; tồn kho giảm; hiện mã + QR mô phỏng |
+| 3 | Thanh toán thành công qua một cổng Sandbox | Đơn → `da_thanh_toan`; phát hành 1 mã/đơn vị; tồn kho được chốt; hiện voucher code + mã QR chuẩn |
 | 4 | Mở lại lịch sử đơn | Mã chỉ hiện sau khi đã thanh toán; thuộc đúng đơn của khách |
 
 > **Talking point**: phát hành mã + trừ tồn kho + chuyển trạng thái chạy trong **một transaction** → không oversell, không lộ mã trước thanh toán.
@@ -77,7 +77,7 @@ npm run dev
 | 2 | Thử đăng nhập bằng tài khoản vừa tạo | Bị chặn `403` với thông báo hồ sơ đang chờ duyệt |
 | 3 | Đăng nhập Admin, mở **Duyệt đối tác**, kiểm tra pháp lý/chi nhánh rồi bấm **Approve** | Hồ sơ chuyển `APPROVED` và biến mất khỏi danh sách pending |
 | 4 | Đăng xuất Admin, đăng nhập lại bằng tài khoản Partner | Vào workspace `/partner` thành công |
-| 5 | Mở **Chi nhánh**, thêm một branch, sửa tên rồi xoá | POST/PATCH/DELETE thành công; danh sách được refetch sau mỗi thao tác |
+| 5 | Mở **Chi nhánh**, thêm một branch, sửa tên, ngừng/kích hoạt lại rồi xoá | POST/PATCH/DELETE thành công; trạng thái `isActive` cập nhật và danh sách được refetch sau mỗi thao tác |
 
 > **Talking point**: trạng thái Partner được đọc lại từ database ở cả login và mỗi request. Vì vậy Admin khóa/từ chối hồ sơ sẽ chặn ngay token cũ; frontend không thể vượt qua bằng JWT đã cấp trước đó.
 
@@ -106,7 +106,7 @@ npm run test:e2e -- --grep @FLOW-006
 
 | Bước | Do | Expect |
 | --- | --- | --- |
-| 1 | Nhân viên đối tác nhập mã/QR voucher đã mua ở Scenario 3 | Hiển thị trạng thái + thông tin voucher |
+| 1 | Nhân viên đối tác nhập mã hoặc quét QR thật bằng camera cho voucher đã mua ở Scenario 3 | Hiển thị trạng thái + thông tin voucher |
 | 2 | Xác nhận sử dụng | Mã → `da_su_dung`, ghi Nhật_ký_sử_dụng |
 | 3 | Xác nhận lại lần 2 (mã một-lượt) | Từ chối "mã đã sử dụng" |
 
@@ -130,7 +130,7 @@ npm run test:e2e -- --grep @FLOW-006
 | --- | --- | --- |
 | Vượt tồn kho | Đặt số lượng > số còn lại | Từ chối "vượt quá tồn kho" (RB-11, RB-15) |
 | Giá bán ≥ giá gốc | Đối tác tạo voucher giá bán ≥ giá gốc | Từ chối "giá bán phải nhỏ hơn giá gốc" (RB-02) |
-| Thanh toán thất bại | Chọn outcome thất bại ở Payment Sim | Đơn giữ `cho_thanh_toan`, **không** phát hành mã |
+| Thanh toán thất bại/hủy tại cổng | Hủy hoặc làm thất bại giao dịch Sandbox | Đơn giữ `cho_thanh_toan` cho tới khi hủy/hết hạn, **không** phát hành mã |
 | Mã ngoài phạm vi | Đối tác A xác thực mã của Đối tác B | Từ chối "ngoài phạm vi" |
 | Truy cập ngoài quyền | Khách hàng gọi API quản trị | 403 "không đủ quyền" (RBAC) |
 | Đối tác chưa duyệt | Partner `PENDING` thử đăng nhập | 403 "hồ sơ đối tác đang chờ duyệt" |

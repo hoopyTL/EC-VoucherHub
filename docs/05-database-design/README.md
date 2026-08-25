@@ -129,6 +129,7 @@ erDiagram
 | `name` | `varchar(255)` | NOT NULL | |
 | `address` | `text` | NOT NULL | |
 | `region` | `varchar(128)` | NOT NULL | lọc khu vực |
+| `is_active` | `boolean` | NOT NULL, default `true` | đóng/mở chi nhánh mà không xóa lịch sử |
 
 ### `partner_staff`
 
@@ -299,6 +300,7 @@ erDiagram
 ### Normal indexes
 
 - `branches(partner_id)`
+- `branches(partner_id, is_active)`
 - `branches(region)`
 - `partner_staff(partner_id)`
 - `partner_staff(status)`
@@ -355,6 +357,7 @@ Riêng `order_items -> orders` hiện đang là `RESTRICT`, tức lịch sử gi
 | Một tài khoản chỉ thuộc một hồ sơ nhân viên | UNIQUE trên `partner_staff(user_id)` |
 | Không phân công trùng nhân viên–chi nhánh | PK ghép `partner_staff_branches(staff_id, branch_id)` |
 | Nhân viên chỉ redeem tại chi nhánh được giao | Kiểm tra ownership và assignment trong service transaction |
+| Chi nhánh ngừng hoạt động không được dùng để tạo/sửa voucher, phân công nhân viên hoặc redeem | Kiểm tra `branches.is_active` tại service layer |
 
 ## 8. Ghi chú vận hành
 
@@ -362,3 +365,4 @@ Riêng `order_items -> orders` hiện đang là `RESTRICT`, tức lịch sử gi
 - Chống oversell không được giải quyết chỉ bằng CHECK; cần transaction ở service layer.
 - `partner_staff` và `partner_staff_branches` đã tồn tại trong DB thật; migration cũng thêm role chuẩn `STAFF` theo cách idempotent.
 - `reviews` đã được tạo qua migration `20260824100000_add_reviews` và tích hợp đầy đủ trong backend & frontend.
+- `branches.is_active` đã được thêm qua migration `20260825120500_add_branch_is_active`. Khi đóng chi nhánh cuối cùng còn hoạt động của một voucher đang bán, voucher đó chuyển sang `PAUSED`; kích hoạt lại chi nhánh không tự mở bán lại voucher.

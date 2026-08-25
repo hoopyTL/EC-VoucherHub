@@ -9,7 +9,7 @@
 ## Quyền của chủ đối tác
 
 - `GET /api/partner/staff`: xem nhân viên thuộc đối tác hiện tại.
-- `POST /api/partner/staff`: tạo tài khoản và phân công ít nhất một chi nhánh.
+- `POST /api/partner/staff`: tạo tài khoản và phân công ít nhất một chi nhánh đang hoạt động.
 - `PATCH /api/partner/staff/:id`: sửa thông tin, đổi mật khẩu, phân công lại chi nhánh, khóa/mở khóa hoặc ngừng/kích hoạt nhân viên.
 - Không thể đọc hoặc cập nhật nhân viên của đối tác khác.
 - Không thể xóa chi nhánh khi chi nhánh vẫn đang được phân công cho nhân viên.
@@ -18,8 +18,9 @@
 
 - Đăng nhập bằng luồng đăng nhập chung.
 - Chỉ truy cập trang `/partner/redeem`.
-- Chỉ nhìn thấy các chi nhánh được phân công.
+- Chỉ nhìn thấy các chi nhánh được phân công và đang hoạt động.
 - Chỉ xác nhận sử dụng voucher của đúng đối tác và tại đúng chi nhánh được phân công.
+- Có thể nhập mã hoặc quét QR bằng camera trên trang xác nhận sử dụng.
 - Không được quản lý hồ sơ, chi nhánh, voucher, báo cáo hoặc nhân viên.
 
 ## Tài khoản demo

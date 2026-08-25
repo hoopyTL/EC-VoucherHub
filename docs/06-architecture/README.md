@@ -41,7 +41,7 @@ flowchart TB
             PART[Partner]
             VP[Voucher Product]
             ORD[Cart & Order]
-            PAY[Payment Sim]
+            PAY[Payment Gateways Sandbox]
             ISS[Voucher Code Issuance]
             RED[Redemption]
             REV[Review]
@@ -84,7 +84,7 @@ Thực hiện trong **một transaction nguyên tử** để chống oversell v�
 sequenceDiagram
     actor KH as Khách_hàng
     participant ORD as Cart & Order
-    participant PAY as Payment Sim
+    participant PAY as VNPay / PayPal / OnePay / Stripe Sandbox
     participant ISS as Voucher Code
     participant DB as DB (transaction)
 
@@ -96,7 +96,7 @@ sequenceDiagram
     else đủ
         ORD->>DB: tạo Order{cho_thanh_toan}
         ORD-->>KH: đơn chờ thanh toán
-        KH->>PAY: simulatePayment(orderId)
+        KH->>PAY: thanh toán đơn hàng
         alt thành công
             PAY->>DB: BEGIN TX
             DB->>DB: khóa + re-check tồn kho
@@ -161,4 +161,4 @@ sequenceDiagram
 
 - **Monolith**: đánh đổi khả năng scale độc lập lấy sự đơn giản — đúng cho MVP/đồ án. Khi cần, các service đã tách module nên có thể tách process sau.
 - **JWT**: đánh đổi thu hồi tức thì lấy stateless. Tương lai có thể thêm refresh-token blocklist.
-- **Tương lai**: tích hợp thanh toán thật (thay Payment Sim), thông báo thật (thay mô phỏng), cache đọc cho danh sách voucher nếu tải tăng.
+- **Tương lai**: chuyển cấu hình cổng thanh toán từ Sandbox sang production, bổ sung thông báo thật và cache đọc cho danh sách voucher nếu tải tăng.

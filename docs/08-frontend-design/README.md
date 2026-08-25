@@ -50,9 +50,10 @@
 ### Đối tác / Nhân viên
 | Màn hình | Route | FR/FLOW |
 | --- | --- | --- |
-| Đăng ký đối tác | `/partner/register` | FR-11 / FLOW-005 |
+| Đăng ký đối tác | `/register/partner` | FR-11 / FLOW-005 |
 | Dashboard đối tác | `/partner` | FR-16 / FLOW-008 |
-| Hồ sơ + chi nhánh | `/partner/profile` | FR-11 |
+| Hồ sơ doanh nghiệp | `/partner/profile` | FR-11 |
+| Quản lý và đóng/mở chi nhánh | `/partner/branches` | FR-11 / FLOW-005 |
 | Quản lý nhân viên và phân công chi nhánh | `/partner/staff` | FR-11, FR-15 |
 | Danh sách voucher của tôi | `/partner/vouchers` | FR-12 / FLOW-006 |
 | Tạo / sửa voucher | `/partner/vouchers/new`, `/partner/vouchers/:id/edit` | FR-12, FR-13 / FLOW-006 |
@@ -60,6 +61,8 @@
 | Báo cáo đối tác | `/partner/reports` | FR-16 / FLOW-008 |
 
 Chủ đối tác (`PARTNER`) truy cập toàn bộ workspace. Nhân viên (`STAFF`) đăng nhập chung nhưng chỉ được điều hướng tới `/partner/redeem`; danh sách chi nhánh trên màn hình này đã được backend giới hạn theo phân công.
+
+Trang `/partner/redeem` hỗ trợ nhập mã hoặc quét QR thật bằng camera. Quy trình gồm kiểm tra mã trước, chọn chi nhánh đang hoạt động rồi mới xác nhận. Sau khi thành công có thể chuyển ngay sang xác nhận mã khác.
 
 ### Quản trị viên
 | Màn hình | Route | FR/FLOW |
@@ -127,7 +130,7 @@ flowchart TD
 | Component | data-testid | Ghi chú |
 | --- | --- | --- |
 | Chọn quà tặng + người nhận | `gift-toggle`, `gift-recipient` | tùy chọn (AC2) |
-| Phương thức thanh toán mô phỏng | `payment-method` | |
+| Phương thức/cổng thanh toán | `payment-method` | VNPay, PayPal, OnePay hoặc Stripe Sandbox |
 | Nút thanh toán | `pay-btn` | → loading trong khi TX |
 | Kết quả + danh sách mã | `payment-result`, `voucher-code-:id` | mã chỉ hiện khi `da_thanh_toan` (AC8) |
 | Thông báo lỗi tồn kho | `oversell-error` | khi AC5/AC7 |

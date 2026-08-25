@@ -171,7 +171,7 @@ flowchart LR
 - **Luồng chính**:
   1. Hệ_thống kiểm tra tồn kho từng mục.
   2. Tạo đơn `cho_thanh_toan`, tổng = tổng tạm tính.
-  3. Ghi nhận phương thức thanh toán mô phỏng.
+  3. Ghi nhận cổng thanh toán Sandbox được chọn.
 - **Luồng thay thế**:
   - Mua làm quà → lưu thông tin người nhận cùng đơn.
 - **Luồng ngoại lệ**:
@@ -184,7 +184,7 @@ flowchart LR
 - **Actor**: Khách_hàng
 - **FR/FLOW**: FR-08 / FLOW-003
 - **Tiền điều kiện**: đơn `cho_thanh_toan`.
-- **Kích hoạt**: xác nhận thanh toán mô phỏng.
+- **Kích hoạt**: cổng thanh toán Sandbox xác nhận giao dịch thành công.
 - **Luồng chính** (trong một transaction):
   1. Khóa + re-check tồn kho.
   2. Trừ tồn kho theo số lượng mua.
@@ -204,7 +204,7 @@ flowchart LR
 - **Kích hoạt**: mở danh sách đơn / chi tiết đơn.
 - **Luồng chính**:
   1. Hệ_thống hiển thị danh sách đơn của chính khách kèm trạng thái.
-  2. Mở đơn `da_thanh_toan` → hiển thị mã, QR mô phỏng, trạng thái mã.
+  2. Mở đơn `da_thanh_toan` → hiển thị voucher code, mã QR chuẩn và trạng thái mã.
 - **Luồng ngoại lệ**:
   - Truy cập đơn không thuộc mình → từ chối (phạm vi sở hữu).
 - **Hậu điều kiện**: —
@@ -273,7 +273,7 @@ flowchart LR
 - **Actor**: Đối_tác, Nhân_viên_đối_tác
 - **FR/FLOW**: FR-14 / FLOW-007
 - **Tiền điều kiện**: đã đăng nhập vai trò đối tác/nhân viên.
-- **Kích hoạt**: nhập mã hoặc quét QR mô phỏng.
+- **Kích hoạt**: nhập mã hoặc quét QR thật bằng camera.
 - **Luồng chính**:
   1. Hệ_thống tra mã → hiển thị trạng thái + thông tin voucher.
   2. Mã hợp lệ để dùng ⇔ `chua_su_dung` và chưa quá `expires_at`.

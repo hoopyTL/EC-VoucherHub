@@ -99,7 +99,13 @@ Client luôn kiểm tra `success` trước khi đọc `data`. Không bao giờ t
 | GET | `/orders/:id` | Chi tiết đơn + mã voucher (nếu đã PAID) | Khách hàng | FR-09 |
 | POST | `/orders/:id/payment` | Thanh toán mô phỏng → phát hành mã | Khách hàng | FR-08 |
 | GET | `/orders/:id/vnpay` | Tạo URL thanh toán VNPay Sandbox | Khách hàng | FR-08 |
-| GET | `/vnpay-return` | Callback từ VNPay → xử lý thanh toán + redirect về chi tiết đơn | Hệ thống | FR-08 |
+| GET | `/orders/:id/onepay` | Tạo URL thanh toán OnePay Sandbox | Khách hàng | FR-08 |
+| GET | `/orders/:id/paypal` | Tạo URL phê duyệt PayPal Sandbox | Khách hàng | FR-08 |
+| POST | `/orders/:id/paypal/capture` | Capture giao dịch PayPal đã được duyệt | Khách hàng | FR-08 |
+| GET | `/orders/:id/stripe` | Tạo Stripe Checkout Session ở test mode | Khách hàng | FR-08 |
+| GET | `/orders/vnpay-ipn` | Nhận và xác minh callback VNPay | Hệ thống | FR-08 |
+| GET | `/orders/onepay-ipn` | Nhận và xác minh callback OnePay | Hệ thống | FR-08 |
+| POST | `/orders/webhook/stripe` | Nhận và xác minh webhook Stripe | Hệ thống | FR-08 |
 | GET | `/admin/orders` | Tra cứu đơn | Admin | FR-20 |
 | PATCH | `/admin/orders/:id/cancel` | Huỷ đơn `PENDING_PAYMENT` | Admin | FR-20 |
 | PATCH | `/admin/orders/:id/refund` | Hoàn tiền đơn `PAID` | Admin | FR-20 |
@@ -133,7 +139,7 @@ Client luôn kiểm tra `success` trước khi đọc `data`. Không bao giờ t
 | PATCH | `/partner` | Cập nhật hồ sơ đối tác | Đối tác | FR-11 |
 | GET | `/partner/branches` | Danh sách chi nhánh thuộc đối tác | Đối tác | FR-11 |
 | POST | `/partner/branches` | Thêm chi nhánh | Đối tác | FR-11 |
-| PATCH | `/partner/branches/:id` | Sửa chi nhánh | Đối tác | FR-11 |
+| PATCH | `/partner/branches/:id` | Sửa hoặc đóng/mở chi nhánh (`isActive`) | Đối tác | FR-11 |
 | DELETE | `/partner/branches/:id` | Xoá chi nhánh chưa được tham chiếu | Đối tác | FR-11 |
 | GET | `/partner/staff` | Danh sách nhân viên thuộc đối tác | Chủ đối tác | FR-11, FR-15 |
 | POST | `/partner/staff` | Tạo nhân viên và phân công chi nhánh | Chủ đối tác | FR-11, FR-15 |
@@ -195,7 +201,7 @@ Không kết quả → `items: []` + 200 (không phải 404).
 { "paymentMethod": "VNPAY",   // mặc định VNPAY nếu không truyền
   "giftRecipient": { "name": "Bình", "phone": "090..." } }  // optional (FR-07 AC2)
 ```
-**201 Created** — đơn `PENDING_PAYMENT`, tổng = tạm tính, TTL 5 phút:
+**201 Created** — đơn `PENDING_PAYMENT`, tổng = tạm tính, TTL 15 phút:
 ```jsonc
 { "success": true,
   "data": { "id": "clx...", "status": "PENDING_PAYMENT", "totalAmount": "400000.00",
@@ -212,15 +218,17 @@ Không kết quả → `items: []` + 200 (không phải 404).
 
 **Lỗi**: giỏ rỗng → 422 (`giỏ hàng rỗng`); bất kỳ mục vượt tồn kho / vượt tổng giới hạn 10 voucher → 422 (`vượt quá tồn kho` + `details` theo voucher).
 
-### 3.5 Thanh toán (FR-08) — VNPay Integration
+### 3.5 Thanh toán (FR-08) — Sandbox gateways
 
-Thanh toán được thực hiện qua **VNPay Sandbox** thay vì mô phỏng đơn giản.
+Thanh toán từ giao diện được thực hiện qua **VNPay, PayPal, OnePay hoặc Stripe Sandbox**. Endpoint mô phỏng vẫn tồn tại để phục vụ integration test và fallback trong môi trường phát triển.
 
 **Luồng thanh toán VNPay**:
 1. Frontend gọi `GET /orders/:id/vnpay` → Backend tạo URL thanh toán VNPay với HMAC-SHA512.
 2. Khách được redirect sang cổng VNPay Sandbox → nhập thẻ test NCB (9704198526191432198).
-3. VNPay trả kết quả về `GET /vnpay-return?vnp_TxnRef=orderId&vnp_ResponseCode=00`.
-4. Backend verify chữ ký → gọi `processPayment(SUCCESS/FAILURE)` → redirect về `/orders/:id`.
+3. VNPay gửi callback đến `GET /orders/vnpay-ipn?...`; frontend cũng xử lý URL trả về tại trang `/payment-result` khi chạy localhost.
+4. Backend xác minh chữ ký rồi hoàn tất giao dịch và phát hành mã trong transaction.
+
+PayPal dùng luồng tạo approval URL rồi `POST /orders/:id/paypal/capture`. OnePay dùng `GET /orders/:id/onepay` và callback `/orders/onepay-ipn`. Stripe dùng Checkout Session cùng webhook `/orders/webhook/stripe` có kiểm tra chữ ký.
 
 **`POST /orders/:id/payment`** (endpoint mô phỏng, dùng cho test/fallback):
 
@@ -239,21 +247,22 @@ Thanh toán được thực hiện qua **VNPay Sandbox** thay vì mô phỏng đ
 **200 OK**
 ```jsonc
 { "success": true,
-  "data": { "code": "A1B2C3D4E5F6", "status": "chua_su_dung",
+  "data": { "code": "A1B2C3D4E5F6", "status": "UNUSED",
     "valid": true, "voucher": { "name": "Giảm 20% buffet" }, "expiresAt": "..." } }
 ```
-**Lỗi**: mã không tồn tại → 404 (`mã không hợp lệ`); mã thuộc đối tác khác → 403 (`ngoài phạm vi`). `valid=true` ⇔ `chua_su_dung` và chưa quá hạn.
+**Lỗi**: mã không tồn tại → 404 (`mã không hợp lệ`); mã thuộc đối tác khác → 403 (`ngoài phạm vi`). `valid=true` ⇔ trạng thái `UNUSED` và chưa quá hạn.
 
 ### 3.7 `POST /voucher-codes/:code/redemption` (FR-15) — endpoint lõi
 
 **Request** `{ "branchId": 1 }`
-**200 OK** (một-lượt) — transaction: `da_su_dung` + ghi Nhật_ký_sử_dụng:
+**200 OK** (một-lượt) — transaction: chuyển `USED` + ghi `usage_logs`:
 ```jsonc
 { "success": true,
-  "data": { "code": "A1B2C3D4E5F6", "status": "da_su_dung", "usedAt": "..." } }
+  "data": { "code": "A1B2C3D4E5F6", "status": "USED", "remainingUses": 0,
+    "usedAt": "...", "redeemedAt": "...", "branchId": 1, "redemptionBranchId": "1" } }
 ```
-**200 OK** (multi-use còn lượt): `{ status: "chua_su_dung", remainingUses: 2 }` (giảm lượt, chưa chuyển `da_su_dung` — FR-15 AC5).
-**Lỗi**: đã dùng (một-lượt) → 409 (`mã đã sử dụng`); `het_han`/`bi_huy`/`bi_khoa` → 409 (`không sử dụng được`); ngoài phạm vi đối tác/chi nhánh → 403 (`ngoài phạm vi`).
+**200 OK** (multi-use còn lượt): `{ status: "UNUSED", remainingUses: 2 }` (giảm lượt, chưa chuyển `USED` — FR-15 AC5).
+**Lỗi**: đã dùng (một-lượt) → 409; `EXPIRED`/`CANCELLED`/`LOCKED` → 409; chi nhánh ngừng hoạt động → 409; ngoài phạm vi đối tác/chi nhánh hoặc ngoài phân công nhân viên → 403.
 
 ### 3.8 `PATCH /admin/vouchers/:id/status` (FR-19)
 
@@ -263,7 +272,7 @@ Thanh toán được thực hiện qua **VNPay Sandbox** thay vì mô phỏng đ
 
 ### 3.10 Contract quản lý voucher của Đối tác (FR-12, FR-13)
 
-Request tạo/sửa dùng field canonical: `name`, `categoryId`, `saleStart`, `saleEnd`, `usageStart`, `usageEnd`, `branchIds: number[]`. Response luôn nằm trong `{ success: true, data }`; tiền là chuỗi Decimal, ngày là ISO-8601, và có `partner`, `category`, `branches`, `soldQuantity` cùng các bộ đếm mã.
+Request tạo/sửa dùng field canonical: `name`, `categoryId`, `saleStart`, `saleEnd`, `usageStart`, `usageEnd`, `branchIds: number[]`. `branchIds` chỉ được chứa chi nhánh thuộc đối tác và đang hoạt động. Response luôn nằm trong `{ success: true, data }`; tiền là chuỗi Decimal, ngày là ISO-8601, và có `partner`, `category`, `branches`, `soldQuantity` cùng các bộ đếm mã.
 
 Máy trạng thái: `DRAFT -> PENDING_REVIEW -> APPROVED|REJECTED`, `REJECTED -> DRAFT`, `APPROVED -> ON_SALE`, `ON_SALE <-> PAUSED`, và `ON_SALE|PAUSED -> DISCONTINUED`. Partner chỉ pause/resume voucher thuộc mình; Admin review/publish/suspend/discontinue. Transition sai trả `422`, thay đổi đồng thời trả `409`, sai ownership trả `403`.
 
@@ -296,7 +305,7 @@ API tạo `User(PARTNER)`, `Partner(PENDING)` và toàn bộ `Branch` trong mộ
 
 Chỉ hồ sơ `PENDING` được review; thao tác lặp trả `409`. Khoá đối tác bằng `PATCH /admin/partners/:id/lock` với `{ "action": "lock" }`; token đã cấp bị chặn ngay và voucher `ON_SALE` của đối tác được chuyển `PAUSED` trong cùng transaction. `{ "action": "unlock" }` mở lại quyền truy cập nhưng không tự công bố lại voucher.
 
-Branch dùng ID số. Partner chỉ được sửa/xoá branch thuộc chính mình; truy cập chéo trả `403`. `DELETE` trả `204`; branch đang gắn voucher, usage log hoặc chịu phạm vi voucher toàn hệ thống trả `409`.
+Branch dùng ID số và response có `isActive`. Partner chỉ được sửa/xoá branch thuộc chính mình; truy cập chéo trả `403`. `PATCH` nhận một phần `{ name, address, region, isActive }`. Chi nhánh `isActive=false` không được phân công mới, gắn vào voucher mới/chỉnh sửa hoặc dùng để redeem. Nếu voucher `ON_SALE` không còn chi nhánh hoạt động, hệ thống tự chuyển voucher sang `PAUSED`; kích hoạt lại chi nhánh không tự mở bán lại. `DELETE` trả `204`; branch đang gắn voucher, usage log, nhân viên hoặc chịu phạm vi voucher toàn hệ thống trả `409`.
 
 ## 4. Bản đồ mã trạng thái
 
