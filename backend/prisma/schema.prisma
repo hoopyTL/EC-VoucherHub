@@ -273,36 +273,6 @@ model VoucherProduct {
   @@map("voucher_products")
 }
 
-/// Khuyến mãi tham chiếu từ nguồn công khai. Tách khỏi VoucherProduct vì
-/// VoucherHub không sở hữu tồn kho/mã và không được phép checkout/redeem.
-model ExternalPromotion {
-  id                 String   @id @default(uuid()) @db.Uuid
-  source             String   @db.VarChar(32)
-  externalId         String   @map("external_id") @db.VarChar(128)
-  sourceUrl          String   @map("source_url") @db.VarChar(1024)
-  name               String   @db.VarChar(512)
-  description        String?  @db.Text
-  merchant           String?  @db.VarChar(255)
-  category           String?  @db.VarChar(128)
-  imageUrl           String?  @map("image_url") @db.VarChar(1024)
-  originalPrice      Decimal? @map("original_price") @db.Decimal(12, 2)
-  salePrice          Decimal? @map("sale_price") @db.Decimal(12, 2)
-  discountPercentage Int?     @map("discount_percentage")
-  promoCode          String?  @map("promo_code") @db.VarChar(128)
-  terms              String?  @db.Text
-  saleStart          DateTime? @map("sale_start") @db.Timestamptz(6)
-  saleEnd            DateTime? @map("sale_end") @db.Timestamptz(6)
-  firstSeenAt        DateTime @default(now()) @map("first_seen_at") @db.Timestamptz(6)
-  lastSeenAt         DateTime @default(now()) @map("last_seen_at") @db.Timestamptz(6)
-  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
-
-  @@unique([source, externalId])
-  @@index([source])
-  @@index([lastSeenAt])
-  @@map("external_promotions")
-}
-
 /// Bảng nối N-M: voucher áp dụng tại chi nhánh nào. Đợt 2 — schema sẵn.
 model VoucherProductBranch {
   voucherProductId String @map("voucher_product_id") @db.Uuid

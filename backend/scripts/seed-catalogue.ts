@@ -9,7 +9,7 @@ const catalogue = [
   {
     name: 'Combo cà phê sáng Highlands',
     description: 'Combo cà phê và bánh ngọt cho buổi sáng năng động.',
-    category: 'Cà phê & Trà sữa',
+    category: 'Ẩm Thực',
     originalPrice: 89000,
     salePrice: 59000,
     imageUrl: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085'
@@ -17,7 +17,7 @@ const catalogue = [
   {
     name: 'Trà sen vàng size lớn',
     description: 'Một ly trà sen vàng size lớn tại hệ thống cửa hàng áp dụng.',
-    category: 'Cà phê & Trà sữa',
+    category: 'Ẩm Thực',
     originalPrice: 65000,
     salePrice: 45000,
     imageUrl: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc'
@@ -25,7 +25,7 @@ const catalogue = [
   {
     name: 'Buffet tối ưu đãi 30%',
     description: 'Thưởng thức buffet tối từ thứ Hai đến thứ Sáu với mức giá ưu đãi.',
-    category: 'Buffet & Lẩu',
+    category: 'Buffet',
     originalPrice: 399000,
     salePrice: 279000,
     imageUrl: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5'
@@ -33,7 +33,7 @@ const catalogue = [
   {
     name: 'Set lẩu dành cho hai người',
     description: 'Set lẩu đầy đủ dành cho hai người, áp dụng tại chi nhánh tham gia.',
-    category: 'Buffet & Lẩu',
+    category: 'Buffet',
     originalPrice: 499000,
     salePrice: 349000,
     imageUrl: 'https://images.unsplash.com/photo-1569058242253-92a9c755a0ec'
@@ -41,7 +41,7 @@ const catalogue = [
   {
     name: 'Bữa trưa văn phòng tiết kiệm',
     description: 'Một phần ăn trưa và nước uống cho ngày làm việc hiệu quả.',
-    category: 'Ăn uống',
+    category: 'Ẩm Thực',
     originalPrice: 120000,
     salePrice: 79000,
     imageUrl: 'https://images.unsplash.com/photo-1547592180-85f173990554'
@@ -49,7 +49,7 @@ const catalogue = [
   {
     name: 'Liệu trình chăm sóc da cơ bản',
     description: 'Làm sạch sâu và chăm sóc da trong 60 phút.',
-    category: 'Làm đẹp & Spa',
+    category: 'Spa & Làm đẹp',
     originalPrice: 550000,
     salePrice: 329000,
     imageUrl: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881'
@@ -57,7 +57,7 @@ const catalogue = [
   {
     name: 'Massage thư giãn 90 phút',
     description: 'Liệu trình massage toàn thân giúp phục hồi năng lượng.',
-    category: 'Làm đẹp & Spa',
+    category: 'Massage Nam Nữ',
     originalPrice: 650000,
     salePrice: 420000,
     imageUrl: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874'
@@ -65,7 +65,7 @@ const catalogue = [
   {
     name: 'Kỳ nghỉ cuối tuần dành cho hai người',
     description: 'Một đêm nghỉ dưỡng kèm bữa sáng dành cho hai khách.',
-    category: 'Du lịch & Khách sạn',
+    category: 'Hotel & Resort',
     originalPrice: 1800000,
     salePrice: 1290000,
     imageUrl: 'https://images.unsplash.com/photo-1566073771259-6a8506099945'

@@ -75,19 +75,26 @@ async function main() {
   const refreshed = await prisma.partner.findMany({ include: { branches: true } })
   const byName = new Map(refreshed.map((partner) => [partner.legalName, partner]))
   const pools: Record<string, string[]> = {
-    'Cà phê & Trà sữa': ['CÔNG TY CỔ PHẦN DỊCH VỤ CÀ PHÊ CAO NGUYÊN', 'Highlands Coffee Demo', 'Phúc Long Heritage'],
-    'Ăn uống': ['Golden Gate Restaurant Group', "Pizza 4P's Việt Nam"],
-    'Buffet & Lẩu': ['Golden Gate Restaurant Group', "Pizza 4P's Việt Nam"],
-    'Làm đẹp & Spa': ['Lotus Wellness & Spa', 'Seoul Center Spa'],
-    'Du lịch & Khách sạn': ['TripGo Việt Nam', 'Vinpearl Hospitality'],
-    'Giải trí': ['Starlight Entertainment', 'CGV Cinemas Việt Nam'],
-    'Mua sắm': ['ReadMore Lifestyle', 'TechZone Retail']
+    'Ẩm Thực': [
+      'CÔNG TY CỔ PHẦN DỊCH VỤ CÀ PHÊ CAO NGUYÊN',
+      'Highlands Coffee Demo',
+      'Phúc Long Heritage',
+      'Golden Gate Restaurant Group',
+      "Pizza 4P's Việt Nam"
+    ],
+    Buffet: ['Golden Gate Restaurant Group', "Pizza 4P's Việt Nam"],
+    'Spa & Làm đẹp': ['Lotus Wellness & Spa', 'Seoul Center Spa'],
+    'Massage Nam Nữ': ['Lotus Wellness & Spa', 'Seoul Center Spa'],
+    'Giải Trí & Thể Thao': ['Starlight Entertainment', 'CGV Cinemas Việt Nam'],
+    'Tour du lịch': ['TripGo Việt Nam', 'Vinpearl Hospitality'],
+    'Hotel & Resort': ['TripGo Việt Nam', 'Vinpearl Hospitality'],
+    'Nha Khoa': ['Lotus Wellness & Spa', 'Seoul Center Spa']
   }
   const vouchers = await prisma.voucherProduct.findMany({ include: { category: true }, orderBy: { name: 'asc' } })
   const counters = new Map<string, number>()
   for (const voucher of vouchers) {
-    const category = voucher.category?.name ?? 'Mua sắm'
-    const pool = (pools[category] ?? pools['Mua sắm']).map((name) => byName.get(name)).filter(Boolean)
+    const category = voucher.category?.name ?? 'Ẩm Thực'
+    const pool = (pools[category] ?? pools['Ẩm Thực']).map((name) => byName.get(name)).filter(Boolean)
     if (!pool.length) continue
     const index = counters.get(category) ?? 0
     const partner = pool[index % pool.length]!
