@@ -1,307 +1,179 @@
 import { useEffect, useRef, useState } from 'react'
-// Exported for tests: allow stubbing scheduled polls without mocking global timers
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { CheckoutProgress } from '../../components/customer/CheckoutProgress'
+import { LoadingSpinner } from '../../components/ui'
+import { api } from '../../services/api'
+import { getOrder, type OrderResponse } from '../../services/orders'
+
+// Exported solely as a small testability seam around window.setTimeout.
 export function scheduleTimeout(fn: () => void, ms: number) {
   return window.setTimeout(fn, ms)
 }
-// Small injectable clock seam for tests; production still uses window.setTimeout.
 export const paymentResultClock = { scheduleTimeout }
-import { useSearchParams, useNavigate } from 'react-router-dom'
-import { VNPayMessageMap } from '../../constants/vnpay'
-import { LoadingSpinner } from '../../components/ui'
-import { CheckoutProgress } from '../../components/customer/CheckoutProgress'
-import { CompletedOrderDetail } from '../../components/customer/CompletedOrderDetail'
-import { getOrder, type OrderResponse } from '../../services/orders'
 
-/** Restore the UUID/order id encoded in OnePay's merchant transaction ref. */
 function restoreOrderIdFromOnePayTxnRef(txnRef: string): string {
   const rawOrderId = txnRef.split('_')[0] ?? ''
   const compact = rawOrderId.replace(/[^a-zA-Z0-9]/g, '')
-  if (compact.length === 32) {
-    return `${compact.slice(0, 8)}-${compact.slice(8, 12)}-${compact.slice(12, 16)}-${compact.slice(16, 20)}-${compact.slice(20)}`
-  }
-  return rawOrderId
+  return compact.length === 32
+    ? `${compact.slice(0, 8)}-${compact.slice(8, 12)}-${compact.slice(12, 16)}-${compact.slice(16, 20)}-${compact.slice(20)}`
+    : rawOrderId
 }
 
-/**
- * Trang nhận kết quả chuyển hướng về từ VNPay (Return URL).
- * Chịu trách nhiệm đồng bộ trạng thái thanh toán và điều hướng người dùng.
- */
+/** Secure gateway callback endpoint. It never marks an order paid on the client. */
 export function PaymentResultPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const [state, setState] = useState<'processing' | 'success' | 'failed' | 'pending'>('processing')
+  const [state, setState] = useState<'processing' | 'failed'>('processing')
   const [orderData, setOrderData] = useState<OrderResponse | null>(null)
-  const [stripeOrderId, setStripeOrderId] = useState<string | null>(null)
-  const attemptsRef = useRef(0)
   const stoppedRef = useRef(false)
   const timerRef = useRef<number | null>(null)
-  const POLL_INTERVAL = process.env.NODE_ENV === 'test' ? 10 : 1000
-  const ATTEMPTS_LIMIT = process.env.NODE_ENV === 'test' ? 3 : 10
-  // Ngăn chặn strict-mode của React 18 gọi useEffect 2 lần liên tiếp
   const hasProcessed = useRef(false)
+  const pollInterval = process.env.NODE_ENV === 'test' ? 10 : 1000
+  const attemptsLimit = process.env.NODE_ENV === 'test' ? 3 : 10
 
   useEffect(() => {
     if (hasProcessed.current) return
     hasProcessed.current = true
 
-    const handleVNPayReturn = async () => {
+    const confirmPaidOrder = async (orderId: string) => {
+      for (let attempt = 0; attempt < attemptsLimit && !stoppedRef.current; attempt += 1) {
+        try {
+          const order = await getOrder(orderId)
+          setOrderData(order)
+          if (order.status === 'PAID') {
+            navigate(`/orders/${orderId}`, { replace: true })
+            return
+          }
+          if (order.status !== 'PENDING_PAYMENT') {
+            setState('failed')
+            return
+          }
+        } catch {
+          setState('failed')
+          return
+        }
+
+        if (attempt < attemptsLimit - 1 && !stoppedRef.current) {
+          await new Promise<void>((resolve) => {
+            timerRef.current = paymentResultClock.scheduleTimeout(resolve, pollInterval)
+          })
+        }
+      }
+      // A successful provider return still needs a confirmed backend order.
+      setState('failed')
+    }
+
+    const handleCallback = async () => {
       const paypalOrderId = searchParams.get('token')
       const paypalLocalOrderId = searchParams.get('order_id')
       const paypalSuccess = searchParams.get('paypal_success')
-
       if (paypalLocalOrderId && paypalSuccess !== null) {
         if (paypalSuccess === 'true' && paypalOrderId) {
           try {
             const { capturePayPalPayment } = await import('../../services/orders')
             await capturePayPalPayment(paypalLocalOrderId, paypalOrderId)
-          } catch (error) {
-            console.error('Không thể xác nhận giao dịch PayPal:', error)
-            alert('Không thể xác nhận giao dịch PayPal. Vui lòng kiểm tra lại đơn hàng.')
+          } catch {
+            setState('failed')
+            return
           }
         } else {
-          alert('Bạn đã hủy hoặc chưa hoàn tất thanh toán PayPal.')
-        }
-        navigate(`/orders/${paypalLocalOrderId}`, { replace: true })
-        return
-      }
-
-      // STRIPE RETURN FLOW
-      const stripeOrderId = searchParams.get('order_id')
-      const stripeSuccess = searchParams.get('stripe_success')
-      searchParams.get('session_id')
-
-      if (stripeOrderId) {
-        // If stripe_success not provided or false, render failed page (no auto-redirect)
-        if (!stripeSuccess || stripeSuccess !== 'true') {
           setState('failed')
           return
         }
-        // Set up polling state and start polling
-        setStripeOrderId(stripeOrderId)
-        attemptsRef.current = 0
-        stoppedRef.current = false
-        setState('processing')
+        await confirmPaidOrder(paypalLocalOrderId)
+        return
+      }
 
-        const poll = async () => {
-          try {
-            const order = await getOrder(stripeOrderId)
-            setOrderData(order)
-            if (order.status === 'PAID') {
-              setState('success')
-              return
-            }
-            if (order.status === 'PENDING_PAYMENT') {
-              attemptsRef.current += 1
-              if (attemptsRef.current >= ATTEMPTS_LIMIT) {
-                setState('pending')
-                return
-              }
-              if (!stoppedRef.current) {
-                timerRef.current = paymentResultClock.scheduleTimeout(poll, POLL_INTERVAL)
-              }
-              return
-            }
-            setState('failed')
-          } catch (err) {
-            console.error('Error fetching order status', err)
-            setState('failed')
-          }
+      const stripeOrderId = searchParams.get('order_id')
+      const stripeSuccess = searchParams.get('stripe_success')
+      const stripeSessionId = searchParams.get('session_id')
+      if (stripeOrderId && stripeSuccess !== null) {
+        // Both return values are required, but query parameters never decide PAID.
+        if (stripeSuccess !== 'true' || !stripeSessionId) {
+          setState('failed')
+          return
         }
-
-        poll()
-
-        return () => {
-          stoppedRef.current = true
-          if (timerRef.current) window.clearTimeout(timerRef.current)
-        }
+        await confirmPaidOrder(stripeOrderId)
+        return
       }
 
       const onepayResponseCode = searchParams.get('vpc_TxnResponseCode')
       const onepayMerchTxnRef = searchParams.get('vpc_MerchTxnRef')
-
       if (onepayResponseCode !== null && onepayMerchTxnRef) {
-        // Preserve the raw query string and call backend verification endpoint
         try {
-          const { api } = await import('../../services/api')
           await api.get(`/orders/onepay-ipn${window.location.search}`)
-          // The IPN endpoint returns OnePay's acknowledgement string, not an
-          // order payload. Recover the exact id from the signed merchant ref.
-          const resolvedOrderId = restoreOrderIdFromOnePayTxnRef(onepayMerchTxnRef)
-
-          if (onepayResponseCode === '0') {
-            // Successful OnePay response code: do NOT navigate away immediately.
-            // Start the same polling flow as Stripe using the resolved orderId.
-            if (resolvedOrderId) {
-              setStripeOrderId(resolvedOrderId)
-              attemptsRef.current = 0
-              stoppedRef.current = false
-              setState('processing')
-
-              const pollOnepay = async () => {
-                try {
-                  const order = await getOrder(resolvedOrderId)
-                  setOrderData(order)
-                  if (order.status === 'PAID') {
-                    setState('success')
-                    return
-                  }
-                  if (order.status === 'PENDING_PAYMENT') {
-                    attemptsRef.current += 1
-                    if (attemptsRef.current >= ATTEMPTS_LIMIT) {
-                      setState('pending')
-                      return
-                    }
-                    if (!stoppedRef.current) {
-                      timerRef.current = paymentResultClock.scheduleTimeout(pollOnepay, POLL_INTERVAL)
-                    }
-                    return
-                  }
-                  setState('failed')
-                } catch (err) {
-                  console.error('Error fetching order status for OnePay', err)
-                  setState('failed')
-                }
-              }
-
-              pollOnepay()
-              return
-            }
-
-            // If backend didn't resolve an orderId, show pending to let backend sync finish
-            setState('pending')
+          if (onepayResponseCode !== '0') {
+            setState('failed')
             return
           }
-
-          // Non-successful OnePay response
-          setState('failed')
-        } catch (error) {
-          console.error('Không thể đồng bộ OnePay IPN:', error)
+          await confirmPaidOrder(restoreOrderIdFromOnePayTxnRef(onepayMerchTxnRef))
+        } catch {
           setState('failed')
         }
-
         return
       }
 
-      // ----------------------------------------------------------------------
-      // BƯỚC 1: ĐỒNG BỘ IPN CỤC BỘ (Fallback cho Localhost)
-      // Do VNPay ngoài Internet không thể chọc API vào localhost, Frontend sẽ
-      // chộp lấy URL raw và chuyển tiếp xuống Backend để Cập nhật Database.
-      // Lưu ý: Tuyệt đối dùng window.location.search (chuỗi gốc) để bảo toàn chữ ký.
-      // ----------------------------------------------------------------------
-      try {
-        await fetch('/api/orders/vnpay-ipn' + window.location.search)
-      } catch (error) {
-        console.error('Không thể đồng bộ IPN xuống Backend:', error)
-      }
-
-      // ----------------------------------------------------------------------
-      // BƯỚC 2: BÓC TÁCH DỮ LIỆU
-      // ----------------------------------------------------------------------
       const responseCode = searchParams.get('vnp_ResponseCode')
+      const transactionStatus = searchParams.get('vnp_TransactionStatus')
       const rawTxnRef = searchParams.get('vnp_TxnRef')
-
-      // Lọc bỏ timestamp `_1739xxx` để lấy lại ID đơn hàng thật gốc (mẹo chống trùng lặp)
-      const orderId = rawTxnRef ? rawTxnRef.split('_')[0] : null
-
-      // ----------------------------------------------------------------------
-      // BƯỚC 3: ĐIỀU HƯỚNG MÀN HÌNH (Giao diện)
-      // ----------------------------------------------------------------------
+      const orderId = rawTxnRef?.split('_')[0]
       if (!orderId) {
-        return navigate('/orders', { replace: true })
+        setState('failed')
+        return
+      }
+      if (responseCode !== '00' || transactionStatus !== '00') {
+        setState('failed')
+        return
       }
 
-      const isSuccess = responseCode === '00'
-
-      if (isSuccess) {
-        // Hoàn tất mỹ mãn -> Nhảy lọt vào chi tiết đơn hàng (có mã Voucher)
-        navigate(`/orders/${orderId}`, { replace: true })
-      } else {
-        // Giao dịch thất bại (Hết tiền, Hủy, Sai OTP...) -> Báo lỗi & Quay về
-        const errorCode = responseCode || 'DEFAULT'
-        const errorMessage = VNPayMessageMap[errorCode] || VNPayMessageMap['DEFAULT'].replace('{code}', errorCode)
-
-        alert(errorMessage)
-        navigate(`/orders/${orderId}`, { replace: true })
+      try {
+        // Uses the configured backend API base, never the Vercel/frontend host.
+        const { data } = await api.get<{ RspCode?: string }>(`/orders/vnpay-ipn${window.location.search}`)
+        if (data?.RspCode !== '00') {
+          setState('failed')
+          return
+        }
+        await confirmPaidOrder(orderId)
+      } catch {
+        setState('failed')
       }
     }
 
-    handleVNPayReturn()
-  }, [searchParams, navigate])
+    void handleCallback()
+    return () => {
+      stoppedRef.current = true
+      if (timerRef.current) window.clearTimeout(timerRef.current)
+    }
+  }, [navigate, searchParams, attemptsLimit, pollInterval])
 
-  const retryCheck = () => {
-    if (!stripeOrderId) return
-    // reset attempts and restart polling
-    attemptsRef.current = 0
-    stoppedRef.current = false
-    setState('processing')
-    // trigger poll by calling getOrder once; polling loop will continue
-    getOrder(stripeOrderId)
-      .then((order) => {
-        setOrderData(order)
-        if (order.status === 'PAID') setState('success')
-        else if (order.status === 'PENDING_PAYMENT') setState('pending')
-        else setState('failed')
-      })
-      .catch(() => setState('failed'))
-  }
-
-  if (state === 'processing') {
+  if (state === 'processing')
     return (
-      <div style={resultShellStyle}>
+      <div style={shellStyle}>
         <CheckoutProgress current='checkout' />
-        <div style={resultCardStyle}>
+        <div style={cardStyle}>
           <LoadingSpinner label='Thanh toán đang được xác nhận' />
-          <p style={resultTextStyle}>Chúng tôi đang xác nhận giao dịch an toàn với cổng thanh toán.</p>
+          <p style={textStyle}>
+            Đang xác minh giao dịch với cổng thanh toán. Bạn không cần thực hiện thêm thao tác nào.
+          </p>
         </div>
       </div>
     )
-  }
 
-  if (state === 'success') {
-    return orderData ? <CompletedOrderDetail order={orderData} showBackLink={false} /> : null
-  }
-
-  if (state === 'failed') {
-    return (
-      <div style={resultShellStyle}>
-        <CheckoutProgress current='checkout' />
-        <div style={resultCardStyle}>
-          <h1>Thanh toán chưa hoàn tất</h1>
-          <p style={resultTextStyle}>Giao dịch chưa được xác nhận. Bạn có thể quay lại đơn hàng để thử lại.</p>
-          <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
-            <button className='btn' onClick={() => navigate(orderData?.id ? `/orders/${orderData.id}` : '/orders')}>
-              Quay lại đơn hàng
-            </button>
-            <button
-              className='btn btn-primary'
-              onClick={() => navigate(orderData?.id ? `/orders/${orderData.id}` : '/orders')}
-            >
-              Thanh toán lại
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // pending
   return (
-    <div style={resultShellStyle}>
+    <div style={shellStyle}>
       <CheckoutProgress current='checkout' />
-      <div style={resultCardStyle}>
-        <h1>Thanh toán đang được xác nhận</h1>
-        <p style={resultTextStyle}>
-          Thanh toán của bạn đang được nhà cung cấp thanh toán xác nhận. Việc xác nhận có thể mất vài giây.
-        </p>
+      <div style={cardStyle}>
+        <h1>Thanh toán chưa hoàn tất</h1>
+        <p style={textStyle}>Giao dịch chưa được xác nhận. Bạn có thể quay lại đơn hàng để thử lại.</p>
         <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
-          <button className='btn' onClick={retryCheck}>
-            Kiểm tra lại
+          <button className='btn' onClick={() => navigate(orderData?.id ? `/orders/${orderData.id}` : '/orders')}>
+            Quay lại đơn hàng
           </button>
           <button
             className='btn btn-primary'
             onClick={() => navigate(orderData?.id ? `/orders/${orderData.id}` : '/orders')}
           >
-            Xem đơn hàng
+            Thanh toán lại
           </button>
         </div>
       </div>
@@ -309,13 +181,13 @@ export function PaymentResultPage() {
   )
 }
 
-const resultShellStyle = { maxWidth: 980, margin: '2rem auto', padding: '0 24px' }
-const resultCardStyle = {
+const shellStyle = { maxWidth: 980, margin: '2rem auto', padding: '0 24px' }
+const cardStyle = {
   padding: '32px',
   border: '1px solid var(--border, #e5dfd1)',
   borderRadius: '20px',
   background: 'var(--surface, #fff)'
 }
-const resultTextStyle = { color: 'var(--text-muted, #6b7280)', lineHeight: 1.6 }
+const textStyle = { color: 'var(--text-muted, #6b7280)', lineHeight: 1.6 }
 
 export default PaymentResultPage

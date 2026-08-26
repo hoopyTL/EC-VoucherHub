@@ -110,19 +110,39 @@ describe('order controller routes', () => {
   })
 
   it.each([
-    ['00', 'SUCCESS'],
-    ['24', 'FAILURE']
-  ])('processes response code %s as %s', async (responseCode, outcome) => {
+    ['00', '00', 'SUCCESS'],
+    ['24', '24', 'FAILURE']
+  ])('processes response/status %s/%s as %s', async (responseCode, transactionStatus, outcome) => {
     verifyReturnMock.mockReturnValue(true)
-    prismaMock.order.findUnique.mockResolvedValue({ customerId: 'customer-1', status: 'PENDING_PAYMENT' })
+    prismaMock.order.findUnique.mockResolvedValue({
+      customerId: 'customer-1',
+      status: 'PENDING_PAYMENT',
+      totalAmount: '125000'
+    })
     serviceMock.processPayment.mockResolvedValue({ orderId: 'order-1', status: 'PAID', codes: [] })
 
     const response = await request(app).get(
-      `/api/orders/vnpay-ipn?vnp_TxnRef=order-1_123&vnp_ResponseCode=${responseCode}`
+      `/api/orders/vnpay-ipn?vnp_TxnRef=order-1_123&vnp_ResponseCode=${responseCode}&vnp_TransactionStatus=${transactionStatus}&vnp_Amount=12500000`
     )
 
     expect(response.body.RspCode).toBe('00')
     expect(serviceMock.processPayment).toHaveBeenCalledWith('customer-1', 'order-1', { outcome })
+  })
+
+  it('rejects a signed VNPay callback whose amount does not match the exact order', async () => {
+    verifyReturnMock.mockReturnValue(true)
+    prismaMock.order.findUnique.mockResolvedValue({
+      customerId: 'customer-1',
+      status: 'PENDING_PAYMENT',
+      totalAmount: '125000'
+    })
+
+    const response = await request(app).get(
+      '/api/orders/vnpay-ipn?vnp_TxnRef=order-1_123&vnp_ResponseCode=00&vnp_TransactionStatus=00&vnp_Amount=1'
+    )
+
+    expect(response.body.RspCode).toBe('04')
+    expect(serviceMock.processPayment).not.toHaveBeenCalled()
   })
 
   it('creates OnePay payment URL and persists transaction', async () => {

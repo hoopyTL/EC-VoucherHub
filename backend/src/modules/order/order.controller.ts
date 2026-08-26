@@ -252,6 +252,8 @@ export const vnpayIpn = asyncHandler(async (req: Request, res: Response) => {
   const rawTxnRef = (vnp_Params['vnp_TxnRef'] as string) || ''
   const orderId = rawTxnRef.split('_')[0]
   const responseCode = vnp_Params['vnp_ResponseCode'] as string
+  const transactionStatus = vnp_Params['vnp_TransactionStatus'] as string
+  const callbackAmount = Number(vnp_Params['vnp_Amount'])
 
   // Never write callback parameters to logs: query values are controlled by an external caller.
   console.info('[VNPay IPN] Callback received', { signatureValid: isValid })
@@ -275,8 +277,13 @@ export const vnpayIpn = asyncHandler(async (req: Request, res: Response) => {
       return res.status(200).json({ RspCode: '02', Message: 'Order already confirmed' })
     }
 
-    // 4. Quyết định cập nhật dựa trên mã VNPay trả về (00 là Thành công tuyệt đối)
-    if (responseCode === '00') {
+    const expectedAmount = Math.round(Number(order.totalAmount) * 100)
+    if (!Number.isFinite(callbackAmount) || callbackAmount !== expectedAmount) {
+      return res.status(200).json({ RspCode: '04', Message: 'Invalid amount' })
+    }
+
+    // A payment is successful only when both VNPay result fields confirm it.
+    if (responseCode === '00' && transactionStatus === '00') {
       await orderService.processPayment(order.customerId, orderId, { outcome: 'SUCCESS' })
     } else {
       await orderService.processPayment(order.customerId, orderId, { outcome: 'FAILURE' })
