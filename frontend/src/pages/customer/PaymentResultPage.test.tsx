@@ -1,23 +1,48 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
-import { act } from 'react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import * as PaymentResultModule from './PaymentResultPage'
-const { PaymentResultPage } = PaymentResultModule
 import * as orders from '../../services/orders'
 import { api } from '../../services/api'
 
+const { PaymentResultPage } = PaymentResultModule
+
+function paidOrder(id: string, totalAmount = '150000') {
+  return {
+    id,
+    customerId: 'customer-1',
+    status: 'PAID',
+    totalAmount,
+    paymentMethod: 'STRIPE',
+    giftRecipient: null,
+    paidAt: '2026-08-26T08:00:00.000Z',
+    createdAt: '2026-08-26T07:45:00.000Z',
+    updatedAt: '2026-08-26T08:00:00.000Z',
+    items: [
+      { id: 1, voucherProductId: 'voucher-1', voucherProductName: 'Voucher cà phê', quantity: 2, unitPrice: '75000' }
+    ],
+    codes: [
+      { code: 'CAFE-PAID-001', voucherProductId: 'voucher-1', status: 'UNUSED', expiresAt: '2026-12-31T00:00:00.000Z' }
+    ]
+  } as any
+}
+
 function renderWithUrl(url: string) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
-    <MemoryRouter initialEntries={[url]}>
-      <PaymentResultPage />
-    </MemoryRouter>
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={[url]}>
+        <PaymentResultPage />
+      </MemoryRouter>
+    </QueryClientProvider>
   )
 }
 
-describe('PaymentResultPage (Stripe)', () => {
+describe('PaymentResultPage gateway confirmation', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
+    vi.spyOn(orders, 'getOrderPayments').mockResolvedValue([])
   })
 
   afterEach(() => {
@@ -25,116 +50,77 @@ describe('PaymentResultPage (Stripe)', () => {
     vi.restoreAllMocks()
   })
 
-  it('renders success immediately when order already PAID', async () => {
-    vi.spyOn(orders, 'getOrder').mockResolvedValue({ id: 'o1', status: 'PAID', totalAmount: '100000' } as any)
-    renderWithUrl('/payment-result?order_id=o1&stripe_success=true&session_id=s1')
+  it('Stripe PAID renders the shared completed order detail with step 3, paid badge, item and VND total', async () => {
+    const id = '30be1486-aaaa-bbbb-cccc-123456789012'
+    vi.spyOn(orders, 'getOrder').mockResolvedValue(paidOrder(id))
+    renderWithUrl(`/payment-result?order_id=${id}&stripe_success=true&session_id=s1`)
 
-    expect(await screen.findByText(/Thanh toán thành công/)).toBeDefined()
-    expect(screen.getByText(/o1/)).toBeDefined()
+    expect(await screen.findByTestId('completed-order-detail')).toBeDefined()
+    expect(screen.getByTestId('checkout-step-complete').textContent).toContain('Hoàn tất')
+    expect(screen.getByText('Đã thanh toán')).toBeDefined()
+    expect(screen.getByText('Đơn #30be1486')).toBeDefined()
+    expect(screen.getByText('Voucher cà phê')).toBeDefined()
+    expect(screen.getAllByText(/150\.000/).length).toBeGreaterThan(0)
+    expect(orders.getOrder).toHaveBeenCalledWith(id)
   })
 
-  it('polls then shows success when status changes to PAID', async () => {
-    const mock = vi.spyOn(orders, 'getOrder')
-    // first 2 calls pending, then paid
-    mock.mockImplementationOnce(async () => ({ id: 'o2', status: 'PENDING_PAYMENT' }) as any)
-    mock.mockImplementationOnce(async () => ({ id: 'o2', status: 'PENDING_PAYMENT' }) as any)
-    mock.mockImplementationOnce(async () => ({ id: 'o2', status: 'PAID', totalAmount: '200000' }) as any)
-    // make scheduled polls run synchronously in tests by stubbing scheduleTimeout
-    const scheduleSpy = vi
-      .spyOn(PaymentResultModule.paymentResultClock, 'scheduleTimeout')
-      .mockImplementation((cb: any) => {
-        cb()
-        return 1 as any
-      })
+  it('OnePay PAID renders the same shared completion UI for the exact merchant order id', async () => {
+    const id = '30be1486-aaaa-bbbb-cccc-123456789012'
+    vi.spyOn(api, 'get').mockResolvedValue({ data: 'responsecode=0&desc=confirm-success' } as any)
+    vi.spyOn(orders, 'getOrder').mockResolvedValue(paidOrder(id, '50000'))
+    renderWithUrl(`/payment-result?vpc_TxnResponseCode=0&vpc_MerchTxnRef=${id.replaceAll('-', '')}_123`)
 
+    expect(await screen.findByTestId('completed-order-detail')).toBeDefined()
+    expect(screen.getByText('Đã thanh toán')).toBeDefined()
+    expect(screen.getByTestId('checkout-step-complete').textContent).toContain('Hoàn tất')
+    expect(api.get).toHaveBeenCalledWith(expect.stringContaining('/orders/onepay-ipn'))
+    expect(orders.getOrder).toHaveBeenCalledWith(id)
+  })
+
+  it('polls Stripe PENDING_PAYMENT then renders the shared completion UI only after PAID', async () => {
+    const getOrder = vi.spyOn(orders, 'getOrder')
+    getOrder.mockResolvedValueOnce({ ...paidOrder('o2'), status: 'PENDING_PAYMENT' })
+    getOrder.mockResolvedValueOnce(paidOrder('o2'))
+    vi.spyOn(PaymentResultModule.paymentResultClock, 'scheduleTimeout').mockImplementation((callback: () => void) => {
+      callback()
+      return 1 as any
+    })
     renderWithUrl('/payment-result?order_id=o2&stripe_success=true&session_id=s2')
 
-    expect(await screen.findByText(/Thanh toán thành công/)).toBeDefined()
-    expect(screen.getByText(/o2/)).toBeDefined()
-    scheduleSpy.mockRestore()
+    expect(await screen.findByTestId('completed-order-detail')).toBeDefined()
+    expect(getOrder).toHaveBeenCalledTimes(2)
   })
 
-  it('shows pending after max attempts remain PENDING_PAYMENT', async () => {
-    vi.spyOn(orders, 'getOrder').mockResolvedValue({ id: 'o3', status: 'PENDING_PAYMENT' } as any)
-
-    const scheduleSpy = vi
-      .spyOn(PaymentResultModule.paymentResultClock, 'scheduleTimeout')
-      .mockImplementation((cb: any) => {
-        cb()
-        return 1 as any
-      })
-
+  it('pending payment does not show the completed order detail', async () => {
+    vi.spyOn(orders, 'getOrder').mockResolvedValue({ ...paidOrder('o3'), status: 'PENDING_PAYMENT' })
+    vi.spyOn(PaymentResultModule.paymentResultClock, 'scheduleTimeout').mockImplementation(() => 1 as any)
     renderWithUrl('/payment-result?order_id=o3&stripe_success=true&session_id=s3')
 
-    expect(await screen.findByText(/Thanh toán đang được xác nhận/)).toBeDefined()
-    scheduleSpy.mockRestore()
+    expect(await screen.findByText('Thanh toán đang được xác nhận')).toBeDefined()
+    expect(screen.queryByTestId('completed-order-detail')).toBeNull()
   })
 
-  it('renders failed when stripe_success is false', async () => {
-    renderWithUrl('/payment-result?order_id=o4&stripe_success=false&session_id=s4')
-    expect(await screen.findByText(/Thanh toán chưa hoàn tất/)).toBeDefined()
+  it('forged Stripe success query cannot show completed UI unless the backend order is PAID', async () => {
+    vi.spyOn(orders, 'getOrder').mockResolvedValue({ ...paidOrder('o4'), status: 'CANCELLED' })
+    renderWithUrl('/payment-result?order_id=o4&stripe_success=true&session_id=forged')
+
+    expect(await screen.findByText('Thanh toán chưa hoàn tất')).toBeDefined()
+    expect(screen.queryByTestId('completed-order-detail')).toBeNull()
   })
 
-  it('renders failed on API error', async () => {
-    vi.spyOn(orders, 'getOrder').mockRejectedValue(new Error('boom'))
-    renderWithUrl('/payment-result?order_id=o5&stripe_success=true&session_id=s5')
-    expect(await screen.findByText(/Thanh toán chưa hoàn tất/)).toBeDefined()
-  })
-})
-
-describe('PaymentResultPage (OnePay)', () => {
-  beforeEach(() => {
-    vi.restoreAllMocks()
+  it('Stripe canceled response shows failed UI without completed details', async () => {
+    renderWithUrl('/payment-result?order_id=o5&stripe_success=false&session_id=s5')
+    expect(await screen.findByText('Thanh toán chưa hoàn tất')).toBeDefined()
+    expect(screen.queryByTestId('completed-order-detail')).toBeNull()
   })
 
-  afterEach(() => {
-    vi.useRealTimers()
-    vi.restoreAllMocks()
-  })
-
-  it('OnePay success -> order already PAID shows success', async () => {
-    vi.spyOn(api, 'get').mockResolvedValue({ data: 'responsecode=0&desc=confirm-success' } as any)
-    vi.spyOn(orders, 'getOrder').mockResolvedValue({ id: 'o10', status: 'PAID', totalAmount: '50000' } as any)
-
-    renderWithUrl('/payment-result?vpc_TxnResponseCode=0&vpc_MerchTxnRef=o10_123')
-
-    expect(await screen.findByText(/Thanh toán thành công/)).toBeDefined()
-    expect(screen.getByText(/o10/)).toBeDefined()
-    expect(api.get).toHaveBeenCalledWith(expect.stringContaining('/orders/onepay-ipn'))
-    expect(orders.getOrder).toHaveBeenCalledWith('o10')
-  })
-
-  it('OnePay success -> pending then PAID via polling', async () => {
-    vi.spyOn(api, 'get').mockResolvedValue({ data: 'responsecode=0&desc=confirm-success' } as any)
-    const mock = vi.spyOn(orders, 'getOrder')
-    mock.mockImplementationOnce(async () => ({ id: 'o11', status: 'PENDING_PAYMENT' }) as any)
-    mock.mockImplementationOnce(async () => ({ id: 'o11', status: 'PAID', totalAmount: '70000' }) as any)
-
-    const scheduleSpy = vi
-      .spyOn(PaymentResultModule.paymentResultClock, 'scheduleTimeout')
-      .mockImplementation((cb: any) => {
-        cb()
-        return 1 as any
-      })
-
-    renderWithUrl('/payment-result?vpc_TxnResponseCode=0&vpc_MerchTxnRef=o11_1')
-
-    expect(await screen.findByText(/Thanh toán thành công/)).toBeDefined()
-    scheduleSpy.mockRestore()
-  })
-
-  it('OnePay sync fails -> shows failed', async () => {
-    vi.spyOn(api, 'get').mockRejectedValue(new Error('sync-failed'))
-    renderWithUrl('/payment-result?vpc_TxnResponseCode=0&vpc_MerchTxnRef=o12_1')
-
-    expect(await screen.findByText(/Thanh toán chưa hoàn tất/)).toBeDefined()
-  })
-
-  it('OnePay canceled response -> shows failed and does not call orders?limit=1', async () => {
-    const spyApi = vi.spyOn(api, 'get').mockResolvedValue({ data: 'responsecode=0&desc=confirm-success' } as any)
+  it('OnePay canceled response is locally mocked and never requests /orders?limit=1', async () => {
+    const spyApi = vi.spyOn(api, 'get').mockResolvedValue({ data: 'responsecode=1&desc=cancelled' } as any)
     renderWithUrl('/payment-result?vpc_TxnResponseCode=1&vpc_MerchTxnRef=o13_1')
 
-    expect(await screen.findByText(/Thanh toán chưa hoàn tất/)).toBeDefined()
+    expect(await screen.findByText('Thanh toán chưa hoàn tất')).toBeDefined()
+    expect(spyApi).toHaveBeenCalledWith(expect.stringContaining('/orders/onepay-ipn'))
     expect(spyApi).not.toHaveBeenCalledWith(expect.stringContaining('/orders?limit=1'))
+    expect(screen.queryByTestId('completed-order-detail')).toBeNull()
   })
 })

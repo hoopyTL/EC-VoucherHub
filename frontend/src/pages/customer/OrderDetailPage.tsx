@@ -35,6 +35,7 @@ import { QRCodeDisplay } from '../../components/common/QRCodeDisplay'
 import { formatCurrency, formatDateTime, formatStatus } from '../../utils/format'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
 import { CheckoutProgress } from '../../components/customer/CheckoutProgress'
+import { CompletedOrderDetail } from '../../components/customer/CompletedOrderDetail'
 import { getOrderPayments, type PaymentTransactionResponse } from '../../services/orders'
 
 async function fetchOrder(id: string): Promise<Order> {
@@ -128,6 +129,9 @@ export function OrderDetailPage() {
       </section>
     )
   }
+
+  // Keep the paid page and gateway-return page on one canonical UI.
+  if (isPaid) return <CompletedOrderDetail order={order} />
 
   return (
     <section className='order-detail-page' style={wrapperStyle}>

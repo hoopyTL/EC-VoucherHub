@@ -5,10 +5,12 @@ export function scheduleTimeout(fn: () => void, ms: number) {
 }
 // Small injectable clock seam for tests; production still uses window.setTimeout.
 export const paymentResultClock = { scheduleTimeout }
-import { useSearchParams, useNavigate, Link } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { VNPayMessageMap } from '../../constants/vnpay'
 import { LoadingSpinner } from '../../components/ui'
-import { getOrder, formatMoney } from '../../services/orders'
+import { CheckoutProgress } from '../../components/customer/CheckoutProgress'
+import { CompletedOrderDetail } from '../../components/customer/CompletedOrderDetail'
+import { getOrder, type OrderResponse } from '../../services/orders'
 
 /** Restore the UUID/order id encoded in OnePay's merchant transaction ref. */
 function restoreOrderIdFromOnePayTxnRef(txnRef: string): string {
@@ -28,7 +30,7 @@ export function PaymentResultPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const [state, setState] = useState<'processing' | 'success' | 'failed' | 'pending'>('processing')
-  const [orderData, setOrderData] = useState<any | null>(null)
+  const [orderData, setOrderData] = useState<OrderResponse | null>(null)
   const [stripeOrderId, setStripeOrderId] = useState<string | null>(null)
   const attemptsRef = useRef(0)
   const stoppedRef = useRef(false)
@@ -245,51 +247,38 @@ export function PaymentResultPage() {
 
   if (state === 'processing') {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
-        <LoadingSpinner label='Đang xác nhận kết quả thanh toán...' />
-      </div>
-    )
-  }
-
-  if (state === 'success') {
-    return (
-      <div style={{ maxWidth: 720, margin: '2rem auto', padding: '1.5rem' }}>
-        <h1>Thanh toán thành công</h1>
-        <p>Thanh toán của bạn đã được xác nhận.</p>
-        <p>
-          <strong>Đơn hàng:</strong> {orderData?.id}
-        </p>
-        {orderData?.totalAmount ? (
-          <p>
-            <strong>Tổng:</strong> {formatMoney(orderData.totalAmount)}
-          </p>
-        ) : null}
-        <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
-          <Link to={`/orders/${orderData?.id}`} className='btn btn-primary'>
-            Xem chi tiết đơn hàng
-          </Link>
-          <Link to='/my-vouchers' className='btn'>
-            Voucher của tôi
-          </Link>
+      <div style={resultShellStyle}>
+        <CheckoutProgress current='checkout' />
+        <div style={resultCardStyle}>
+          <LoadingSpinner label='Thanh toán đang được xác nhận' />
+          <p style={resultTextStyle}>Chúng tôi đang xác nhận giao dịch an toàn với cổng thanh toán.</p>
         </div>
       </div>
     )
   }
 
+  if (state === 'success') {
+    return orderData ? <CompletedOrderDetail order={orderData} showBackLink={false} /> : null
+  }
+
   if (state === 'failed') {
     return (
-      <div style={{ maxWidth: 720, margin: '2rem auto', padding: '1.5rem' }}>
-        <h1>Thanh toán chưa hoàn tất</h1>
-        <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
-          <button className='btn' onClick={() => navigate(orderData?.id ? `/orders/${orderData.id}` : '/orders')}>
-            Quay lại đơn hàng
-          </button>
-          <button
-            className='btn btn-primary'
-            onClick={() => navigate(orderData?.id ? `/orders/${orderData.id}` : '/orders')}
-          >
-            Thanh toán lại
-          </button>
+      <div style={resultShellStyle}>
+        <CheckoutProgress current='checkout' />
+        <div style={resultCardStyle}>
+          <h1>Thanh toán chưa hoàn tất</h1>
+          <p style={resultTextStyle}>Giao dịch chưa được xác nhận. Bạn có thể quay lại đơn hàng để thử lại.</p>
+          <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
+            <button className='btn' onClick={() => navigate(orderData?.id ? `/orders/${orderData.id}` : '/orders')}>
+              Quay lại đơn hàng
+            </button>
+            <button
+              className='btn btn-primary'
+              onClick={() => navigate(orderData?.id ? `/orders/${orderData.id}` : '/orders')}
+            >
+              Thanh toán lại
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -297,22 +286,36 @@ export function PaymentResultPage() {
 
   // pending
   return (
-    <div style={{ maxWidth: 720, margin: '2rem auto', padding: '1.5rem' }}>
-      <h1>Thanh toán đang được xác nhận</h1>
-      <p>Thanh toán của bạn đang được nhà cung cấp thanh toán xác nhận. Việc xác nhận có thể mất vài giây.</p>
-      <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
-        <button className='btn' onClick={retryCheck}>
-          Kiểm tra lại
-        </button>
-        <button
-          className='btn btn-primary'
-          onClick={() => navigate(orderData?.id ? `/orders/${orderData.id}` : '/orders')}
-        >
-          Xem đơn hàng
-        </button>
+    <div style={resultShellStyle}>
+      <CheckoutProgress current='checkout' />
+      <div style={resultCardStyle}>
+        <h1>Thanh toán đang được xác nhận</h1>
+        <p style={resultTextStyle}>
+          Thanh toán của bạn đang được nhà cung cấp thanh toán xác nhận. Việc xác nhận có thể mất vài giây.
+        </p>
+        <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
+          <button className='btn' onClick={retryCheck}>
+            Kiểm tra lại
+          </button>
+          <button
+            className='btn btn-primary'
+            onClick={() => navigate(orderData?.id ? `/orders/${orderData.id}` : '/orders')}
+          >
+            Xem đơn hàng
+          </button>
+        </div>
       </div>
     </div>
   )
 }
+
+const resultShellStyle = { maxWidth: 980, margin: '2rem auto', padding: '0 24px' }
+const resultCardStyle = {
+  padding: '32px',
+  border: '1px solid var(--border, #e5dfd1)',
+  borderRadius: '20px',
+  background: 'var(--surface, #fff)'
+}
+const resultTextStyle = { color: 'var(--text-muted, #6b7280)', lineHeight: 1.6 }
 
 export default PaymentResultPage
