@@ -96,7 +96,6 @@ export function OrdersPage({ view = 'all' }: { view?: OrderHistoryView }) {
           <Link to='/my-vouchers'>Voucher của tôi</Link>
           <Link to='/profile?tab=security'>Đổi mật khẩu</Link>
         </nav>
-        <div className='customer-account-member-badge'>Thành viên Bạc · 1.250 điểm</div>
         <button type='button' className='customer-account-logout' onClick={() => setLogoutOpen(true)}>
           Đăng xuất
         </button>

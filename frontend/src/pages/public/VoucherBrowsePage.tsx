@@ -17,7 +17,7 @@
  *
  * _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5, 11.6, 12.1_
  */
-import { useMemo, useRef, type CSSProperties } from 'react'
+import { useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import type { VoucherSearchParams } from '@ui-contracts'
@@ -57,6 +57,7 @@ function toSearchParams(filters: VoucherFilterValues, page: number): VoucherSear
 
 export function VoucherBrowsePage() {
   const [urlParams, setUrlParams] = useSearchParams()
+  const [showAllBrandStrip, setShowAllBrandStrip] = useState(false)
   const filters = useMemo<VoucherFilterValues>(
     () => ({
       keyword: urlParams.get('keyword') ?? urlParams.get('q') ?? '',
@@ -115,6 +116,7 @@ export function VoucherBrowsePage() {
 
   const total = query.data?.pagination.total ?? 0
   const totalPages = Math.max(1, Math.ceil(total / PAGE_LIMIT))
+  const isRefreshing = query.isFetching && !query.isLoading
   const cataloguePartnerCount = filterOptionsQuery.data?.partners.length ?? partnerOptions.length
   const activeFilterEntries = [
     filters.keyword ? { key: 'keyword', label: `“${filters.keyword}”` } : null,
@@ -302,7 +304,18 @@ export function VoucherBrowsePage() {
             </p>
           ) : (
             <>
-              <VoucherGrid vouchers={vouchers} isLoading={query.isLoading} />
+              <div
+                className={isRefreshing ? 'voucher-results is-refreshing' : 'voucher-results'}
+                aria-busy={isRefreshing}
+              >
+                {isRefreshing && (
+                  <div className='voucher-results-loading' role='status' aria-live='polite'>
+                    <span className='voucher-results-loading__spinner' aria-hidden='true' />
+                    Đang cập nhật kết quả…
+                  </div>
+                )}
+                <VoucherGrid vouchers={vouchers} isLoading={query.isLoading} />
+              </div>
 
               {totalPages > 1 && (
                 <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -312,30 +325,37 @@ export function VoucherBrowsePage() {
 
               <div className='voucher-browse-brand-strip' aria-label='Thương hiệu đồng hành'>
                 <div className='voucher-browse-brand-strip__header'>
-                  <span>Hãng ngân thương hiệu</span>
-                  <button type='button'>Xem thêm</button>
+                  <span>Thương hiệu đối tác</span>
+                  <button type='button' onClick={() => setShowAllBrandStrip((current) => !current)}>
+                    {showAllBrandStrip ? 'Thu gọn' : 'Xem thêm'}
+                  </button>
                 </div>
-                <div className='voucher-browse-brand-strip__list'>
-                  {[
-                    { name: 'Highlands', mark: 'H', tone: 'highlands' },
-                    { name: 'Pizza Company', mark: 'P', tone: 'pizza' },
-                    { name: 'KFC', mark: 'K', tone: 'kfc' },
-                    { name: 'Lotteria', mark: 'L', tone: 'lotteria' },
-                    { name: 'Gogi', mark: 'G', tone: 'gogi' },
-                    { name: 'Phúc Long', mark: 'PL', tone: 'phuclong' },
-                    { name: 'Trà sữa', mark: 'TS', tone: 'milk' },
-                    { name: 'Café', mark: 'C', tone: 'cafe' },
-                    { name: 'NX', mark: 'NX', tone: 'nx' },
-                    { name: 'VietJet', mark: 'VJ', tone: 'vietjet' }
-                  ].map((brand) => (
-                    <div
-                      key={brand.name}
-                      className={`voucher-browse-brand-strip__item voucher-browse-brand-strip__item--${brand.tone}`}
-                    >
-                      <span className='voucher-browse-brand-strip__mark'>{brand.mark}</span>
-                      <span className='voucher-browse-brand-strip__name'>{brand.name}</span>
-                    </div>
-                  ))}
+                <div
+                  className={
+                    showAllBrandStrip
+                      ? 'voucher-browse-brand-strip__list is-expanded'
+                      : 'voucher-browse-brand-strip__list'
+                  }
+                >
+                  {(filterOptionsQuery.data?.partners ?? [])
+                    .slice(0, showAllBrandStrip ? undefined : 10)
+                    .map((partner) => (
+                      <button
+                        type='button'
+                        key={partner.id}
+                        className='voucher-browse-brand-strip__item'
+                        onClick={() => handleFilterChange({ ...filters, partnerId: partner.id })}
+                      >
+                        <span className='voucher-browse-brand-strip__mark'>
+                          {partner.logoUrl ? (
+                            <img src={partner.logoUrl} alt={`Logo ${partner.name}`} loading='lazy' />
+                          ) : (
+                            partner.name.slice(0, 2).toLocaleUpperCase('vi')
+                          )}
+                        </span>
+                        <span className='voucher-browse-brand-strip__name'>{partner.name}</span>
+                      </button>
+                    ))}
                 </div>
               </div>
             </>

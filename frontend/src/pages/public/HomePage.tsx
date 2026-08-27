@@ -9,7 +9,23 @@
  */
 import { FormEvent, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Coffee, Gamepad2, Plane, Search, ShoppingBag, Sparkles, TicketCheck, Utensils } from 'lucide-react'
+import {
+  BedDouble,
+  Bus,
+  Coffee,
+  Dumbbell,
+  Film,
+  Gamepad2,
+  HeartPulse,
+  Map,
+  Plane,
+  Search,
+  ShoppingBag,
+  Sparkles,
+  Stethoscope,
+  Utensils,
+  type LucideIcon
+} from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../hooks/useAuth'
@@ -49,7 +65,45 @@ const HERO_SLIDES = [
   }
 ] as const
 
-const CATEGORY_ICONS = [Utensils, Coffee, Plane, Gamepad2, Sparkles, ShoppingBag, TicketCheck] as const
+function voucherHeroSlides(vouchers: Awaited<ReturnType<typeof searchVouchers>>['vouchers']) {
+  return vouchers.slice(0, 5).map((voucher) => ({
+    eyebrow: voucher.category,
+    title: voucher.title,
+    accent: `${Number(voucher.salePrice).toLocaleString('vi-VN')}đ`,
+    subtitle: `${voucher.partner.businessName} · Giảm ${Math.round((1 - Number(voucher.salePrice) / Number(voucher.originalPrice)) * 100)}%`,
+    image: voucher.imageUrl,
+    fallback: partnerInitials(voucher.partner.businessName)
+  }))
+}
+
+const CATEGORY_ICON_RULES: Array<[string[], LucideIcon]> = [
+  [['buffet', 'ẩm thực'], Utensils],
+  [['cà phê', 'trà sữa'], Coffee],
+  [['sân bay', 'phòng chờ'], Plane],
+  [['giải trí', 'thể thao'], Dumbbell],
+  [['hotel', 'resort'], BedDouble],
+  [['massage'], HeartPulse],
+  [['mua sắm'], ShoppingBag],
+  [['nha khoa'], Stethoscope],
+  [['spa', 'làm đẹp'], Sparkles],
+  [['tour du lịch'], Map],
+  [['xem phim', 'sự kiện'], Film],
+  [['vận tải', 'di chuyển'], Bus]
+]
+
+function categoryIcon(category: string): LucideIcon {
+  const normalized = category.toLocaleLowerCase('vi')
+  return (
+    CATEGORY_ICON_RULES.find(([keywords]) => keywords.some((keyword) => normalized.includes(keyword)))?.[1] ?? Gamepad2
+  )
+}
+
+function partnerInitials(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean)
+  if (words.length === 0) return 'VH'
+  if (words.length === 1) return words[0].slice(0, 2).toLocaleUpperCase('vi')
+  return `${words[0][0]}${words.at(-1)?.[0] ?? ''}`.toLocaleUpperCase('vi')
+}
 
 const BRAND_DOMAINS: Array<[string, string]> = [
   ['pizza 4p', 'pizza4ps.com'],
@@ -71,8 +125,10 @@ function PartnerLogo({ name, logoUrl }: { name: string; logoUrl?: string | null 
   const normalized = name.toLocaleLowerCase('vi')
   const domain = BRAND_DOMAINS.find(([keyword]) => normalized.includes(keyword))?.[1]
   const src = logoUrl || (domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=128` : null)
-  if (!src || failed) return <span className='home-brand-row__fallback'>{name.slice(0, 1)}</span>
-  return <img src={src} alt='' loading='lazy' referrerPolicy='no-referrer' onError={() => setFailed(true)} />
+  if (!src || failed) return <span className='home-brand-row__fallback'>{partnerInitials(name)}</span>
+  return (
+    <img src={src} alt={`Logo ${name}`} loading='lazy' referrerPolicy='no-referrer' onError={() => setFailed(true)} />
+  )
 }
 
 /** Secondary CTA target/label depends on whether (and how) the user is signed in. */
@@ -92,6 +148,8 @@ export function HomePage() {
   const [keyword, setKeyword] = useState('')
   const [heroSlide, setHeroSlide] = useState(0)
   const [heroPaused, setHeroPaused] = useState(false)
+  const [showAllPartners, setShowAllPartners] = useState(false)
+  const [partnerKeyword, setPartnerKeyword] = useState('')
   const { isAuthenticated, user } = useAuth()
   const { t } = useTranslation()
   const cta = secondaryCta(isAuthenticated, user?.role, t)
@@ -105,16 +163,24 @@ export function HomePage() {
     queryFn: () => searchVouchers({ page: 1, limit: 5 }),
     staleTime: 5 * 60 * 1000
   })
-  const activeHero = HERO_SLIDES[heroSlide]
+  const databaseHeroSlides = voucherHeroSlides(featuredQuery.data?.vouchers ?? [])
+  const heroSlides = databaseHeroSlides.length > 0 ? databaseHeroSlides : HERO_SLIDES
+  const activeHero = heroSlides[heroSlide % heroSlides.length]
+  const partners = optionsQuery.data?.partners ?? []
+  const normalizedPartnerKeyword = partnerKeyword.trim().toLocaleLowerCase('vi')
+  const matchingPartners = normalizedPartnerKeyword
+    ? partners.filter((partner) => partner.name.toLocaleLowerCase('vi').includes(normalizedPartnerKeyword))
+    : partners
+  const visiblePartners = showAllPartners ? matchingPartners : matchingPartners.slice(0, 10)
 
   useEffect(() => {
     if (heroPaused) return
-    const timer = window.setInterval(() => setHeroSlide((current) => (current + 1) % HERO_SLIDES.length), 5000)
+    const timer = window.setInterval(() => setHeroSlide((current) => (current + 1) % heroSlides.length), 5000)
     return () => window.clearInterval(timer)
-  }, [heroPaused])
+  }, [heroPaused, heroSlides.length])
 
   const moveHero = (direction: number) => {
-    setHeroSlide((current) => (current + direction + HERO_SLIDES.length) % HERO_SLIDES.length)
+    setHeroSlide((current) => (current + direction + heroSlides.length) % heroSlides.length)
   }
 
   const submitSearch = (event: FormEvent) => {
@@ -170,11 +236,11 @@ export function HomePage() {
         >
           ƯU ĐÃI
         </div>
-        <div className='home-hero-visual' key={activeHero.image}>
-          <img
+        <div className='home-hero-visual' key={`${activeHero.title}-${activeHero.image ?? 'fallback'}`}>
+          <VoucherImage
             src={activeHero.image}
-            alt={`Hình minh họa ${activeHero.title}`}
-            fetchPriority={heroSlide === 0 ? 'high' : 'auto'}
+            alt={`Ảnh ${activeHero.title}`}
+            fallback={'fallback' in activeHero ? activeHero.fallback : 'VH'}
           />
         </div>
         <button
@@ -355,7 +421,7 @@ export function HomePage() {
           </div>
         </div>
         <div className='home-hero-dots' role='tablist' aria-label='Chọn slide banner'>
-          {HERO_SLIDES.map((slide, index) => (
+          {heroSlides.map((slide, index) => (
             <button
               key={slide.title}
               type='button'
@@ -375,8 +441,15 @@ export function HomePage() {
           marginTop: 14
         }}
       >
+        {optionsQuery.isLoading &&
+          Array.from({ length: 7 }, (_, index) => <span key={index} className='home-category-strip__skeleton' />)}
+        {optionsQuery.isError && (
+          <button type='button' className='home-data-retry' onClick={() => optionsQuery.refetch()}>
+            Chưa tải được danh mục · Thử lại
+          </button>
+        )}
         {(optionsQuery.data?.categories ?? []).slice(0, 7).map((category, index) => {
-          const CategoryIcon = CATEGORY_ICONS[index % CATEGORY_ICONS.length]
+          const CategoryIcon = categoryIcon(category)
           return (
             <Link key={category} to={`/search?category=${encodeURIComponent(category)}`}>
               <span className={`home-category-strip__icon home-category-strip__icon--${index % 7}`}>
@@ -389,15 +462,10 @@ export function HomePage() {
         })}
       </section>
 
-      <section className='home-flash-sale' aria-label='Flash sale'>
+      <section className='home-flash-sale' aria-label='Ưu đãi nổi bật'>
         <div className='home-flash-sale__heading'>
-          <strong>ϟ FLASH SALE</strong>
-          <span>Kết thúc sau</span>
-          <b>05</b>
-          <i>:</i>
-          <b>45</b>
-          <i>:</i>
-          <b>32</b>
+          <strong>Ưu đãi nổi bật</strong>
+          <span>Được cập nhật trực tiếp từ danh sách voucher đang bán</span>
           <Link to='/search?sort=discount'>Xem tất cả ›</Link>
         </div>
         <div className='home-flash-sale__items'>
@@ -450,10 +518,43 @@ export function HomePage() {
       <section className='home-section home-brands' aria-labelledby='home-brands-title'>
         <div className='home-section__heading'>
           <h2 id='home-brands-title'>Thương hiệu đối tác</h2>
-          <Link to='/search'>Xem tất cả</Link>
+          <button
+            type='button'
+            className='home-brands__toggle'
+            aria-expanded={showAllPartners}
+            aria-controls='home-partner-list'
+            onClick={() => {
+              setShowAllPartners((current) => !current)
+              if (showAllPartners) setPartnerKeyword('')
+            }}
+          >
+            {showAllPartners ? 'Thu gọn' : `Xem tất cả (${partners.length})`}
+          </button>
         </div>
-        <div className='home-brand-row'>
-          {(optionsQuery.data?.partners ?? []).slice(0, 10).map((partner, index) => (
+        {optionsQuery.isLoading && <div className='home-brands__status'>Đang tải thương hiệu đối tác…</div>}
+        {optionsQuery.isError && (
+          <div className='home-brands__status'>
+            Chưa tải được thương hiệu.
+            <button type='button' onClick={() => optionsQuery.refetch()}>
+              Thử lại
+            </button>
+          </div>
+        )}
+        {showAllPartners && (
+          <div className='home-brands__tools'>
+            <Search size={17} aria-hidden='true' />
+            <input
+              type='search'
+              value={partnerKeyword}
+              onChange={(event) => setPartnerKeyword(event.target.value)}
+              aria-label='Tìm thương hiệu đối tác'
+              placeholder='Tìm trong danh sách đối tác'
+            />
+            <span>{matchingPartners.length} đối tác</span>
+          </div>
+        )}
+        <div id='home-partner-list' className={showAllPartners ? 'home-brand-row is-expanded' : 'home-brand-row'}>
+          {visiblePartners.map((partner, index) => (
             <Link key={partner.id} to={`/search?partnerId=${partner.id}`}>
               <span className={`home-brand-row__mark home-brand-row__mark--${index % 5}`}>
                 <PartnerLogo name={partner.name} logoUrl={partner.logoUrl} />
@@ -461,6 +562,9 @@ export function HomePage() {
               <strong>{partner.name}</strong>
             </Link>
           ))}
+          {showAllPartners && matchingPartners.length === 0 && (
+            <p className='home-brands__empty'>Không tìm thấy thương hiệu phù hợp.</p>
+          )}
         </div>
       </section>
     </div>

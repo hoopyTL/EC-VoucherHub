@@ -73,11 +73,6 @@ export const confirmStripePayment = asyncHandler(async (req: Request, res: Respo
   const sessionId = typeof req.body?.sessionId === 'string' ? req.body.sessionId.trim() : ''
   if (!sessionId) throw ApiError.badRequest('Thiếu mã phiên thanh toán Stripe.')
 
-  const order = await orderService.getOrderDetail(req.user!.sub, orderId)
-  if (order.status === OrderStatus.PAID) return successResponse(res, order)
-  if (order.status !== OrderStatus.PENDING_PAYMENT)
-    throw ApiError.conflict('Đơn hàng không ở trạng thái chờ thanh toán.')
-
   let session
   try {
     session = await stripe.checkout.sessions.retrieve(sessionId)
@@ -88,13 +83,37 @@ export const confirmStripePayment = asyncHandler(async (req: Request, res: Respo
   if (session.payment_status !== 'paid' || session.metadata?.orderId !== orderId) {
     throw ApiError.badRequest('Phiên thanh toán Stripe không khớp với đơn hàng.')
   }
+
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    select: { id: true, customerId: true, status: true, totalAmount: true }
+  })
+  if (!order) throw ApiError.notFound('Đơn hàng không tồn tại.')
+  if (order.status === OrderStatus.PAID) return successResponse(res, order)
+  if (order.status !== OrderStatus.PENDING_PAYMENT)
+    throw ApiError.conflict('Đơn hàng không ở trạng thái chờ thanh toán.')
+
   const expectedAmount = Math.round(Number(order.totalAmount))
   if (session.currency?.toLowerCase() !== 'vnd' || session.amount_total !== expectedAmount) {
     throw ApiError.badRequest('Số tiền Stripe không khớp với đơn hàng.')
   }
 
-  await orderService.processPayment(req.user!.sub, orderId, { outcome: 'SUCCESS' })
-  const confirmed = await orderService.getOrderDetail(req.user!.sub, orderId)
+  await orderService.processPayment(
+    order.customerId,
+    orderId,
+    { outcome: 'SUCCESS' },
+    {
+      gateway: 'STRIPE',
+      gatewayTransId: session.id,
+      rawResponse: {
+        id: session.id,
+        paymentStatus: session.payment_status,
+        amountTotal: session.amount_total,
+        currency: session.currency
+      }
+    }
+  )
+  const confirmed = await orderService.getOrderDetail(order.customerId, orderId)
   if (confirmed.status !== OrderStatus.PAID) throw ApiError.conflict('Stripe chưa xác nhận thanh toán hoàn tất.')
   successResponse(res, confirmed)
 })

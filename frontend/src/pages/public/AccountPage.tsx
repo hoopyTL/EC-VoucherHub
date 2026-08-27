@@ -192,7 +192,6 @@ export function AccountPage() {
               Đổi mật khẩu
             </button>
           </nav>
-          <div className='customer-account-member-badge'>Thành viên Bạc · 1.250 điểm</div>
           <button type='button' className='customer-account-logout' onClick={() => setLogoutOpen(true)}>
             Đăng xuất
           </button>

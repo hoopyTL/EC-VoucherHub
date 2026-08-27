@@ -100,6 +100,29 @@ describe('VoucherBrowsePage', () => {
     })
   })
 
+  it('shows a refreshing state while a changed filter is loading', async () => {
+    let resolveFiltered!: (response: SearchVouchersResponse) => void
+    const filteredResponse = new Promise<SearchVouchersResponse>((resolve) => {
+      resolveFiltered = resolve
+    })
+    const spy = vi
+      .spyOn(voucherService, 'searchVouchers')
+      .mockResolvedValueOnce(buildResponse())
+      .mockReturnValueOnce(filteredResponse)
+
+    renderPage()
+    await screen.findByText('Spa Day Package')
+
+    fireEvent.click(screen.getByRole('button', { name: /Spa & Làm đẹp/i }))
+
+    expect((await screen.findByRole('status')).textContent).toMatch(/Đang cập nhật kết quả/i)
+    expect(screen.getByTestId('voucher-grid').parentElement?.getAttribute('aria-busy')).toBe('true')
+
+    resolveFiltered(buildResponse())
+    await waitFor(() => expect(screen.queryByRole('status')).toBeNull())
+    expect(spy).toHaveBeenCalledTimes(2)
+  })
+
   it('passes both price bounds, including prices above one million, to the API', async () => {
     const spy = vi.spyOn(voucherService, 'searchVouchers').mockResolvedValue(buildResponse())
 

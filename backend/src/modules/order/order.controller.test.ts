@@ -102,10 +102,15 @@ describe('order controller routes', () => {
   })
 
   it('confirms a paid Stripe session for the exact authenticated order', async () => {
-    serviceMock.getOrderDetail
-      .mockResolvedValueOnce({ id: 'order-1', status: 'PENDING_PAYMENT', totalAmount: '125000' } as any)
-      .mockResolvedValueOnce({ id: 'order-1', status: 'PAID' } as any)
+    prismaMock.order.findUnique.mockResolvedValue({
+      id: 'order-1',
+      customerId: 'customer-1',
+      status: 'PENDING_PAYMENT',
+      totalAmount: '125000'
+    })
+    serviceMock.getOrderDetail.mockResolvedValue({ id: 'order-1', status: 'PAID' } as any)
     retrieveStripeSessionMock.mockResolvedValue({
+      id: 'cs_test_1',
       payment_status: 'paid',
       currency: 'vnd',
       amount_total: 125000,
@@ -117,11 +122,28 @@ describe('order controller routes', () => {
 
     expect(response.status).toBe(200)
     expect(retrieveStripeSessionMock).toHaveBeenCalledWith('cs_test_1')
-    expect(serviceMock.processPayment).toHaveBeenCalledWith('customer-1', 'order-1', { outcome: 'SUCCESS' })
+    expect(serviceMock.processPayment).toHaveBeenCalledWith(
+      'customer-1',
+      'order-1',
+      { outcome: 'SUCCESS' },
+      expect.objectContaining({ gateway: 'STRIPE', gatewayTransId: 'cs_test_1' })
+    )
   })
 
   it('returns an already-paid Stripe order without processing it again', async () => {
-    serviceMock.getOrderDetail.mockResolvedValue({ id: 'order-1', status: 'PAID' } as any)
+    prismaMock.order.findUnique.mockResolvedValue({
+      id: 'order-1',
+      customerId: 'customer-1',
+      status: 'PAID',
+      totalAmount: '125000'
+    })
+    retrieveStripeSessionMock.mockResolvedValue({
+      id: 'cs_test_1',
+      payment_status: 'paid',
+      currency: 'vnd',
+      amount_total: 125000,
+      metadata: { orderId: 'order-1' }
+    } as any)
     const response = await request(app).post('/api/orders/order-1/stripe/confirm').send({ sessionId: 'cs_test_1' })
     expect(response.status).toBe(200)
     expect(serviceMock.processPayment).not.toHaveBeenCalled()

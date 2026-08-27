@@ -316,6 +316,35 @@ describe('voucher partner API', () => {
 })
 
 describe('voucher admin and supporting APIs', () => {
+  it('provides a stable generated logo when a public partner has no uploaded logo', async () => {
+    const seller = await createPartner('filter-logo@example.com', 'VOUCHER-FILTER-LOGO')
+    const category = await prisma.category.create({ data: { name: 'Danh mục logo' } })
+    await prisma.voucherProduct.create({
+      data: {
+        partnerId: seller.partner.id,
+        categoryId: category.id,
+        name: 'Voucher có logo đối tác',
+        description: 'Dữ liệu kiểm thử logo trong bộ lọc công khai.',
+        originalPrice: 200000,
+        salePrice: 150000,
+        saleStart: new Date(Date.now() - 86_400_000),
+        saleEnd: new Date(future(30)),
+        usageStart: new Date(),
+        usageEnd: new Date(future(60)),
+        totalQuantity: 10,
+        remainingQuantity: 10,
+        status: VoucherStatus.ON_SALE,
+        voucherProductBranches: { create: { branchId: seller.partner.branches[0].id } }
+      }
+    })
+
+    const response = await request(app).get('/api/vouchers/filters')
+    const partner = response.body.data.partners.find(({ id }: { id: string }) => id === seller.partner.id)
+
+    expect(response.status).toBe(200)
+    expect(partner.logoUrl).toMatch(/^data:image\/svg\+xml,/)
+  })
+
   it('protects admin listing and filters pending review vouchers', async () => {
     const seller = await createPartner('list-voucher@example.com', 'VOUCHER-LIST')
     const admin = await createUser({ email: 'list-admin@example.com', role: RoleName.ADMIN })

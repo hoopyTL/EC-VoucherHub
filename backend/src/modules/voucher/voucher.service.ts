@@ -28,6 +28,18 @@ type VoucherCodeCounts = Pick<VoucherDto, 'issuedCodeCount' | 'usedCodeCount' | 
 
 const emptyCodeCounts = (): VoucherCodeCounts => ({ issuedCodeCount: 0, usedCodeCount: 0, expiredCodeCount: 0 })
 
+function generatedPartnerLogoDataUri(partnerId: string, legalName: string): string {
+  const words = legalName.trim().split(/\s+/).filter(Boolean)
+  const initials = (words.length > 1 ? `${words[0][0]}${words.at(-1)?.[0] ?? ''}` : words[0]?.slice(0, 2) || 'VH')
+    .toLocaleUpperCase('vi')
+    .slice(0, 2)
+  let hash = 0
+  for (const character of partnerId) hash = (hash * 31 + character.charCodeAt(0)) >>> 0
+  const hue = hash % 360
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="hsl(${hue} 72% 46%)"/><stop offset="1" stop-color="hsl(${(hue + 38) % 360} 68% 34%)"/></linearGradient></defs><rect width="128" height="128" rx="28" fill="url(#g)"/><circle cx="100" cy="25" r="24" fill="white" opacity=".12"/><text x="64" y="75" text-anchor="middle" fill="white" font-family="Arial,sans-serif" font-size="42" font-weight="700">${initials.replace(/[&<>"']/g, '')}</text></svg>`
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`
+}
+
 function assertOwnedImage(imageUrl: string | null | undefined, partnerId: string): void {
   if (!imageUrl) return
   const expectedPrefix = `/uploads/vouchers/${partnerId}-`
@@ -394,7 +406,12 @@ export const voucherService = {
         ...new Map(
           vouchers.map((voucher) => [
             voucher.partner.id,
-            { id: voucher.partner.id, name: voucher.partner.legalName, logoUrl: voucher.partner.logoUrl }
+            {
+              id: voucher.partner.id,
+              name: voucher.partner.legalName,
+              logoUrl:
+                voucher.partner.logoUrl ?? generatedPartnerLogoDataUri(voucher.partner.id, voucher.partner.legalName)
+            }
           ])
         ).values()
       ].sort((a, b) => a.name.localeCompare(b.name, 'vi')),

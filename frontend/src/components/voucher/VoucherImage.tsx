@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 
 interface VoucherImageProps {
   src?: string | null
@@ -14,6 +14,8 @@ function spriteCell(src: string) {
 }
 
 export function VoucherImage({ src, alt, style, fallback = 'VH' }: VoucherImageProps) {
+  const [failed, setFailed] = useState(false)
+  useEffect(() => setFailed(false), [src])
   const cell = src ? spriteCell(src) : null
   if (cell !== null) {
     return (
@@ -32,7 +34,7 @@ export function VoucherImage({ src, alt, style, fallback = 'VH' }: VoucherImageP
       />
     )
   }
-  if (src) return <img src={src} alt={alt} style={style} />
+  if (src && !failed) return <img src={src} alt={alt} style={style} onError={() => setFailed(true)} />
   return (
     <span style={style} aria-label={alt}>
       {fallback}
