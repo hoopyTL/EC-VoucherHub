@@ -97,28 +97,7 @@ export interface VoucherFilterOptions {
   categories: string[]
   regions: string[]
   partners: Array<{ id: string; name: string; logoUrl?: string | null }>
-}
-
-export interface ExternalPromotionItem {
-  id: string
-  source: 'KLOOK' | 'HIGHLANDS' | 'MOMO'
-  name: string
-  sourceUrl: string
-  description: string | null
-  merchant: string | null
-  category: string | null
-  imageUrl: string | null
-  originalPrice: string | null
-  salePrice: string | null
-  discountPercentage: number | null
-  promoCode: string | null
-  saleEnd: string | null
-  checkoutAllowed: false
-}
-
-export async function getExternalPromotions(): Promise<ExternalPromotionItem[]> {
-  const { data } = await api.get<{ success: boolean; data: ExternalPromotionItem[] }>('/vouchers/external')
-  return data.data
+  priceRange?: { min: number; max: number }
 }
 
 export async function getVoucherFilterOptions(): Promise<VoucherFilterOptions> {

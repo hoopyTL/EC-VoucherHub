@@ -94,7 +94,6 @@ export function OrdersPage({ view = 'all' }: { view?: OrderHistoryView }) {
             Lịch sử mua hàng
           </Link>
           <Link to='/my-vouchers'>Voucher của tôi</Link>
-          <Link to='/favorites'>Yêu thích</Link>
           <Link to='/profile?tab=security'>Đổi mật khẩu</Link>
         </nav>
         <div className='customer-account-member-badge'>Thành viên Bạc · 1.250 điểm</div>

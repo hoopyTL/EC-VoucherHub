@@ -2682,3 +2682,31 @@ canvas {
     padding: 18px;
   }
 }
+.voucher-detail-description-text.is-collapsed {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+}
+
+.voucher-detail-description-toggle {
+  margin-top: 14px;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid currentColor;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.voucher-detail-description-toggle:hover {
+  color: var(--accent);
+}
+
+.voucher-detail-description-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: 2px;
+}

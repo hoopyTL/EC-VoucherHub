@@ -10,11 +10,14 @@
 
 /** Voucher categories offered in the catalogue (design "Seed Data Strategy"). */
 export const VOUCHER_CATEGORIES = [
-  'Ăn uống',
-  'Cà phê & Trà sữa',
-  'Buffet & Lẩu',
-  'Làm đẹp & Spa',
-  'Du lịch & Khách sạn'
+  'Ẩm Thực',
+  'Buffet',
+  'Spa & Làm đẹp',
+  'Massage Nam Nữ',
+  'Giải Trí & Thể Thao',
+  'Tour du lịch',
+  'Hotel & Resort',
+  'Nha Khoa'
 ] as const
 
 /** Regions a partner branch can belong to (design "Seed Data Strategy"). */

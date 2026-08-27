@@ -42,7 +42,6 @@ import { OrdersPage } from './pages/customer/OrdersPage'
 import { CheckoutPage } from './pages/customer/CheckoutPage'
 import { CustomerCartHubPage } from './pages/customer/CustomerCartHubPage'
 import { MyVouchersPage } from './pages/customer/MyVouchersPage'
-import { FavoritesPage } from './pages/customer/FavoritesPage'
 import { PaymentResultPage } from './pages/customer/PaymentResultPage'
 import { VouchersPage as PartnerVouchersPage } from './pages/partner/VouchersPage'
 import { CreateVoucherPage as PartnerCreateVoucherPage } from './pages/partner/CreateVoucherPage'
@@ -192,7 +191,6 @@ export function AppRoutes() {
         <Route element={<ProtectedRoute allowedRoles={['CUSTOMER']} />}>
           <Route path='cart' element={<CustomerCartHubPage />} />
           <Route path='my-vouchers' element={<MyVouchersPage />} />
-          <Route path='favorites' element={<FavoritesPage />} />
           <Route path='checkout' element={<CheckoutPage />} />
           <Route path='orders' element={<OrdersPage />} />
           <Route path='orders/:id' element={<OrderDetailPage />} />

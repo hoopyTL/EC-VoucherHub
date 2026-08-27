@@ -87,6 +87,24 @@ describe('VoucherDetailPage', () => {
     expect(await screen.findByText(/chưa có điều khoản và điều kiện riêng/i)).toBeDefined()
   })
 
+  it('formats dash-separated description items and lets the customer expand long content', async () => {
+    const description = `- Mục đầu tiên ${'nội dung '.repeat(45)} - Mục thứ hai - Khung giờ 14:00 – 20:00`
+    vi.spyOn(voucherService, 'getVoucherDetail').mockResolvedValue(makeVoucherDetail({ description }))
+
+    renderDetail('v1')
+
+    const toggle = await screen.findByRole('button', { name: 'Xem thêm' })
+    const content = document.getElementById('voucher-description-content')
+    expect(content?.textContent).toContain('\n- Mục thứ hai')
+    expect(content?.textContent).toContain('14:00 – 20:00')
+    expect(content?.classList.contains('is-collapsed')).toBe(true)
+
+    fireEvent.click(toggle)
+
+    expect(screen.getByRole('button', { name: 'Thu gọn' })).toBeDefined()
+    expect(content?.classList.contains('is-collapsed')).toBe(false)
+  })
+
   it('adds the voucher to the cart for an authenticated customer', async () => {
     seedSession(UserRole.CUSTOMER)
     vi.spyOn(voucherService, 'getVoucherDetail').mockResolvedValue(makeVoucherDetail())

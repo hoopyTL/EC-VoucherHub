@@ -20,9 +20,6 @@ export const voucherController = {
   getPublicFilters: asyncHandler(async (_req, res) => {
     ApiResponse.success(res, await voucherService.getPublicFilters())
   }),
-  listExternal: asyncHandler(async (_req, res) => {
-    ApiResponse.success(res, await voucherService.listExternal())
-  }),
   getPublic: asyncHandler(async (req, res) => {
     const { id } = req.validated?.params as { id: string }
     ApiResponse.success(res, await voucherService.getPublic(id))

@@ -12,7 +12,7 @@
  * _Requirements: 12.1, 12.2, 11.1_
  */
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '../../components/ui/Button'
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner'
@@ -30,6 +30,16 @@ import { colors, fonts, radius, shadows } from '../../theme/tokens'
 
 /** Per-voucher cart quantity ceiling (mirrors the backend limit). */
 const MAX_QUANTITY = 10
+const DESCRIPTION_COLLAPSE_LENGTH = 360
+const DESCRIPTION_COLLAPSE_LINES = 6
+
+/** Format dash-separated promotion details as readable lines. */
+function formatVoucherDescription(description: string): string {
+  return description
+    .trim()
+    .replace(/^\s*[-–]\s+/, '- ')
+    .replace(/(?<![\d:])\s+[-–]\s+/g, '\n- ')
+}
 
 /** Returns true when the error represents a 404 (voucher not found/published). */
 function isNotFound(error: unknown): boolean {
@@ -132,7 +142,12 @@ export function VoucherDetailPage() {
   const { isAuthenticated, user } = useAuth()
 
   const [quantity, setQuantity] = useState(1)
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false)
   const addAnimationOrigin = useRef<{ x: number; y: number; imageUrl?: string | null } | null>(null)
+
+  useEffect(() => {
+    setDescriptionExpanded(false)
+  }, [id])
 
   function animateVoucherToCart() {
     const origin = addAnimationOrigin.current
@@ -233,6 +248,10 @@ export function VoucherDetailPage() {
   }
 
   const voucher = query.data!
+  const formattedDescription = formatVoucherDescription(voucher.description)
+  const descriptionCanExpand =
+    formattedDescription.length > DESCRIPTION_COLLAPSE_LENGTH ||
+    formattedDescription.split('\n').length > DESCRIPTION_COLLAPSE_LINES
   const activeBranches = voucher.voucherBranches.map((vb) => vb.branch).filter((branch) => branch.isActive)
 
   const remaining = voucher.remainingQuantity
@@ -534,7 +553,26 @@ export function VoucherDetailPage() {
 
       <section className='voucher-detail-description' style={cardStyle}>
         <h2 style={sectionTitleStyle}>Mô tả</h2>
-        <p style={{ ...bodyTextStyle, whiteSpace: 'pre-line' }}>{voucher.description}</p>
+        <p
+          id='voucher-description-content'
+          className={`voucher-detail-description-text${
+            descriptionCanExpand && !descriptionExpanded ? ' is-collapsed' : ''
+          }`}
+          style={{ ...bodyTextStyle, whiteSpace: 'pre-line' }}
+        >
+          {formattedDescription}
+        </p>
+        {descriptionCanExpand && (
+          <button
+            type='button'
+            className='voucher-detail-description-toggle'
+            aria-expanded={descriptionExpanded}
+            aria-controls='voucher-description-content'
+            onClick={() => setDescriptionExpanded((expanded) => !expanded)}
+          >
+            {descriptionExpanded ? 'Thu gọn' : 'Xem thêm'}
+          </button>
+        )}
       </section>
 
       <div

@@ -10,7 +10,6 @@
  */
 import { Link } from 'react-router-dom'
 import { useState } from 'react'
-import { Heart } from 'lucide-react'
 import type { CSSProperties } from 'react'
 import { Badge } from '../ui/Badge'
 import { PriceDisplay } from './PriceDisplay'
@@ -18,7 +17,6 @@ import { FlashSaleBadge } from './FlashSaleBadge'
 import { formatDateRange } from '../../utils/format'
 import type { VoucherListItem } from '../../services/voucher.service'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
-import { isVoucherFavorite, toggleVoucherFavorite } from '../../services/favorites'
 
 export interface VoucherCardProps {
   voucher: VoucherListItem
@@ -52,13 +50,12 @@ function headerGradient(seed: string): string {
 
 function categoryBadgeColor(category: string): string {
   const normalized = category.toLocaleLowerCase('vi')
-  if (normalized.includes('du lịch')) return '#556B5D'
+  if (normalized.includes('tour') || normalized.includes('hotel') || normalized.includes('resort')) return '#556B5D'
   if (normalized.includes('giải trí')) return '#6B5B73'
-  if (normalized.includes('làm đẹp')) return '#8A5D62'
-  if (normalized.includes('cà phê')) return '#71543B'
+  if (normalized.includes('spa') || normalized.includes('massage')) return '#8A5D62'
+  if (normalized.includes('nha khoa')) return '#476B73'
   if (normalized.includes('buffet')) return '#8A4F3D'
-  if (normalized.includes('ăn uống')) return '#9A642F'
-  if (normalized.includes('mua sắm')) return '#4F6B58'
+  if (normalized.includes('ẩm thực')) return '#9A642F'
   return '#5F594E'
 }
 
@@ -66,7 +63,6 @@ export function VoucherCard({ voucher }: VoucherCardProps) {
   const remaining = voucher.totalQuantity - voucher.soldQuantity
   const discountPercent = Math.max(0, Math.round((1 - Number(voucher.salePrice) / Number(voucher.originalPrice)) * 100))
   const [hover, setHover] = useState(false)
-  const [favorite, setFavorite] = useState(() => isVoucherFavorite(voucher.id))
 
   // Flash sale: when active, the effective price replaces the sale price (the
   // original stays struck-through) and a countdown badge is shown.
@@ -90,19 +86,6 @@ export function VoucherCard({ voucher }: VoucherCardProps) {
       data-testid='voucher-card'
       className='voucher-ticket'
     >
-      <button
-        type='button'
-        className={`voucher-favorite-button${favorite ? ' is-favorite' : ''}`}
-        aria-label={favorite ? 'Bỏ khỏi yêu thích' : 'Thêm vào yêu thích'}
-        aria-pressed={favorite}
-        onClick={(event) => {
-          event.preventDefault()
-          event.stopPropagation()
-          setFavorite(toggleVoucherFavorite(voucher.id))
-        }}
-      >
-        <Heart size={19} fill={favorite ? 'currentColor' : 'none'} aria-hidden='true' />
-      </button>
       {/* Desaturated image header with the category micro-label overlaid. */}
       <div
         className='voucher-card__media'

@@ -58,6 +58,7 @@ export interface SearchFiltersProps {
   partnerOptions?: PartnerOption[]
   categoryOptions?: string[]
   regionOptions?: string[]
+  priceRange?: { min: number; max: number }
 }
 
 /** An empty filter set — used by the page as the initial/cleared state. */
@@ -71,19 +72,13 @@ export const EMPTY_FILTERS: VoucherFilterValues = {
   partnerId: ''
 }
 
-const MAX_PRICE_CAP = 1000000
-
-const formatPriceShort = (value: number) =>
-  new Intl.NumberFormat('vi-VN', {
-    maximumFractionDigits: 0
-  }).format(value) + ' ₫'
-
 export function SearchFilters({
   value,
   onChange,
   partnerOptions = [],
   categoryOptions = [],
-  regionOptions = []
+  regionOptions = [],
+  priceRange
 }: SearchFiltersProps) {
   // Local draft so edits don't fire a request until the user applies them.
   const [draft, setDraft] = useState<VoucherFilterValues>(value)
@@ -113,21 +108,40 @@ export function SearchFilters({
     [partnerKeyword, partnerOptions]
   )
 
-  const maxRangeValue = Number(draft.maxPrice !== '' ? draft.maxPrice : 0)
-  const sliderPercent = Math.min((maxRangeValue / MAX_PRICE_CAP) * 100, 100)
-  const priceSliderBackground = `linear-gradient(90deg, #4f46e5 0%, #4f46e5 ${sliderPercent}%, #e2e8f0 ${sliderPercent}%, #e2e8f0 100%)`
-  const sliderDisplayValue = maxRangeValue > 0 ? formatPriceShort(maxRangeValue) : 'Tất cả'
-
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  function applyPriceFilter() {
     const min = Number(draft.minPrice)
     const max = Number(draft.maxPrice)
+    if (
+      (draft.minPrice && (!Number.isFinite(min) || min < 0)) ||
+      (draft.maxPrice && (!Number.isFinite(max) || max < 0))
+    ) {
+      setValidationError('Giá phải là số không âm.')
+      return
+    }
     if (draft.minPrice && draft.maxPrice && min > max) {
       setValidationError('Giá thấp nhất không được lớn hơn giá cao nhất.')
       return
     }
+    const next = {
+      ...draft,
+      minPrice: draft.minPrice && min > 0 ? String(Math.floor(min)) : '',
+      maxPrice: draft.maxPrice && max > 0 ? String(Math.floor(max)) : ''
+    }
+    setDraft(next)
     setValidationError('')
-    onChange({ ...draft, keyword: draft.keyword.trim() })
+    onChange({ ...next, keyword: next.keyword.trim() })
+  }
+
+  function clearPriceFilter() {
+    const next = { ...draft, minPrice: '', maxPrice: '' }
+    setDraft(next)
+    setValidationError('')
+    onChange({ ...next, keyword: next.keyword.trim() })
+  }
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    applyPriceFilter()
   }
 
   function handleClear() {
@@ -236,27 +250,47 @@ export function SearchFilters({
 
         <fieldset className='catalogue-filter-section'>
           <legend>Khoảng giá</legend>
-          <div className='catalogue-price-slider'>
-            <div className='catalogue-price-slider__row'>
-              <span style={{ opacity: 0, pointerEvents: 'none' }}>0 ₫</span>
-              <span>{sliderDisplayValue}</span>
+          <div className='catalogue-price-range'>
+            <div className='catalogue-price-range__inputs'>
+              <label>
+                <span>Giá từ</span>
+                <input
+                  aria-label='Giá từ'
+                  type='number'
+                  inputMode='numeric'
+                  min={0}
+                  step={10000}
+                  placeholder={priceRange?.min ? priceRange.min.toLocaleString('vi-VN') : '0'}
+                  value={draft.minPrice}
+                  onChange={(event) => {
+                    setDraft((current) => ({ ...current, minPrice: event.target.value }))
+                    setValidationError('')
+                  }}
+                />
+              </label>
+              <span aria-hidden='true'>–</span>
+              <label>
+                <span>Giá đến</span>
+                <input
+                  aria-label='Giá đến'
+                  type='number'
+                  inputMode='numeric'
+                  min={0}
+                  step={10000}
+                  placeholder={priceRange?.max ? priceRange.max.toLocaleString('vi-VN') : 'Không giới hạn'}
+                  value={draft.maxPrice}
+                  onChange={(event) => {
+                    setDraft((current) => ({ ...current, maxPrice: event.target.value }))
+                    setValidationError('')
+                  }}
+                />
+              </label>
             </div>
-            <div className='catalogue-price-slider__rail' style={{ background: priceSliderBackground }}>
-              <input
-                aria-label='Giá tối đa'
-                type='range'
-                min={0}
-                max={MAX_PRICE_CAP}
-                step={10000}
-                value={Number(draft.maxPrice !== '' ? draft.maxPrice : 0)}
-                onChange={(event) => {
-                  const nextMax = Number(event.target.value)
-                  const next = { ...draft, minPrice: '0', maxPrice: String(nextMax) }
-                  setDraft(next)
-                  onChange({ ...next, keyword: next.keyword.trim() })
-                }}
-                style={{ direction: 'ltr' }}
-              />
+            <div className='catalogue-price-range__actions'>
+              <button type='submit'>Áp dụng</button>
+              <button type='button' onClick={clearPriceFilter}>
+                Tất cả
+              </button>
             </div>
           </div>
         </fieldset>

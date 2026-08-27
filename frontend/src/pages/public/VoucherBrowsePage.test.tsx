@@ -33,12 +33,13 @@ describe('VoucherBrowsePage', () => {
   beforeEach(() => {
     localStorage.clear()
     vi.spyOn(voucherService, 'getVoucherFilterOptions').mockResolvedValue({
-      categories: ['Ăn uống', 'Làm đẹp & Spa', 'Du lịch & Khách sạn'],
+      categories: ['Ẩm Thực', 'Spa & Làm đẹp', 'Tour du lịch'],
       regions: ['Hà Nội', 'TP. Hồ Chí Minh'],
       partners: [
         { id: 'p1', name: 'Serenity Spa' },
         { id: 'p2', name: 'Tasty Bites' }
-      ]
+      ],
+      priceRange: { min: 35_000, max: 8_990_000 }
     })
   })
 
@@ -82,30 +83,39 @@ describe('VoucherBrowsePage', () => {
     })
   })
 
-  it('passes committed filter values to the search query', async () => {
+  it('passes sidebar filter values to the search query', async () => {
     const spy = vi.spyOn(voucherService, 'searchVouchers').mockResolvedValue(buildResponse())
 
     renderPage()
     await screen.findByText('Spa Day Package')
 
-    fireEvent.change(screen.getByLabelText(/^tìm kiếm$/i), {
-      target: { value: 'spa' }
-    })
-    fireEvent.change(screen.getByLabelText(/danh mục/i), {
-      target: { value: 'Làm đẹp & Spa' }
-    })
-    fireEvent.change(screen.getByLabelText(/giá thấp nhất/i), {
-      target: { value: '50000' }
-    })
-    fireEvent.click(screen.getByRole('button', { name: /^tìm kiếm$/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Spa & Làm đẹp' }))
 
     await waitFor(() => {
       expect(spy).toHaveBeenCalledWith({
         page: 1,
         limit: 12,
-        keyword: 'spa',
-        category: 'Làm đẹp & Spa',
-        minPrice: 50000
+        category: 'Spa & Làm đẹp'
+      })
+    })
+  })
+
+  it('passes both price bounds, including prices above one million, to the API', async () => {
+    const spy = vi.spyOn(voucherService, 'searchVouchers').mockResolvedValue(buildResponse())
+
+    renderPage()
+    await screen.findByText('Spa Day Package')
+
+    fireEvent.change(screen.getByLabelText(/giá từ/i), { target: { value: '1200000' } })
+    fireEvent.change(screen.getByLabelText(/giá đến/i), { target: { value: '8990000' } })
+    fireEvent.click(screen.getByRole('button', { name: /áp dụng/i }))
+
+    await waitFor(() => {
+      expect(spy).toHaveBeenCalledWith({
+        page: 1,
+        limit: 12,
+        minPrice: 1_200_000,
+        maxPrice: 8_990_000
       })
     })
   })

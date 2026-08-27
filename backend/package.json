@@ -24,7 +24,6 @@
     "db:seed:analytics": "tsx scripts/seed-business-analytics.ts",
     "db:seed:partners": "tsx scripts/balance-partner-catalogue.ts",
     "db:seed:admin-operations": "tsx scripts/seed-admin-operations.ts",
-    "db:crawl:vouchers": "tsx scripts/crawl-vouchers.ts",
     "db:seed:reviews": "tsx scripts/seed-voucher-reviews.ts",
     "db:studio": "prisma studio"
   },
@@ -33,7 +32,6 @@
     "@types/qs": "^6.15.1",
     "@voucher/shared": "*",
     "bcryptjs": "^3.0.3",
-    "cheerio": "^1.2.0",
     "cors": "^2.8.6",
     "date-fns": "^4.4.0",
     "dotenv": "^17.4.2",

@@ -81,7 +81,6 @@ export function Header() {
     location.pathname === '/cart' ||
     location.pathname === '/checkout' ||
     location.pathname === '/my-vouchers' ||
-    location.pathname === '/favorites' ||
     location.pathname === '/profile' ||
     location.pathname === '/login' ||
     location.pathname.startsWith('/orders')

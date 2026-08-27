@@ -13,75 +13,80 @@ function renderFilters(overrides: Partial<VoucherFilterValues> = {}) {
         { id: 'p1', name: 'Serenity Spa' },
         { id: 'p2', name: 'Tasty Bites' }
       ]}
-      categoryOptions={['Ăn uống', 'Làm đẹp & Spa', 'Du lịch & Khách sạn']}
+      categoryOptions={['Ẩm Thực', 'Spa & Làm đẹp', 'Tour du lịch']}
       regionOptions={['Hà Nội', 'TP. Hồ Chí Minh']}
+      priceRange={{ min: 35_000, max: 8_990_000 }}
     />
   )
   return { onChange }
 }
 
 describe('SearchFilters', () => {
-  it('renders the search box and all filter controls', () => {
+  it('renders the sidebar filter controls used by the new catalogue', () => {
     renderFilters()
-    expect(screen.getByLabelText(/^tìm kiếm$/i)).toBeDefined()
-    expect(screen.getByLabelText(/danh mục/i)).toBeDefined()
-    expect(screen.getByLabelText(/khu vực/i)).toBeDefined()
-    expect(screen.getByLabelText(/đối tác/i)).toBeDefined()
-    expect(screen.getByLabelText(/giá thấp nhất/i)).toBeDefined()
-    expect(screen.getByLabelText(/giá cao nhất/i)).toBeDefined()
-    expect(screen.getByLabelText(/giảm tối thiểu/i)).toBeDefined()
+    expect(screen.getByRole('group', { name: /danh mục/i })).toBeDefined()
+    expect(screen.getByRole('group', { name: /thương hiệu/i })).toBeDefined()
+    expect(screen.getByRole('group', { name: /khu vực/i })).toBeDefined()
+    expect(screen.getByRole('group', { name: /mức giảm/i })).toBeDefined()
+    expect(screen.getByRole('group', { name: /khoảng giá/i })).toBeDefined()
+    expect(screen.getByLabelText(/tìm thương hiệu/i)).toBeDefined()
+    expect(screen.getByLabelText(/giá từ/i)).toBeDefined()
+    expect(screen.getByLabelText(/giá đến/i)).toBeDefined()
   })
 
-  it('commits all filter values on submit (trimming the keyword)', () => {
+  it('commits catalogue choices immediately', () => {
     const { onChange } = renderFilters()
 
-    fireEvent.change(screen.getByLabelText(/^tìm kiếm$/i), {
-      target: { value: '  spa  ' }
-    })
-    fireEvent.change(screen.getByLabelText(/danh mục/i), {
-      target: { value: 'Làm đẹp & Spa' }
-    })
-    fireEvent.change(screen.getByLabelText(/khu vực/i), {
-      target: { value: 'Hà Nội' }
-    })
-    fireEvent.change(screen.getByLabelText(/đối tác/i), {
-      target: { value: 'p2' }
-    })
-    fireEvent.change(screen.getByLabelText(/giá thấp nhất/i), {
-      target: { value: '50000' }
-    })
-    fireEvent.change(screen.getByLabelText(/giá cao nhất/i), {
-      target: { value: '200000' }
-    })
-    fireEvent.change(screen.getByLabelText(/giảm tối thiểu/i), {
-      target: { value: '30' }
-    })
+    fireEvent.click(screen.getByRole('button', { name: 'Spa & Làm đẹp' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Hà Nội' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Tasty Bites' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Từ 30%' }))
 
-    fireEvent.click(screen.getByRole('button', { name: /^tìm kiếm$/i }))
-
-    expect(onChange).toHaveBeenCalledTimes(1)
-    expect(onChange).toHaveBeenCalledWith({
-      keyword: 'spa',
-      category: 'Làm đẹp & Spa',
+    expect(onChange).toHaveBeenLastCalledWith({
+      keyword: '',
+      category: 'Spa & Làm đẹp',
       region: 'Hà Nội',
       partnerId: 'p2',
-      minPrice: '50000',
-      maxPrice: '200000',
+      minPrice: '',
+      maxPrice: '',
       minDiscount: '30'
     })
   })
 
-  it('does not fire onChange on every keystroke (commit-on-submit)', () => {
+  it('filters the visible partner choices without applying a catalogue filter', () => {
     const { onChange } = renderFilters()
-    fireEvent.change(screen.getByLabelText(/^tìm kiếm$/i), {
-      target: { value: 'food' }
+    fireEvent.change(screen.getByLabelText(/tìm thương hiệu/i), {
+      target: { value: 'serenity' }
     })
+    expect(screen.getByRole('button', { name: 'Serenity Spa' })).toBeDefined()
+    expect(screen.queryByRole('button', { name: 'Tasty Bites' })).toBeNull()
     expect(onChange).not.toHaveBeenCalled()
   })
 
+  it('applies a real price range above the old one-million limit', () => {
+    const { onChange } = renderFilters()
+    fireEvent.change(screen.getByLabelText(/giá từ/i), { target: { value: '1200000' } })
+    fireEvent.change(screen.getByLabelText(/giá đến/i), { target: { value: '8990000' } })
+
+    expect(onChange).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: /áp dụng/i }))
+
+    expect(onChange).toHaveBeenCalledWith({
+      ...EMPTY_FILTERS,
+      minPrice: '1200000',
+      maxPrice: '8990000'
+    })
+  })
+
+  it('clears both price bounds instead of sending maxPrice zero', () => {
+    const { onChange } = renderFilters({ minPrice: '50000', maxPrice: '1000000' })
+    fireEvent.click(screen.getByRole('button', { name: /tất cả/i }))
+    expect(onChange).toHaveBeenCalledWith(EMPTY_FILTERS)
+  })
+
   it('clears all filters when Clear is pressed', () => {
-    const { onChange } = renderFilters({ keyword: 'spa', category: 'Du lịch & Khách sạn' })
-    fireEvent.click(screen.getByRole('button', { name: /xóa lọc/i }))
+    const { onChange } = renderFilters({ keyword: 'spa', category: 'Tour du lịch' })
+    fireEvent.click(screen.getByRole('button', { name: /xóa bộ lọc/i }))
     expect(onChange).toHaveBeenCalledWith(EMPTY_FILTERS)
   })
 })

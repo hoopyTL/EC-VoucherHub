@@ -184,7 +184,6 @@ export function AccountPage() {
             </button>
             <Link to='/orders'>Lịch sử mua hàng</Link>
             <Link to='/my-vouchers'>Voucher của tôi</Link>
-            <Link to='/favorites'>Yêu thích</Link>
             <button
               type='button'
               className={activeTab === 'security' ? 'is-current' : ''}

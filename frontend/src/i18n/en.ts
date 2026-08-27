@@ -9,7 +9,6 @@ export const en = {
     home: 'Home',
     browse: 'Browse',
     cart: 'Cart',
-    wishlist: 'Wishlist',
     points: 'Points',
     referrals: 'Refer',
     orders: 'Orders',

@@ -10,7 +10,6 @@ export const vi: TranslationBundle = {
     home: 'Trang chủ',
     browse: 'Khám phá',
     cart: 'Giỏ hàng',
-    wishlist: 'Yêu thích',
     points: 'Điểm',
     referrals: 'Giới thiệu',
     orders: 'Đơn hàng',

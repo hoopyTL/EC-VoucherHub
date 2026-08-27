@@ -186,6 +186,7 @@ export function VoucherBrowsePage() {
             partnerOptions={filterOptionsQuery.data?.partners ?? partnerOptions}
             categoryOptions={filterOptionsQuery.data?.categories ?? []}
             regionOptions={filterOptionsQuery.data?.regions ?? []}
+            priceRange={filterOptionsQuery.data?.priceRange}
           />
         </aside>
         <div className='voucher-browse-content'>

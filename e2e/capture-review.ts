@@ -52,7 +52,7 @@ async function main() {
   console.log('TOP_PIXEL', JSON.stringify(topPixel))
   await page.screenshot({ path: path.join(outputDir, '01-kham-pha-voucher.png'), fullPage: true })
 
-  await page.selectOption('#filter-category', { label: 'Cà phê & Trà sữa' })
+  await page.selectOption('#filter-category', { label: 'Ẩm Thực' })
   await page.getByRole('button', { name: 'Tìm kiếm' }).click()
   await page.waitForLoadState('networkidle')
   await page.screenshot({ path: path.join(outputDir, '02-ket-qua-tim-kiem.png'), fullPage: true })
