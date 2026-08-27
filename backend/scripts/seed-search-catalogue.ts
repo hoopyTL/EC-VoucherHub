@@ -17,13 +17,14 @@ const descriptors = [
   'Trải nghiệm mới'
 ]
 const categoryKeywords: Record<string, string> = {
-  [SEED_CATEGORIES.SHOPPING]: 'shopping,lifestyle',
   [SEED_CATEGORIES.ENTERTAINMENT]: 'cinema,entertainment',
-  [SEED_CATEGORIES.TRAVEL]: 'travel,hotel',
+  [SEED_CATEGORIES.TOUR]: 'travel,tour',
+  [SEED_CATEGORIES.HOTEL]: 'hotel,resort',
   [SEED_CATEGORIES.BEAUTY]: 'spa,wellness',
+  [SEED_CATEGORIES.MASSAGE]: 'massage,wellness',
+  [SEED_CATEGORIES.DENTAL]: 'dental,healthcare',
   [SEED_CATEGORIES.FOOD]: 'restaurant,food',
-  [SEED_CATEGORIES.BUFFET]: 'buffet,hotpot',
-  [SEED_CATEGORIES.CAFE]: 'coffee,bubbletea'
+  [SEED_CATEGORIES.BUFFET]: 'buffet,hotpot'
 }
 
 async function main() {

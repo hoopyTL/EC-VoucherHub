@@ -16,6 +16,7 @@ async function resetDatabase() {
   await prisma.partnerStaffBranch.deleteMany()
   await prisma.partnerStaff.deleteMany()
   await prisma.issuedVoucherCode.deleteMany()
+  await prisma.paymentTransaction.deleteMany()
   await prisma.orderItem.deleteMany()
   await prisma.order.deleteMany()
   await prisma.cartItem.deleteMany()
@@ -56,12 +57,13 @@ async function main() {
   })
 
   const foodCat = await prisma.category.create({ data: { name: SEED_CATEGORIES.FOOD } })
-  const travelCat = await prisma.category.create({ data: { name: SEED_CATEGORIES.TRAVEL } })
-  const beautyCat = await prisma.category.create({ data: { name: SEED_CATEGORIES.BEAUTY } })
-  const cafeCat = await prisma.category.create({ data: { name: SEED_CATEGORIES.CAFE, parentId: foodCat.id } })
-  const buffetCat = await prisma.category.create({ data: { name: SEED_CATEGORIES.BUFFET, parentId: foodCat.id } })
-  await prisma.category.create({ data: { name: SEED_CATEGORIES.SHOPPING } })
+  const buffetCat = await prisma.category.create({ data: { name: SEED_CATEGORIES.BUFFET } })
+  await prisma.category.create({ data: { name: SEED_CATEGORIES.BEAUTY } })
+  const massageCat = await prisma.category.create({ data: { name: SEED_CATEGORIES.MASSAGE } })
   await prisma.category.create({ data: { name: SEED_CATEGORIES.ENTERTAINMENT } })
+  await prisma.category.create({ data: { name: SEED_CATEGORIES.TOUR } })
+  const hotelCat = await prisma.category.create({ data: { name: SEED_CATEGORIES.HOTEL } })
+  await prisma.category.create({ data: { name: SEED_CATEGORIES.DENTAL } })
 
   const admin = await prisma.user.create({
     data: {
@@ -211,7 +213,7 @@ async function main() {
   const coffeeVoucher = await prisma.voucherProduct.create({
     data: {
       partnerId: highlands.id,
-      categoryId: cafeCat.id,
+      categoryId: foodCat.id,
       name: 'Highlands 50k toan menu',
       description: 'Ap dung cho do uong tai cac chi nhanh Highlands trong danh sach.',
       imageUrl: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93',
@@ -257,7 +259,7 @@ async function main() {
   const spaVoucher = await prisma.voucherProduct.create({
     data: {
       partnerId: lotusSpa.id,
-      categoryId: beautyCat.id,
+      categoryId: massageCat.id,
       name: 'Massage thu gian 90 phut',
       description: 'Lieu trinh massage thu gian tai Lotus Spa.',
       imageUrl: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874',
@@ -280,7 +282,7 @@ async function main() {
   await prisma.voucherProduct.create({
     data: {
       partnerId: lotusSpa.id,
-      categoryId: travelCat.id,
+      categoryId: hotelCat.id,
       name: 'Staycation cuoi tuan',
       description: 'San pham dang cho admin duyet.',
       originalPrice: 1800000,
@@ -299,7 +301,7 @@ async function main() {
   await prisma.voucherProduct.create({
     data: {
       partnerId: highlands.id,
-      categoryId: cafeCat.id,
+      categoryId: foodCat.id,
       name: 'Combo ca phe sang',
       description: 'Da duyet, cho admin cong bo.',
       originalPrice: 90000,

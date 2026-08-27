@@ -15,11 +15,11 @@ const partners = [
     representative: 'Trần Minh Anh',
     branch: ['Lotus Spa Quận 1', '45 Nguyễn Huệ, Quận 1', 'TP. Hồ Chí Minh'],
     products: [
-      ['Chăm sóc da chuyên sâu 90 phút', 'Làm đẹp & Spa', 890000, 499000],
-      ['Massage đá nóng thư giãn', 'Làm đẹp & Spa', 750000, 449000],
-      ['Gội đầu dưỡng sinh thảo mộc', 'Làm đẹp & Spa', 320000, 189000],
-      ['Combo spa dành cho hai người', 'Làm đẹp & Spa', 1600000, 990000],
-      ['Liệu trình phục hồi tóc Keratin', 'Làm đẹp & Spa', 1100000, 699000]
+      ['Chăm sóc da chuyên sâu 90 phút', 'Spa & Làm đẹp', 890000, 499000],
+      ['Massage đá nóng thư giãn', 'Massage Nam Nữ', 750000, 449000],
+      ['Gội đầu dưỡng sinh thảo mộc', 'Spa & Làm đẹp', 320000, 189000],
+      ['Combo spa dành cho hai người', 'Spa & Làm đẹp', 1600000, 990000],
+      ['Liệu trình phục hồi tóc Keratin', 'Spa & Làm đẹp', 1100000, 699000]
     ]
   },
   {
@@ -30,11 +30,11 @@ const partners = [
     representative: 'Nguyễn Hoàng Nam',
     branch: ['Golden Gate Cầu Giấy', '17T5 Hoàng Đạo Thúy', 'Hà Nội'],
     products: [
-      ['Buffet nướng Hàn Quốc cuối tuần', 'Buffet & Lẩu', 499000, 349000],
-      ['Set lẩu Nhật Bản cho hai người', 'Buffet & Lẩu', 699000, 459000],
-      ['Buffet hải sản cao cấp', 'Buffet & Lẩu', 899000, 599000],
-      ['Combo cơm trưa doanh nhân', 'Ăn uống', 220000, 139000],
-      ['Tiệc gia đình bốn người', 'Ăn uống', 1200000, 799000]
+      ['Buffet nướng Hàn Quốc cuối tuần', 'Buffet', 499000, 349000],
+      ['Set lẩu Nhật Bản cho hai người', 'Buffet', 699000, 459000],
+      ['Buffet hải sản cao cấp', 'Buffet', 899000, 599000],
+      ['Combo cơm trưa doanh nhân', 'Ẩm Thực', 220000, 139000],
+      ['Tiệc gia đình bốn người', 'Ẩm Thực', 1200000, 799000]
     ]
   },
   {
@@ -45,11 +45,11 @@ const partners = [
     representative: 'Lê Thu Trang',
     branch: ['TripGo Đà Nẵng', '36 Bạch Đằng, Hải Châu', 'Đà Nẵng'],
     products: [
-      ['Nghỉ dưỡng biển Đà Nẵng 2N1Đ', 'Du lịch & Khách sạn', 3200000, 2190000],
-      ['Tour Bà Nà Hills trọn ngày', 'Du lịch & Khách sạn', 1400000, 999000],
-      ['Resort Hội An dành cho hai người', 'Du lịch & Khách sạn', 4500000, 2990000],
-      ['Vé xe limousine Đà Nẵng - Huế', 'Du lịch & Khách sạn', 450000, 299000],
-      ['Tour khám phá bán đảo Sơn Trà', 'Du lịch & Khách sạn', 800000, 499000]
+      ['Nghỉ dưỡng biển Đà Nẵng 2N1Đ', 'Hotel & Resort', 3200000, 2190000],
+      ['Tour Bà Nà Hills trọn ngày', 'Tour du lịch', 1400000, 999000],
+      ['Resort Hội An dành cho hai người', 'Hotel & Resort', 4500000, 2990000],
+      ['Vé xe limousine Đà Nẵng - Huế', 'Tour du lịch', 450000, 299000],
+      ['Tour khám phá bán đảo Sơn Trà', 'Tour du lịch', 800000, 499000]
     ]
   },
   {
@@ -60,11 +60,11 @@ const partners = [
     representative: 'Phạm Quốc Huy',
     branch: ['Starlight Ninh Kiều', '6 Hòa Bình, Ninh Kiều', 'Cần Thơ'],
     products: [
-      ['Cặp vé xem phim 2D cuối tuần', 'Giải trí', 220000, 149000],
-      ['Combo phim và bắp nước cho hai người', 'Giải trí', 360000, 229000],
-      ['Vé khu vui chơi trẻ em cả ngày', 'Giải trí', 280000, 169000],
-      ['Trải nghiệm bowling 60 phút', 'Giải trí', 300000, 179000],
-      ['Phòng karaoke gia đình hai giờ', 'Giải trí', 700000, 399000]
+      ['Cặp vé xem phim 2D cuối tuần', 'Giải Trí & Thể Thao', 220000, 149000],
+      ['Combo phim và bắp nước cho hai người', 'Giải Trí & Thể Thao', 360000, 229000],
+      ['Vé khu vui chơi trẻ em cả ngày', 'Giải Trí & Thể Thao', 280000, 169000],
+      ['Trải nghiệm bowling 60 phút', 'Giải Trí & Thể Thao', 300000, 179000],
+      ['Phòng karaoke gia đình hai giờ', 'Giải Trí & Thể Thao', 700000, 399000]
     ]
   },
   {
@@ -74,13 +74,7 @@ const partners = [
     cover: 'https://images.unsplash.com/photo-1495446815901-a7297e633e8d',
     representative: 'Võ Khánh Linh',
     branch: ['ReadMore Hải Phòng', '12 Trần Phú, Hồng Bàng', 'Hải Phòng'],
-    products: [
-      ['Voucher mua sách trị giá 300K', 'Mua sắm', 300000, 249000],
-      ['Combo văn phòng phẩm sáng tạo', 'Mua sắm', 450000, 299000],
-      ['Thẻ quà tặng lifestyle 500K', 'Mua sắm', 500000, 419000],
-      ['Bộ sách kỹ năng bán chạy', 'Mua sắm', 650000, 399000],
-      ['Voucher quà tặng sinh nhật', 'Mua sắm', 1000000, 849000]
-    ]
+    products: []
   }
 ] as const
 

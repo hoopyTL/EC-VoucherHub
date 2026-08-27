@@ -27,13 +27,14 @@ export function normalizeSeedRoleName(roleName: string): SeedRoleName | undefine
 }
 
 export const SEED_CATEGORIES = {
-  FOOD: 'Ăn uống',
-  TRAVEL: 'Du lịch & Khách sạn',
-  BEAUTY: 'Làm đẹp & Spa',
-  CAFE: 'Cà phê & Trà sữa',
-  BUFFET: 'Buffet & Lẩu',
-  SHOPPING: 'Mua sắm',
-  ENTERTAINMENT: 'Giải trí'
+  FOOD: 'Ẩm Thực',
+  BUFFET: 'Buffet',
+  BEAUTY: 'Spa & Làm đẹp',
+  MASSAGE: 'Massage Nam Nữ',
+  ENTERTAINMENT: 'Giải Trí & Thể Thao',
+  TOUR: 'Tour du lịch',
+  HOTEL: 'Hotel & Resort',
+  DENTAL: 'Nha Khoa'
 } as const
 
 export const SEED_CATEGORY_NAMES = Object.values(SEED_CATEGORIES)
