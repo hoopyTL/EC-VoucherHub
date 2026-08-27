@@ -24,12 +24,7 @@ import type { VoucherSearchParams } from '@ui-contracts'
 import { SearchFilters, type PartnerOption, type VoucherFilterValues } from '../../components/voucher/SearchFilters'
 import { VoucherGrid } from '../../components/voucher/VoucherGrid'
 import { Pagination } from '../../components/ui/Pagination'
-import {
-  getVoucherFilterOptions,
-  getExternalPromotions,
-  searchVouchers,
-  type SearchVouchersResponse
-} from '../../services/voucher.service'
+import { getVoucherFilterOptions, searchVouchers, type SearchVouchersResponse } from '../../services/voucher.service'
 import { colors, fonts, radius } from '../../theme/tokens'
 
 /** Page size for the catalogue listing (matches the backend default). */
@@ -64,7 +59,7 @@ export function VoucherBrowsePage() {
   const [urlParams, setUrlParams] = useSearchParams()
   const filters = useMemo<VoucherFilterValues>(
     () => ({
-      keyword: urlParams.get('keyword') ?? '',
+      keyword: urlParams.get('keyword') ?? urlParams.get('q') ?? '',
       category: urlParams.get('category') ?? '',
       region: urlParams.get('region') ?? '',
       minPrice: urlParams.get('minPrice') ?? '',
@@ -89,13 +84,6 @@ export function VoucherBrowsePage() {
     queryFn: getVoucherFilterOptions,
     staleTime: 5 * 60 * 1000
   })
-  const externalQuery = useQuery({
-    queryKey: ['vouchers', 'external'],
-    queryFn: getExternalPromotions,
-    staleTime: 10 * 60 * 1000,
-    enabled: import.meta.env.MODE !== 'test'
-  })
-
   // Accumulate partner options across loaded pages so the dropdown persists
   // even when the current page contains a subset of partners.
   const partnerOptionsRef = useRef<Map<string, PartnerOption>>(new Map())
@@ -128,17 +116,39 @@ export function VoucherBrowsePage() {
   const total = query.data?.pagination.total ?? 0
   const totalPages = Math.max(1, Math.ceil(total / PAGE_LIMIT))
   const cataloguePartnerCount = filterOptionsQuery.data?.partners.length ?? partnerOptions.length
-  const activeFilterLabels = [
-    filters.keyword && `“${filters.keyword}”`,
-    filters.category,
-    filters.region,
-    filters.partnerId &&
-      (filterOptionsQuery.data?.partners.find((partner) => partner.id === filters.partnerId)?.name ??
-        partnerOptions.find((partner) => partner.id === filters.partnerId)?.name),
-    filters.minPrice && `Từ ${Number(filters.minPrice).toLocaleString('vi-VN')} đ`,
-    filters.maxPrice && `Đến ${Number(filters.maxPrice).toLocaleString('vi-VN')} đ`,
-    filters.minDiscount && `Giảm từ ${filters.minDiscount}%`
-  ].filter(Boolean) as string[]
+  const activeFilterEntries = [
+    filters.keyword ? { key: 'keyword', label: `“${filters.keyword}”` } : null,
+    filters.category ? { key: 'category', label: filters.category } : null,
+    filters.region ? { key: 'region', label: filters.region } : null,
+    filters.partnerId
+      ? {
+          key: 'partnerId',
+          label:
+            filterOptionsQuery.data?.partners.find((partner) => partner.id === filters.partnerId)?.name ??
+            partnerOptions.find((partner) => partner.id === filters.partnerId)?.name ??
+            'Đối tác'
+        }
+      : null,
+    Number(filters.minPrice) > 0
+      ? { key: 'minPrice', label: `Từ ${Number(filters.minPrice).toLocaleString('vi-VN')} ₫` }
+      : null,
+    Number(filters.maxPrice) > 0
+      ? { key: 'maxPrice', label: `${Number(filters.maxPrice).toLocaleString('vi-VN')} ₫` }
+      : null,
+    filters.minDiscount ? { key: 'minDiscount', label: `Giảm từ ${filters.minDiscount}%` } : null
+  ].filter(Boolean) as Array<{ key: string; label: string }>
+
+  function clearFilter(key: string) {
+    const next = { ...filters }
+    if (key === 'keyword') next.keyword = ''
+    if (key === 'category') next.category = ''
+    if (key === 'region') next.region = ''
+    if (key === 'partnerId') next.partnerId = ''
+    if (key === 'minPrice') next.minPrice = ''
+    if (key === 'maxPrice') next.maxPrice = ''
+    if (key === 'minDiscount') next.minDiscount = ''
+    handleFilterChange(next)
+  }
 
   function handleFilterChange(next: VoucherFilterValues) {
     const nextParams = new URLSearchParams()
@@ -146,6 +156,8 @@ export function VoucherBrowsePage() {
       if (value) nextParams.set(key, value)
     }
     if (sort !== 'newest') nextParams.set('sort', sort)
+    if (next.keyword) nextParams.set('q', next.keyword)
+    else nextParams.delete('q')
     setUrlParams(nextParams)
   }
 
@@ -157,233 +169,192 @@ export function VoucherBrowsePage() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  function handleSortChange(nextSort: string) {
+    const nextParams = new URLSearchParams(urlParams)
+    if (nextSort === 'newest') nextParams.delete('sort')
+    else nextParams.set('sort', nextSort)
+    setUrlParams(nextParams)
+  }
+
   return (
-    <section style={{ display: 'flex', flexDirection: 'column', gap: 28, maxWidth: 1200, margin: '0 auto' }}>
-      <header
-        style={{
-          marginTop: 16,
-          padding: 'clamp(28px, 5vw, 56px)',
-          borderRadius: radius.xl,
-          background: colors.ink,
-          color: colors.onInk,
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: 32,
-          alignItems: 'end',
-          overflow: 'hidden'
-        }}
-      >
-        <div style={{ flex: '1 1 520px', minWidth: 0 }}>
-          <p style={{ margin: '0 0 12px', ...eyebrowStyle, color: colors.onInkMuted }}>
-            <span style={{ color: colors.accent }}>●</span> Chợ voucher
-          </p>
-          <h1
-            style={{
-              margin: 0,
-              maxWidth: 760,
-              fontFamily: fonts.display,
-              fontSize: 'clamp(38px, 6vw, 68px)',
-              fontWeight: 800,
-              letterSpacing: '-0.04em',
-              lineHeight: 1.02
-            }}
-          >
-            Ưu đãi đáng để sẻ chia.
-          </h1>
-          <p style={{ margin: '16px 0 0', maxWidth: 600, color: colors.onInkMuted, fontSize: 16, lineHeight: 1.65 }}>
-            Khám phá voucher ẩm thực, làm đẹp, du lịch và trải nghiệm từ các đối tác được tuyển chọn.
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: 12, flex: '0 1 auto', flexWrap: 'wrap' }}>
-          <Stat
-            value={filterOptionsQuery.isLoading ? '…' : String(filterOptionsQuery.data?.categories.length ?? 0)}
-            label='Danh mục'
+    <section className='voucher-browse-page' style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div className='voucher-browse-layout'>
+        <aside className='voucher-browse-filter' aria-label='Bộ lọc voucher'>
+          <SearchFilters
+            value={filters}
+            onChange={handleFilterChange}
+            partnerOptions={filterOptionsQuery.data?.partners ?? partnerOptions}
+            categoryOptions={filterOptionsQuery.data?.categories ?? []}
+            regionOptions={filterOptionsQuery.data?.regions ?? []}
           />
-          <Stat value={filterOptionsQuery.isLoading ? '…' : String(cataloguePartnerCount)} label='Đối tác' />
-        </div>
-      </header>
+        </aside>
+        <div className='voucher-browse-content'>
+          <header className='voucher-browse-heading'>
+            <p className='voucher-browse-breadcrumb'>
+              Trang chủ <span>›</span> Tất cả ưu đãi
+            </p>
+            <h1>Tất cả ưu đãi</h1>
+            <p className='voucher-browse-count'>
+              {query.isLoading
+                ? 'Đang tải voucher…'
+                : `Tìm thấy ${total.toLocaleString('vi-VN')} voucher/ưu đãi từ ${cataloguePartnerCount.toLocaleString('vi-VN')} đối tác`}
+            </p>
+          </header>
 
-      <SearchFilters
-        value={filters}
-        onChange={handleFilterChange}
-        partnerOptions={filterOptionsQuery.data?.partners ?? partnerOptions}
-        categoryOptions={filterOptionsQuery.data?.categories ?? []}
-        regionOptions={filterOptionsQuery.data?.regions ?? []}
-      />
-
-      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10 }}>
-        <label htmlFor='catalogue-sort' style={{ fontFamily: fonts.display, fontWeight: 700, fontSize: 13 }}>
-          Sắp xếp
-        </label>
-        <select
-          id='catalogue-sort'
-          value={sort}
-          onChange={(event) => {
-            const next = new URLSearchParams(urlParams)
-            if (event.target.value === 'newest') next.delete('sort')
-            else next.set('sort', event.target.value)
-            setUrlParams(next)
-          }}
-          style={{
-            padding: '10px 38px 10px 14px',
-            borderRadius: 999,
-            border: `1px solid ${colors.hairline}`,
-            background: colors.surface,
-            fontFamily: fonts.body
-          }}
-        >
-          <option value='newest'>Mới nhất</option>
-          <option value='price-asc'>Giá tăng dần</option>
-          <option value='price-desc'>Giá giảm dần</option>
-          <option value='discount'>Giảm giá nhiều nhất</option>
-        </select>
-      </div>
-
-      {query.isError ? (
-        <p role='alert' style={errorStyle}>
-          Chưa thể tải danh sách voucher. Vui lòng thử lại.
-        </p>
-      ) : (
-        <>
-          {!query.isLoading && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 16,
-                flexWrap: 'wrap'
-              }}
-            >
-              <p style={{ margin: 0, ...eyebrowStyle, color: colors.slate }}>Tìm thấy {total} voucher</p>
-              {activeFilterLabels.length > 0 && (
-                <div aria-label='Bộ lọc đang áp dụng' style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {activeFilterLabels.map((label) => (
-                    <span key={label} style={filterChipStyle}>
-                      {label}
-                    </span>
-                  ))}
+          <div className='voucher-browse-toolbar'>
+            <div className='voucher-browse-toolbar__left'>
+              {!query.isLoading && (
+                <div className='voucher-browse-active-filters' aria-label='Bộ lọc đang áp dụng'>
+                  {activeFilterEntries.length > 0 && (
+                    <>
+                      {activeFilterEntries.map((entry) => (
+                        <button
+                          key={entry.key}
+                          type='button'
+                          aria-label={`Xóa bộ lọc ${entry.label}`}
+                          onClick={() => clearFilter(entry.key)}
+                          style={{
+                            ...filterChipStyle,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            height: 34,
+                            padding: '0 12px',
+                            border: '1px solid rgba(79, 70, 229, 0.2)',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <span>{entry.label}</span>
+                          <span aria-hidden='true' style={{ fontSize: 13, lineHeight: 1, opacity: 0.8 }}>
+                            ×
+                          </span>
+                        </button>
+                      ))}
+                    </>
+                  )}
                 </div>
               )}
             </div>
-          )}
 
-          <VoucherGrid vouchers={vouchers} isLoading={query.isLoading} />
+            <div className='voucher-browse-toolbar__right'>
+              <label htmlFor='catalogue-sort' style={{ fontFamily: fonts.display, fontWeight: 700, fontSize: 13 }}>
+                Sắp xếp
+              </label>
+              <select
+                id='catalogue-sort'
+                value={sort}
+                onChange={(event) => handleSortChange(event.target.value)}
+                style={{
+                  padding: '10px 38px 10px 14px',
+                  borderRadius: radius.md,
+                  border: `1px solid ${colors.hairline}`,
+                  background: colors.surface,
+                  fontFamily: fonts.body,
+                  minWidth: 200,
+                  height: 40
+                }}
+              >
+                <option value='newest'>Mới nhất</option>
+                <option value='price-asc'>Giá tăng dần</option>
+                <option value='price-desc'>Giá giảm dần</option>
+                <option value='discount'>Giảm giá nhiều nhất</option>
+              </select>
 
-          {totalPages > 1 && (
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <Pagination currentPage={page} totalPages={totalPages} onPageChange={handlePageChange} />
-            </div>
-          )}
-          {!filters.keyword && page === 1 && (externalQuery.data?.length ?? 0) > 0 && (
-            <section aria-labelledby='external-promotions-title' style={{ marginTop: 24 }}>
-              <p style={{ margin: '0 0 8px', ...eyebrowStyle, color: colors.accent }}>Ưu đãi từ Internet</p>
-              <h2 id='external-promotions-title' style={{ margin: '0 0 8px', fontFamily: fonts.display, fontSize: 30 }}>
-                Ưu đãi đang diễn ra từ các thương hiệu
-              </h2>
-              <p style={{ margin: '0 0 20px', color: colors.slate }}>
-                Dữ liệu được đồng bộ từ website chính thức của nhà cung cấp. Chọn một ưu đãi để xem đầy đủ điều kiện tại
-                nguồn.
-              </p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
-                {externalQuery.data!.slice(0, 12).map((offer) => (
-                  <a
-                    key={offer.id}
-                    href={offer.sourceUrl}
-                    target='_blank'
-                    rel='noopener noreferrer'
-                    style={{
-                      overflow: 'hidden',
-                      borderRadius: radius.lg,
-                      border: `1px solid ${colors.hairline}`,
-                      background: colors.surface,
-                      color: colors.ink,
-                      textDecoration: 'none'
-                    }}
-                  >
-                    {offer.imageUrl && (
-                      <img
-                        src={offer.imageUrl}
-                        alt={offer.name}
-                        loading='lazy'
-                        style={{ display: 'block', width: '100%', aspectRatio: '16 / 9', objectFit: 'cover' }}
-                      />
-                    )}
-                    <div style={{ padding: 18 }}>
-                      <span style={{ ...eyebrowStyle, color: colors.accent }}>
-                        {offer.category ?? offer.source} · {offer.merchant}
-                      </span>
-                      <h3 style={{ margin: '10px 0', fontFamily: fonts.display, fontSize: 18, lineHeight: 1.35 }}>
-                        {offer.name}
-                      </h3>
-                      {offer.description && (
-                        <p style={{ margin: '0 0 12px', color: colors.slate, fontSize: 13, lineHeight: 1.5 }}>
-                          {offer.description}
-                        </p>
-                      )}
-                      {offer.promoCode && (
-                        <strong
-                          style={{
-                            display: 'inline-block',
-                            marginBottom: 12,
-                            padding: '5px 9px',
-                            borderRadius: radius.sm,
-                            background: colors.accentSurface,
-                            color: colors.accentHover
-                          }}
-                        >
-                          Mã: {offer.promoCode}
-                        </strong>
-                      )}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, color: colors.slate }}>
-                        <span>
-                          {offer.salePrice
-                            ? `${Number(offer.salePrice).toLocaleString('vi-VN')} đ`
-                            : offer.discountPercentage
-                              ? `Giảm ${offer.discountPercentage}%`
-                              : 'Xem ưu đãi'}
-                        </span>
-                        <strong style={{ color: colors.accent }}>Mở nguồn ↗</strong>
-                      </div>
-                    </div>
-                  </a>
-                ))}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  type='button'
+                  aria-label='Chế độ lưới'
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 8,
+                    border: `1px solid ${colors.hairline}`,
+                    background: colors.surface,
+                    color: colors.accentHover,
+                    fontWeight: 700
+                  }}
+                >
+                  ▦
+                </button>
+                <button
+                  type='button'
+                  aria-label='Chế độ danh sách'
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 8,
+                    border: `1px solid ${colors.hairline}`,
+                    background: colors.surface,
+                    color: colors.accentHover,
+                    fontWeight: 700
+                  }}
+                >
+                  ☰
+                </button>
               </div>
-            </section>
+            </div>
+          </div>
+
+          {query.isError ? (
+            <p role='alert' style={errorStyle}>
+              Chưa thể tải danh sách voucher. Vui lòng thử lại.
+            </p>
+          ) : (
+            <>
+              <VoucherGrid vouchers={vouchers} isLoading={query.isLoading} />
+
+              {totalPages > 1 && (
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  <Pagination currentPage={page} totalPages={totalPages} onPageChange={handlePageChange} />
+                </div>
+              )}
+
+              <div className='voucher-browse-brand-strip' aria-label='Thương hiệu đồng hành'>
+                <div className='voucher-browse-brand-strip__header'>
+                  <span>Hãng ngân thương hiệu</span>
+                  <button type='button'>Xem thêm</button>
+                </div>
+                <div className='voucher-browse-brand-strip__list'>
+                  {[
+                    { name: 'Highlands', mark: 'H', tone: 'highlands' },
+                    { name: 'Pizza Company', mark: 'P', tone: 'pizza' },
+                    { name: 'KFC', mark: 'K', tone: 'kfc' },
+                    { name: 'Lotteria', mark: 'L', tone: 'lotteria' },
+                    { name: 'Gogi', mark: 'G', tone: 'gogi' },
+                    { name: 'Phúc Long', mark: 'PL', tone: 'phuclong' },
+                    { name: 'Trà sữa', mark: 'TS', tone: 'milk' },
+                    { name: 'Café', mark: 'C', tone: 'cafe' },
+                    { name: 'NX', mark: 'NX', tone: 'nx' },
+                    { name: 'VietJet', mark: 'VJ', tone: 'vietjet' }
+                  ].map((brand) => (
+                    <div
+                      key={brand.name}
+                      className={`voucher-browse-brand-strip__item voucher-browse-brand-strip__item--${brand.tone}`}
+                    >
+                      <span className='voucher-browse-brand-strip__mark'>{brand.mark}</span>
+                      <span className='voucher-browse-brand-strip__name'>{brand.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
           )}
-        </>
-      )}
+        </div>
+      </div>
     </section>
   )
 }
 
-function Stat({ value, label }: { value: string; label: string }) {
-  return (
-    <div
-      style={{ minWidth: 92, padding: '14px 16px', border: '1px solid rgba(255,255,255,.16)', borderRadius: radius.lg }}
-    >
-      <strong style={{ display: 'block', fontFamily: fonts.display, fontSize: 24 }}>{value}</strong>
-      <span style={{ color: colors.onInkMuted, fontSize: 12 }}>{label}</span>
-    </div>
-  )
-}
-
-const eyebrowStyle: CSSProperties = {
-  fontFamily: fonts.display,
-  fontSize: 12,
-  fontWeight: 700,
-  letterSpacing: '0.08em',
-  textTransform: 'uppercase'
-}
-
 const filterChipStyle: CSSProperties = {
-  padding: '7px 11px',
-  borderRadius: radius.full,
+  borderRadius: 8,
   background: colors.accentSurface,
   color: colors.accentHover,
   fontFamily: fonts.display,
   fontSize: 12,
-  fontWeight: 700
+  fontWeight: 700,
+  border: 'none',
+  margin: 0,
+  lineHeight: 1
 }
 
 const errorStyle: CSSProperties = {

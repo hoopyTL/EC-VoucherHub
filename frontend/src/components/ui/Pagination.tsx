@@ -67,7 +67,7 @@ const buttonBase: CSSProperties = {
   fontSize: 14,
   fontFamily: fonts.display,
   fontWeight: 600,
-  borderRadius: radius.full,
+  borderRadius: radius.md,
   border: `1px solid ${colors.hairline}`,
   background: colors.surface,
   color: colors.ink,

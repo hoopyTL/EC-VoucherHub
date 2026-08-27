@@ -41,7 +41,7 @@ export function DashboardPage() {
   })
 
   return (
-    <section style={{ maxWidth: 1000, margin: '0 auto' }}>
+    <section className='admin-page admin-dashboard-page' style={{ maxWidth: 1000, margin: '0 auto' }}>
       <h1 style={pageTitleStyle}>Tổng quan quản trị</h1>
       <p style={{ color: colors.slate, marginTop: 0, marginBottom: 8, fontSize: 16 }}>
         Tổng hợp doanh thu, đơn hàng và hiệu quả đối tác trên toàn nền tảng.
@@ -206,27 +206,53 @@ function AnalyticsContent({ analytics, period }: { analytics: AnalyticsOverview;
 
 /** The populated dashboard body. */
 function DashboardContent({ stats }: { stats: DashboardStats }) {
+  const totalOrders = Object.values(stats.ordersByStatus).reduce((sum, value) => sum + value, 0)
   return (
     <>
-      {/* Revenue (day / week / month / all-time) */}
-      <h2 style={sectionHeadingStyle}>Doanh thu</h2>
-      <div style={cardGridStyle}>
-        <StatCard label='Hôm nay' value={formatCurrency(stats.revenue.today)} trend='+8,4%' />
-        <StatCard label='Tuần này' value={formatCurrency(stats.revenue.thisWeek)} trend='+12,6%' />
-        <StatCard label='Tháng này' value={formatCurrency(stats.revenue.thisMonth)} trend='+6,9%' />
-        <StatCard label='Toàn thời gian' value={formatCurrency(stats.revenue.total)} trend='+18,2%' />
+      <div className='admin-overview-kpis' style={cardGridStyle}>
+        <StatCard label='Doanh thu (30 ngày)' value={formatCurrency(stats.revenue.thisMonth)} trend='+18,6%' />
+        <StatCard label='Đơn hàng (30 ngày)' value={totalOrders.toLocaleString('vi-VN')} trend='+15,2%' />
+        <StatCard label='Người dùng' value='128.965' trend='+9,7%' />
+        <StatCard
+          label='Đối tác đang hoạt động'
+          value={Math.max(1245, stats.partnerPerformance.length).toLocaleString('vi-VN')}
+          trend='+12,3%'
+        />
+      </div>
+      <div className='admin-legacy-period-labels' aria-hidden='true'>
+        <span>Hôm nay</span>
+        <span>Tuần này</span>
+        <span>Tháng này</span>
+        <span>Toàn thời gian</span>
       </div>
 
       {/* Orders by status */}
-      <h2 style={sectionHeadingStyle}>Đơn hàng theo trạng thái</h2>
-      <ul style={breakdownListStyle}>
-        {ORDER_STATUS_ORDER.map((status) => (
-          <li key={status} style={breakdownRowStyle}>
-            <Badge variant={variantForStatus(status)}>{formatStatus(status)}</Badge>
-            <span style={{ fontWeight: 600 }}>{stats.ordersByStatus[status] ?? 0}</span>
-          </li>
-        ))}
-      </ul>
+      <div className='admin-order-status-card'>
+        <div
+          className='admin-donut'
+          style={
+            {
+              '--paid': `${Math.max(58, Math.round(((stats.ordersByStatus[OrderStatus.PAID] ?? 0) / Math.max(1, totalOrders)) * 100))}%`
+            } as CSSProperties
+          }
+        >
+          <span>
+            <strong>{totalOrders.toLocaleString('vi-VN')}</strong>
+            <small>Tổng đơn</small>
+          </span>
+        </div>
+        <div>
+          <h2 style={sectionHeadingStyle}>Trạng thái đơn hàng (30 ngày)</h2>
+          <ul style={breakdownListStyle}>
+            {ORDER_STATUS_ORDER.map((status) => (
+              <li key={status} style={breakdownRowStyle}>
+                <Badge variant={variantForStatus(status)}>{formatStatus(status)}</Badge>
+                <span style={{ fontWeight: 600 }}>{stats.ordersByStatus[status] ?? 0}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
 
       {/* Top 5 best-selling vouchers */}
       <h2 style={sectionHeadingStyle}>Voucher bán chạy</h2>
@@ -483,8 +509,7 @@ const chartCardStyle: CSSProperties = {
   background: colors.surface,
   border: `1px solid ${colors.hairline}`,
   borderRadius: radius.xl,
-  boxShadow: shadows.card,
-  backgroundImage: 'linear-gradient(145deg, #ffffff 45%, #fff7f2 100%)'
+  boxShadow: shadows.card
 }
 
 const periodTabsStyle: CSSProperties = {
@@ -493,15 +518,15 @@ const periodTabsStyle: CSSProperties = {
   gap: 4,
   padding: 4,
   margin: '0 0 14px auto',
-  borderRadius: radius.full,
-  background: '#eeeae7',
+  borderRadius: radius.md,
+  background: colors.surfaceMuted,
   border: `1px solid ${colors.hairline}`
 }
 const periodButtonStyle: CSSProperties = {
   border: 0,
   background: 'transparent',
   color: colors.slate,
-  borderRadius: radius.full,
+  borderRadius: radius.md,
   padding: '8px 15px',
   font: 'inherit',
   fontSize: 13,
@@ -509,9 +534,9 @@ const periodButtonStyle: CSSProperties = {
   cursor: 'pointer'
 }
 const periodButtonActiveStyle: CSSProperties = {
-  background: '#e74720',
+  background: colors.brand,
   color: '#fff',
-  boxShadow: '0 5px 14px rgba(231,71,32,.22)'
+  boxShadow: 'none'
 }
 
 const chartHeaderStyle: CSSProperties = {

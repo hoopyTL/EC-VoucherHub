@@ -16,12 +16,14 @@
  * fully navigable and the client builds. Page tasks replace the placeholders
  * with their real page imports.
  */
+import { useState } from 'react'
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './store/AuthContext'
 import { AnnouncementBar } from './components/layout/AnnouncementBar'
 import { Header } from './components/layout/Header'
 import { Footer } from './components/layout/Footer'
 import { Sidebar, type SidebarVariant } from './components/layout/Sidebar'
+import { WorkspaceTopbar } from './components/layout/WorkspaceTopbar'
 import { ProtectedRoute } from './components/layout/ProtectedRoute'
 import { GuestRoute } from './components/layout/GuestRoute'
 import { RegisterCustomerPage } from './pages/public/RegisterCustomerPage'
@@ -36,9 +38,11 @@ import { RegisterChooserPage } from './pages/public/RegisterChooserPage'
 import { VoucherBrowsePage } from './pages/public/VoucherBrowsePage'
 import { VoucherDetailPage } from './pages/public/VoucherDetailPage'
 import { OrderDetailPage } from './pages/customer/OrderDetailPage'
+import { OrdersPage } from './pages/customer/OrdersPage'
 import { CheckoutPage } from './pages/customer/CheckoutPage'
 import { CustomerCartHubPage } from './pages/customer/CustomerCartHubPage'
 import { MyVouchersPage } from './pages/customer/MyVouchersPage'
+import { FavoritesPage } from './pages/customer/FavoritesPage'
 import { PaymentResultPage } from './pages/customer/PaymentResultPage'
 import { VouchersPage as PartnerVouchersPage } from './pages/partner/VouchersPage'
 import { CreateVoucherPage as PartnerCreateVoucherPage } from './pages/partner/CreateVoucherPage'
@@ -70,7 +74,7 @@ function PublicLayout() {
     <div id='top' data-theme='customer' style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <AnnouncementBar />
       <Header />
-      <main className='public-main' style={{ flex: 1, padding: '40px 24px', width: '100%' }}>
+      <main className='public-main' style={{ flex: 1, padding: '28px 24px 48px', width: '100%' }}>
         <Outlet />
       </main>
       <Footer />
@@ -109,19 +113,32 @@ function AuthLayout() {
 
 /** Workspace layout for admin/partner: header, sidebar + content, footer. */
 function WorkspaceLayout({ variant }: { variant: SidebarVariant }) {
+  const [navigationOpen, setNavigationOpen] = useState(false)
   return (
-    <div id='top' data-theme={variant} style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <Header />
-      <div className='workspace-shell' style={{ display: 'flex', flex: 1 }}>
-        <Sidebar variant={variant} />
-        <main
-          className={`workspace-main workspace-main--${variant}`}
-          style={{ flex: 1, padding: '2rem', minWidth: 0, background: 'var(--workspace-background)' }}
-        >
-          <Outlet />
-        </main>
+    <div id='top' data-theme={variant} style={{ minHeight: '100vh' }}>
+      <div className='workspace-shell'>
+        <Sidebar variant={variant} open={navigationOpen} onNavigate={() => setNavigationOpen(false)} />
+        {navigationOpen && (
+          <button
+            className='workspace-sidebar-backdrop'
+            aria-label='Đóng điều hướng'
+            onClick={() => setNavigationOpen(false)}
+          />
+        )}
+        <div className='workspace-content-shell'>
+          <WorkspaceTopbar variant={variant} onToggleNavigation={() => setNavigationOpen((open) => !open)} />
+          <main
+            className={`workspace-main workspace-main--${variant}`}
+            style={{ flex: 1, minWidth: 0, background: 'var(--workspace-background)' }}
+          >
+            <Outlet />
+          </main>
+          <footer className='workspace-footer'>
+            <span>© 2026 VoucherHub</span>
+            <span>{variant === 'admin' ? 'Trung tâm vận hành' : 'Không gian đối tác'}</span>
+          </footer>
+        </div>
       </div>
-      <Footer />
     </div>
   )
 }
@@ -175,8 +192,9 @@ export function AppRoutes() {
         <Route element={<ProtectedRoute allowedRoles={['CUSTOMER']} />}>
           <Route path='cart' element={<CustomerCartHubPage />} />
           <Route path='my-vouchers' element={<MyVouchersPage />} />
+          <Route path='favorites' element={<FavoritesPage />} />
           <Route path='checkout' element={<CheckoutPage />} />
-          <Route path='orders' element={<Navigate to='/cart?tab=orders' replace />} />
+          <Route path='orders' element={<OrdersPage />} />
           <Route path='orders/:id' element={<OrderDetailPage />} />
         </Route>
 

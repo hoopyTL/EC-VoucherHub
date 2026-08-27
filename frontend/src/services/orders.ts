@@ -30,6 +30,7 @@ export interface CartItemResponse {
   id: string
   voucherId: string
   title: string
+  imageUrl?: string | null
   unitPrice: number
   quantity: number
   subtotal: number
@@ -105,6 +106,7 @@ export function mapCartData(apiCart: any): CartResponse {
       id: String(item.id),
       voucherId: item.voucherProductId || item.voucherId,
       title: item.voucherProductName || item.title,
+      imageUrl: item.imageUrl ?? item.voucherProduct?.imageUrl ?? null,
       unitPrice: Number(item.salePrice ?? item.unitPrice),
       quantity: Number(item.quantity),
       subtotal: Number(item.itemTotal ?? item.subtotal)

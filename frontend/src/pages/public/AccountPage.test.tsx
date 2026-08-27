@@ -62,7 +62,7 @@ function unauthorizedError(message: string): AxiosError {
 }
 
 function fillForm(current: string, next: string, confirm: string) {
-  fireEvent.click(screen.getByRole('tab', { name: /bảo mật/i }))
+  fireEvent.click(screen.getAllByRole('button', { name: /đổi mật khẩu/i })[0])
   fireEvent.change(screen.getByLabelText(/mật khẩu hiện tại/i), {
     target: { value: current }
   })
@@ -75,7 +75,7 @@ function fillForm(current: string, next: string, confirm: string) {
 }
 
 function submit() {
-  fireEvent.click(screen.getByRole('button', { name: /đổi mật khẩu/i }))
+  fireEvent.click(screen.getAllByRole('button', { name: /đổi mật khẩu/i }).at(-1)!)
 }
 
 describe('AccountPage', () => {
@@ -100,11 +100,16 @@ describe('AccountPage', () => {
     expect(screen.getByText(/^khách hàng$/i)).toBeDefined()
   })
 
-  it('renders the change-password fields and a log out button', () => {
+  it('renders the profile form only in account view and keeps security in a dedicated section', async () => {
+    getProfileMock.mockResolvedValue(profile)
     seedSession()
     renderPage()
 
-    fireEvent.click(screen.getByRole('tab', { name: /bảo mật/i }))
+    expect(screen.queryByRole('tab', { name: /thông tin hồ sơ khách hàng/i })).toBeNull()
+    expect(screen.queryByRole('tab', { name: /bảo mật và mật khẩu/i })).toBeNull()
+    expect(await screen.findByRole('button', { name: /lưu hồ sơ/i })).toBeDefined()
+
+    fireEvent.click(screen.getAllByRole('button', { name: /đổi mật khẩu/i })[0])
     expect(screen.getByLabelText(/mật khẩu hiện tại/i)).toBeDefined()
     expect(screen.getByLabelText(/^mật khẩu mới/i)).toBeDefined()
     expect(screen.getByLabelText(/xác nhận mật khẩu mới/i)).toBeDefined()
@@ -204,7 +209,7 @@ describe('AccountPage', () => {
     renderPage()
 
     vi.spyOn(window, 'confirm').mockReturnValue(true)
-    fireEvent.click(screen.getByRole('tab', { name: /bảo mật/i }))
+    fireEvent.click(screen.getAllByRole('button', { name: /đổi mật khẩu/i })[0])
     fireEvent.click(screen.getByRole('button', { name: /đăng xuất/i }))
     const confirmations = screen.getAllByRole('button', { name: 'Đăng xuất' })
     fireEvent.click(confirmations[confirmations.length - 1])

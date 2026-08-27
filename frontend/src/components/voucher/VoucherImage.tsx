@@ -24,7 +24,7 @@ export function VoucherImage({ src, alt, style, fallback = 'VH' }: VoucherImageP
           width: '100%',
           height: '100%',
           backgroundImage: "url('/assets/voucher-catalogue-sprite.png')",
-          backgroundSize: '1000% auto',
+          backgroundSize: '1000% 700%',
           backgroundPosition: `${((cell % 10) * 100) / 9}% ${(Math.floor(cell / 10) * 100) / 6}%`,
           backgroundRepeat: 'no-repeat',
           ...style

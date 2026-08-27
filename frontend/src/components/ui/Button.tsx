@@ -106,7 +106,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     fontWeight: 600,
     letterSpacing: '0.01em',
     lineHeight: 1.2,
-    borderRadius: radius.full,
+    borderRadius: radius.md,
     cursor: isDisabled ? 'not-allowed' : 'pointer',
     opacity: isDisabled ? 0.5 : 1,
     width: fullWidth ? '100%' : undefined,

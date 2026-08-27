@@ -15,14 +15,14 @@ function buildResponse(overrides: Partial<SearchVouchersResponse> = {}): SearchV
   }
 }
 
-function renderPage() {
+function renderPage(initialEntries: string[] = ['/search']) {
   // A fresh client per render with retries off for deterministic tests.
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } }
   })
   return render(
     <QueryClientProvider client={client}>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={initialEntries}>
         <VoucherBrowsePage />
       </MemoryRouter>
     </QueryClientProvider>
@@ -66,6 +66,20 @@ describe('VoucherBrowsePage', () => {
 
     expect(await screen.findByTestId('voucher-grid-empty')).toBeDefined()
     expect(screen.getByText(/Tìm thấy 0 voucher/i)).toBeDefined()
+  })
+
+  it('reads the header search q param as a keyword filter', async () => {
+    const spy = vi.spyOn(voucherService, 'searchVouchers').mockResolvedValue(buildResponse())
+
+    renderPage(['/search?q=spa&sort=discount'])
+
+    await waitFor(() => {
+      expect(spy).toHaveBeenCalledWith({
+        page: 1,
+        limit: 12,
+        keyword: 'spa'
+      })
+    })
   })
 
   it('passes committed filter values to the search query', async () => {

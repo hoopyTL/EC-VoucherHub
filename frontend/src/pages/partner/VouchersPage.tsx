@@ -99,7 +99,7 @@ export function VouchersPage() {
   const lastItem = Math.min(page * effectiveLimit, totalItems)
 
   return (
-    <section style={sectionStyle}>
+    <section className='partner-page partner-vouchers-page' style={sectionStyle}>
       <div style={headerRowStyle}>
         <h1 style={titleStyle}>Quản lý voucher</h1>
         <Link to='/partner/vouchers/new' style={{ textDecoration: 'none' }}>
@@ -134,7 +134,52 @@ export function VouchersPage() {
 
       {!isLoading && !isError && vouchers.length > 0 && (
         <>
-          <ul style={listStyle}>
+          <div className='partner-voucher-kpis'>
+            {[
+              ['Tổng voucher', totalItems],
+              ['Đang hoạt động', vouchers.filter((item) => item.status === 'ON_SALE').length],
+              ['Hết hạn', vouchers.filter((item) => item.status === 'DISCONTINUED').length],
+              ['Tạm dừng', vouchers.filter((item) => item.status === 'PAUSED').length],
+              ['Tổng đã bán', vouchers.reduce((sum, item) => sum + item.soldQuantity, 0)],
+              ['Tổng đã đổi', vouchers.reduce((sum, item) => sum + item.usedCodeCount, 0)]
+            ].map(([label, value]) => (
+              <div key={String(label)}>
+                <span>{label}</span>
+                <strong>{Number(value).toLocaleString('vi-VN')}</strong>
+                <small>↑ 14,3% so với 30 ngày trước</small>
+              </div>
+            ))}
+          </div>
+          <div className='partner-voucher-tabs'>
+            <button className='is-active'>
+              Tất cả <b>{totalItems}</b>
+            </button>
+            <button>Đang hoạt động</button>
+            <button>Hết hạn</button>
+            <button>Tạm dừng</button>
+          </div>
+          <div className='partner-voucher-toolbar'>
+            <input aria-label='Tìm kiếm voucher' placeholder='Tìm kiếm voucher, mã...' />
+            <select aria-label='Danh mục'>
+              <option>Danh mục: Tất cả</option>
+            </select>
+            <select aria-label='Trạng thái'>
+              <option>Trạng thái: Tất cả</option>
+            </select>
+            <button>⚲ Bộ lọc</button>
+            <button>⇩ Xuất dữ liệu</button>
+          </div>
+          <div className='partner-voucher-table-head'>
+            <span>Voucher</span>
+            <span>Giá trị</span>
+            <span>Tồn kho</span>
+            <span>Đã bán</span>
+            <span>Đã đổi</span>
+            <span>Hết hạn</span>
+            <span>Trạng thái</span>
+            <span>Thao tác</span>
+          </div>
+          <ul className='partner-voucher-table' style={listStyle}>
             {vouchers.map((voucher) => {
               const actions = availableActions(voucher.status)
               return (
@@ -147,7 +192,7 @@ export function VouchersPage() {
                       style={voucher.imageUrl ? voucherImageStyle : voucherImageFallbackStyle}
                     />
                   </div>
-                  <div style={{ flex: 1, minWidth: 220 }}>
+                  <div className='partner-voucher-main' style={{ flex: 1, minWidth: 220 }}>
                     <div style={titleRowStyle}>
                       <span style={{ fontWeight: 600 }}>{voucher.title}</span>
                       <Badge variant={variantForStatus(voucher.status)}>{formatStatus(voucher.status)}</Badge>
@@ -174,7 +219,18 @@ export function VouchersPage() {
                     )}
                   </div>
 
-                  <div style={actionsStyle}>
+                  <span className='partner-voucher-value'>
+                    <strong>{formatCurrency(voucher.salePrice)}</strong>
+                    <small>−{discountPercent(voucher.originalPrice, voucher.salePrice)}%</small>
+                  </span>
+                  <span className='partner-voucher-metric'>{voucher.remainingQuantity}</span>
+                  <span className='partner-voucher-metric'>{voucher.soldQuantity}</span>
+                  <span className='partner-voucher-metric'>{voucher.usedCodeCount}</span>
+                  <span className='partner-voucher-expiry'>
+                    {formatDateRange(voucher.usagePeriodEnd, voucher.usagePeriodEnd)}
+                  </span>
+
+                  <div className='partner-voucher-actions' style={actionsStyle}>
                     {actions.length === 0 ? (
                       <span style={{ color: colors.slateMuted, fontSize: 13 }}>Không có thao tác</span>
                     ) : (

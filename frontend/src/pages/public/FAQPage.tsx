@@ -27,7 +27,7 @@ export function FAQPage() {
   }
 
   return (
-    <div style={{ maxWidth: 880, margin: '0 auto', padding: '20px 0 60px' }}>
+    <div className='content-page content-page--faq' style={{ maxWidth: 880, margin: '0 auto', padding: '20px 0 60px' }}>
       <div style={{ textAlign: 'center', marginBottom: 40 }}>
         <span
           style={{
@@ -80,12 +80,13 @@ export function FAQPage() {
           <p style={{ fontSize: '0.9rem', color: colors.slate }}>Hệ thống đang tổng hợp các câu hỏi phổ biến.</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div className='faq-list' style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {faqs.map((item) => {
             const isOpen = openIds.includes(item.id)
             return (
               <div
                 key={item.id}
+                className={isOpen ? 'faq-item is-open' : 'faq-item'}
                 style={{
                   background: '#ffffff',
                   borderRadius: radius.md,
@@ -96,6 +97,7 @@ export function FAQPage() {
               >
                 <button
                   onClick={() => toggleFAQ(item.id)}
+                  className='faq-item__trigger'
                   style={{
                     width: '100%',
                     padding: '18px 22px',
@@ -121,6 +123,7 @@ export function FAQPage() {
                 </button>
                 {isOpen && (
                   <div
+                    className='faq-item__content'
                     style={{
                       padding: '16px 22px 20px',
                       fontSize: '0.95rem',

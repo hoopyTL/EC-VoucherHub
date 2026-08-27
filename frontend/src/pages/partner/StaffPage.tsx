@@ -262,7 +262,7 @@ export function StaffPage() {
   const staff = staffQuery.data ?? []
 
   return (
-    <section style={pageStyle}>
+    <section className='partner-page partner-staff-page' style={pageStyle}>
       <div style={pageHeaderStyle}>
         <div>
           <h1 style={titleStyle}>Quản lý nhân viên</h1>

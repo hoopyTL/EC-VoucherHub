@@ -300,7 +300,7 @@ export function CreateVoucherPage() {
   if (editId && voucherQuery.isLoading) return <LoadingSpinner label='Đang tải voucher' />
 
   return (
-    <section style={sectionStyle}>
+    <section className='partner-page partner-voucher-form-page' style={sectionStyle}>
       <h1 style={titleStyle}>{editId ? 'Chỉnh sửa voucher' : 'Tạo voucher'}</h1>
       <p style={subtitleStyle}>
         Voucher được lưu ở trạng thái nháp. Gửi duyệt từ danh sách voucher khi nội dung đã sẵn sàng.

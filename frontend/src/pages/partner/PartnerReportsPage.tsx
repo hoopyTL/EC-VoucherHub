@@ -40,7 +40,7 @@ export function PartnerReportsPage() {
     )
   const data = report.data!
   return (
-    <section style={{ maxWidth: 1080, margin: '0 auto' }}>
+    <section className='partner-page partner-reports-page' style={{ maxWidth: 1080, margin: '0 auto' }}>
       <p style={eyebrowStyle}>● Báo cáo</p>
       <h1 style={titleStyle}>Hiệu quả kinh doanh</h1>
       <p style={subtitleStyle}>Số liệu thật từ những voucher thuộc tài khoản đối tác của bạn.</p>
@@ -122,7 +122,7 @@ const titleStyle = {
   margin: 0,
   color: colors.ink,
   fontFamily: fonts.display,
-  fontSize: 48,
+  fontSize: 'clamp(30px, 4vw, 42px)',
   fontWeight: 800,
   letterSpacing: '-0.03em'
 }

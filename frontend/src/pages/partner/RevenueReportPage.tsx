@@ -23,7 +23,7 @@ export function RevenueReportPage() {
   const max = Math.max(...points, 1)
   const polyline = points.map((value, index) => `${(index / 11) * 100},${90 - (value / max) * 72}`).join(' ')
   return (
-    <section style={{ maxWidth: 1100, margin: '0 auto' }}>
+    <section className='partner-page partner-revenue-page' style={{ maxWidth: 1100, margin: '0 auto' }}>
       <ReportTabs />
       <header
         style={{
@@ -39,7 +39,9 @@ export function RevenueReportPage() {
           <p style={{ color: colors.accent, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.1em' }}>
             Phân tích kinh doanh
           </p>
-          <h1 style={{ margin: 0, fontFamily: fonts.display, fontSize: 46 }}>Doanh thu voucher</h1>
+          <h1 style={{ margin: 0, fontFamily: fonts.display, fontSize: 'clamp(30px, 4vw, 40px)' }}>
+            Doanh thu voucher
+          </h1>
           <p style={{ color: colors.slate }}>Theo dõi biến động doanh thu và nhóm voucher đóng góp tốt nhất.</p>
         </div>
         <div

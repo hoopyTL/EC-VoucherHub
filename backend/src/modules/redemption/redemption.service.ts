@@ -96,6 +96,9 @@ export async function listMyVouchers(userId: string) {
           name: true,
           description: true,
           imageUrl: true,
+          originalPrice: true,
+          salePrice: true,
+          category: { select: { name: true } },
           isMultiUse: true,
           usesPerCode: true,
           partner: { select: { legalName: true } }
@@ -137,6 +140,9 @@ export async function listMyVouchers(userId: string) {
         name: code.voucherProduct.name,
         description: code.voucherProduct.description,
         imageUrl: code.voucherProduct.imageUrl,
+        originalPrice: code.voucherProduct.originalPrice.toString(),
+        salePrice: code.voucherProduct.salePrice.toString(),
+        category: code.voucherProduct.category?.name ?? 'Ưu đãi',
         partnerName: code.voucherProduct.partner.legalName
       }
     }

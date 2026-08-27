@@ -74,7 +74,7 @@ const VOUCHERS = [
   voucher('voucher-4', 'Combo cà phê rang xay thủ công', 'Đồ uống', 420000, 289000, 55),
   voucher('voucher-5', 'Vé xem phim và bắp nước', 'Giải trí', 320000, 219000, 73),
   voucher('voucher-6', 'Lớp làm gốm cho người mới', 'Trải nghiệm', 700000, 490000, 24)
-]
+].map((item, index) => ({ ...item, imageUrl: `/assets/voucher-catalogue-sprite.png?cell=${index}` }))
 
 const CART = {
   items: [
@@ -82,6 +82,7 @@ const CART = {
       id: 'cart-item-1',
       voucherId: 'voucher-1',
       title: VOUCHERS[0].title,
+      imageUrl: VOUCHERS[0].imageUrl,
       unitPrice: 790000,
       quantity: 1,
       subtotal: 790000
@@ -90,6 +91,7 @@ const CART = {
       id: 'cart-item-2',
       voucherId: 'voucher-4',
       title: VOUCHERS[3].title,
+      imageUrl: VOUCHERS[3].imageUrl,
       unitPrice: 289000,
       quantity: 2,
       subtotal: 578000
@@ -149,8 +151,32 @@ const CODES = [
 
 const PARTNER_VOUCHERS = {
   vouchers: VOUCHERS.slice(0, 5).map((item, index) => ({
-    ...item,
-    status: index === 1 ? 'DRAFT' : index === 2 ? 'PENDING_APPROVAL' : 'APPROVED'
+    id: item.id,
+    name: item.title,
+    description: item.description,
+    imageUrl: item.imageUrl,
+    categoryId: index + 1,
+    category: { id: index + 1, name: item.category },
+    originalPrice: item.originalPrice,
+    salePrice: item.salePrice,
+    totalQuantity: item.totalQuantity,
+    remainingQuantity: item.totalQuantity - item.soldQuantity,
+    soldQuantity: item.soldQuantity,
+    issuedCodeCount: item.soldQuantity,
+    usedCodeCount: Math.round(item.soldQuantity * 0.7),
+    expiredCodeCount: 0,
+    isMultiUse: false,
+    usesPerCode: null,
+    saleStart: item.salePeriodStart,
+    saleEnd: item.salePeriodEnd,
+    usageStart: item.usagePeriodStart,
+    usageEnd: item.usagePeriodEnd,
+    status: index === 1 ? 'DRAFT' : index === 2 ? 'PENDING_REVIEW' : 'ON_SALE',
+    rejectReason: null,
+    partnerId: item.partnerId,
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+    branches: BRANCHES
   })),
   pagination: { page: 1, limit: 100, total: 5 }
 }
@@ -274,8 +300,22 @@ function authPayload(path: string) {
 }
 
 function publicPayload(path: string) {
+  if (path === '/vouchers/filters') {
+    return {
+      categories: [...new Set(VOUCHERS.map((item) => item.category))],
+      regions: ['TP.HCM', 'Hà Nội', 'Đà Nẵng'],
+      partners: [{ id: 'partner-1', name: 'Saigon Select', logoUrl: null }]
+    }
+  }
   if (path === '/vouchers') {
     return { vouchers: VOUCHERS, pagination: { page: 1, limit: 12, total: VOUCHERS.length } }
+  }
+  if (/^\/vouchers\/[^/]+\/reviews$/.test(path)) {
+    return {
+      reviews: [],
+      summary: { averageRating: 4.9, totalReviews: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } },
+      pagination: { page: 1, limit: 10, total: 0, totalPages: 0 }
+    }
   }
   if (path.startsWith('/vouchers/')) {
     const id = path.split('/').at(-1)
@@ -287,11 +327,43 @@ function publicPayload(path: string) {
 
 function customerPayload(path: string, method: string) {
   if (path === '/cart' || path.startsWith('/cart/')) return CART
-  if (path === '/orders' && method === 'get') return [ORDER]
+  if (path === '/orders' && method === 'get')
+    return {
+      items: Array.from({ length: 6 }, (_, index) => ({
+        ...ORDER,
+        id: `VH-2406${12 - index}-00${12 - index}`,
+        totalAmount: String([245000, 50000, 580000, 25000, 370000, 69000][index]),
+        status: ['PAID', 'PROCESSING', 'PAID', 'PENDING_PAYMENT', 'PAID', 'CANCELLED'][index],
+        paymentMethod: ['ZaloPay', 'MoMo', 'VISA', 'VNPay', 'MoMo', 'Bank'][index],
+        createdAt: new Date(Date.parse(NOW) - index * 86400000).toISOString()
+      })),
+      nextCursor: null
+    }
   if (path === '/orders') return ORDER
   if (path.endsWith('/pay')) return { order: ORDER, issuedCodeCount: 3 }
   if (path.startsWith('/orders/')) return ORDER
   if (path === '/my-codes') return CODES
+  if (path === '/my-vouchers')
+    return VOUCHERS.slice(0, 5).map((item, index) => ({
+      id: `owned-${index + 1}`,
+      code: ['PIZZA40', 'HIGHLAND50', 'SHOPEE15', 'LAZADA12', 'TIKI20K'][index],
+      status: 'UNUSED',
+      remainingUses: 1,
+      totalUses: 1,
+      issuedAt: NOW,
+      expiresAt: SALE_END,
+      lastUsedAt: null,
+      lastUsedBranch: null,
+      order: { id: ORDER.id, createdAt: NOW },
+      voucher: {
+        id: item.id,
+        name: item.title,
+        description: item.description,
+        imageUrl: item.imageUrl,
+        partnerName: item.partner.businessName
+      }
+    }))
+  if (path === '/reviews/eligible' || path === '/reviews/me') return []
   if (path.startsWith('/my-codes/')) return CODES[0]
   return undefined
 }
@@ -340,7 +412,9 @@ export const designPreviewAdapter: AxiosAdapter = async (config) => {
   const method = (config.method ?? 'get').toLowerCase()
   const data = publicPayload(path) ?? customerPayload(path, method) ?? partnerPayload(path) ?? adminPayload(path)
 
-  if (data !== undefined) return response(config, data)
-  if (path.startsWith('/auth/')) return response(config, authPayload(path), method === 'post' ? 201 : 200)
-  return response(config, {})
+  if (data !== undefined) return response(config, { success: true, data })
+  if (path.startsWith('/auth/'))
+    return response(config, { success: true, data: authPayload(path) }, method === 'post' ? 201 : 200)
+  if (path === '/content') return response(config, { success: true, data: { items: [] } })
+  return response(config, { success: true, data: {} })
 }

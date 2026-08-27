@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { CheckoutProgress } from '../../components/customer/CheckoutProgress'
-import { LoadingSpinner } from '../../components/ui'
+import { Button, LoadingSpinner } from '../../components/ui'
 import { api } from '../../services/api'
 import { getOrder, type OrderResponse } from '../../services/orders'
+import { colors, fonts, radius } from '../../theme/tokens'
+import { VNPayMessageMap } from '../../constants/vnpay'
 
 // Exported solely as a small testability seam around window.setTimeout.
 export function scheduleTimeout(fn: () => void, ms: number) {
@@ -25,6 +27,10 @@ export function PaymentResultPage() {
   const navigate = useNavigate()
   const [state, setState] = useState<'processing' | 'failed'>('processing')
   const [orderData, setOrderData] = useState<OrderResponse | null>(null)
+  const [callbackOrderId, setCallbackOrderId] = useState<string | null>(null)
+  const [failureMessage, setFailureMessage] = useState(
+    'Giao dịch chưa được xác nhận. Bạn có thể quay lại đơn hàng để thử lại.'
+  )
   const stoppedRef = useRef(false)
   const timerRef = useRef<number | null>(null)
   const hasProcessed = useRef(false)
@@ -93,7 +99,25 @@ export function PaymentResultPage() {
           setState('failed')
           return
         }
-        await confirmPaidOrder(stripeOrderId)
+        for (let attempt = 0; attempt < attemptsLimit && !stoppedRef.current; attempt += 1) {
+          try {
+            const { data } = await api.post(`/orders/${stripeOrderId}/stripe/confirm`, { sessionId: stripeSessionId })
+            const order = (data as any).data || data
+            setOrderData(order)
+            if (order.status === 'PAID') {
+              navigate(`/orders/${stripeOrderId}`, { replace: true })
+              return
+            }
+          } catch {
+            // A webhook/return race may resolve on the next short automatic retry.
+          }
+          if (attempt < attemptsLimit - 1 && !stoppedRef.current) {
+            await new Promise<void>((resolve) => {
+              timerRef.current = paymentResultClock.scheduleTimeout(resolve, pollInterval)
+            })
+          }
+        }
+        setState('failed')
         return
       }
 
@@ -117,11 +141,15 @@ export function PaymentResultPage() {
       const transactionStatus = searchParams.get('vnp_TransactionStatus')
       const rawTxnRef = searchParams.get('vnp_TxnRef')
       const orderId = rawTxnRef?.split('_')[0]
+      if (orderId) setCallbackOrderId(orderId)
       if (!orderId) {
+        setFailureMessage('Không xác định được đơn hàng từ kết quả VNPay.')
         setState('failed')
         return
       }
       if (responseCode !== '00' || transactionStatus !== '00') {
+        const messageTemplate = VNPayMessageMap[responseCode ?? ''] ?? VNPayMessageMap.DEFAULT
+        setFailureMessage(messageTemplate.replace('{code}', responseCode ?? transactionStatus ?? 'không xác định'))
         setState('failed')
         return
       }
@@ -130,11 +158,13 @@ export function PaymentResultPage() {
         // Uses the configured backend API base, never the Vercel/frontend host.
         const { data } = await api.get<{ RspCode?: string }>(`/orders/vnpay-ipn${window.location.search}`)
         if (data?.RspCode !== '00') {
+          setFailureMessage(`VNPay chưa xác nhận được giao dịch (mã ${data?.RspCode ?? 'không xác định'}).`)
           setState('failed')
           return
         }
         await confirmPaidOrder(orderId)
       } catch {
+        setFailureMessage('Không thể kết nối máy chủ để xác nhận VNPay. Vui lòng thử thanh toán lại từ đơn hàng.')
         setState('failed')
       }
     }
@@ -150,7 +180,7 @@ export function PaymentResultPage() {
     return (
       <div style={shellStyle}>
         <CheckoutProgress current='checkout' />
-        <div style={cardStyle}>
+        <div style={cardStyle} aria-live='polite'>
           <LoadingSpinner label='Thanh toán đang được xác nhận' />
           <p style={textStyle}>
             Đang xác minh giao dịch với cổng thanh toán. Bạn không cần thực hiện thêm thao tác nào.
@@ -162,19 +192,26 @@ export function PaymentResultPage() {
   return (
     <div style={shellStyle}>
       <CheckoutProgress current='checkout' />
-      <div style={cardStyle}>
-        <h1>Thanh toán chưa hoàn tất</h1>
-        <p style={textStyle}>Giao dịch chưa được xác nhận. Bạn có thể quay lại đơn hàng để thử lại.</p>
+      <div style={cardStyle} role='alert'>
+        <p style={eyebrowStyle}>Cần hoàn tất giao dịch</p>
+        <h1 style={headingStyle}>Thanh toán chưa hoàn tất</h1>
+        <p style={textStyle}>{failureMessage}</p>
         <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
-          <button className='btn' onClick={() => navigate(orderData?.id ? `/orders/${orderData.id}` : '/orders')}>
+          <Button variant='secondary' onClick={() => navigate('/orders')}>
             Quay lại đơn hàng
-          </button>
-          <button
-            className='btn btn-primary'
-            onClick={() => navigate(orderData?.id ? `/orders/${orderData.id}` : '/orders')}
+          </Button>
+          <Button
+            variant='primary'
+            onClick={() =>
+              navigate(
+                orderData?.id || callbackOrderId
+                  ? `/checkout?orderId=${encodeURIComponent(orderData?.id ?? callbackOrderId ?? '')}`
+                  : '/orders'
+              )
+            }
           >
             Thanh toán lại
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -183,11 +220,28 @@ export function PaymentResultPage() {
 
 const shellStyle = { maxWidth: 980, margin: '2rem auto', padding: '0 24px' }
 const cardStyle = {
-  padding: '32px',
-  border: '1px solid var(--border, #e5dfd1)',
-  borderRadius: '20px',
-  background: 'var(--surface, #fff)'
+  padding: 'clamp(24px, 5vw, 40px)',
+  border: `1px solid ${colors.hairline}`,
+  borderRadius: radius.xl,
+  background: colors.surface,
+  boxShadow: '0 1px 3px rgba(16, 24, 40, 0.08)',
+  textAlign: 'center' as const
 }
-const textStyle = { color: 'var(--text-muted, #6b7280)', lineHeight: 1.6 }
+const textStyle = { color: colors.slate, lineHeight: 1.6, maxWidth: 560, margin: '12px auto 0' }
+const eyebrowStyle = {
+  margin: 0,
+  color: colors.accentHover,
+  fontFamily: fonts.display,
+  fontSize: 12,
+  fontWeight: 700,
+  letterSpacing: '0.08em',
+  textTransform: 'uppercase' as const
+}
+const headingStyle = {
+  margin: '8px 0 0',
+  color: colors.ink,
+  fontFamily: fonts.display,
+  fontSize: 'clamp(28px, 4vw, 38px)'
+}
 
 export default PaymentResultPage

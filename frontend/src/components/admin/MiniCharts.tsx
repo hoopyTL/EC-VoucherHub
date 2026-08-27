@@ -59,8 +59,8 @@ export function LineChart({
     >
       {/* Baseline */}
       <line x1={pad} y1={height - pad} x2={width - pad} y2={height - pad} stroke={colors.hairline} strokeWidth={1} />
-      {areaPath && <path d={areaPath} fill={colors.surfaceMuted} />}
-      {linePath && <path d={linePath} fill='none' stroke={colors.ink} strokeWidth={2} />}
+      {areaPath && <path d={areaPath} fill='rgba(81, 69, 205, 0.06)' />}
+      {linePath && <path d={linePath} fill='none' stroke={colors.brand} strokeWidth={2} />}
     </svg>
   )
 }
@@ -138,8 +138,8 @@ export function ColumnChart({
             flex: 1,
             minWidth: 4,
             height: `${Math.max(value ? 8 : 2, (value / max) * 100)}%`,
-            borderRadius: '5px 5px 0 0',
-            background: 'linear-gradient(180deg, #ff7043 0%, #e74720 100%)',
+            borderRadius: '4px 4px 0 0',
+            background: colors.brand,
             opacity: value ? 1 : 0.18,
             transition: 'height 220ms ease'
           }}
@@ -166,7 +166,7 @@ const trackStyle: CSSProperties = {
 const fillStyle: CSSProperties = {
   height: '100%',
   borderRadius: radius.full,
-  background: 'linear-gradient(90deg, #ff7043, #e74720)'
+  background: colors.brand
 }
 
 /** A compact donut-free funnel/ratio gauge rendered as a labelled bar. */

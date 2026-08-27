@@ -134,7 +134,7 @@ export function UsersPage() {
   }
 
   return (
-    <section style={{ maxWidth: 1000, margin: '0 auto' }}>
+    <section className='admin-page admin-users-page' style={{ maxWidth: 1000, margin: '0 auto' }}>
       <h1 style={pageTitleStyle}>Quản lý người dùng</h1>
       <p style={{ color: colors.slate, marginTop: 0, fontSize: 16 }}>
         Xem, tìm kiếm, đổi vai trò, khóa hoặc mở khóa tài khoản khách hàng và đối tác.

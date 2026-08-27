@@ -26,3 +26,16 @@ export type { BadgeProps, BadgeVariant } from './Badge'
 
 export { StarRating } from './StarRating'
 export type { StarRatingProps } from './StarRating'
+
+export {
+  AppPage,
+  PageHeader,
+  SectionCard,
+  MetricCard,
+  SearchInput,
+  FilterSelect,
+  FilterBar,
+  EmptyState,
+  ErrorState,
+  IconButton
+} from './LayoutPrimitives'

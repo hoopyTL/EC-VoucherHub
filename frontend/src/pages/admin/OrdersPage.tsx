@@ -54,7 +54,7 @@ export function OrdersPage() {
   }, [ordersQuery.data])
   const paid = (ordersQuery.data?.items ?? []).filter((item) => item.status === 'PAID')
   return (
-    <section style={{ maxWidth: 1120, margin: '0 auto' }}>
+    <section className='admin-page admin-orders-page' style={{ maxWidth: 1120, margin: '0 auto' }}>
       <p style={eyebrowStyle}>● Vận hành thương mại</p>
       <h1 style={titleStyle}>Quản lý đơn hàng</h1>
       <p style={subtitleStyle}>Theo dõi thanh toán và tra cứu toàn bộ đơn hàng từ dữ liệu thực.</p>
@@ -182,7 +182,7 @@ const titleStyle: CSSProperties = {
   margin: 0,
   color: colors.ink,
   fontFamily: fonts.display,
-  fontSize: 48,
+  fontSize: 'clamp(30px, 4vw, 40px)',
   fontWeight: 800,
   letterSpacing: '-.04em'
 }
@@ -198,8 +198,8 @@ const summaryCardStyle: CSSProperties = {
   flexDirection: 'column',
   gap: 4,
   padding: 20,
-  background: 'linear-gradient(135deg,#fff,#f6f3ff)',
-  border: '1px solid #ded7ff',
+  background: colors.surface,
+  border: `1px solid ${colors.hairline}`,
   borderRadius: radius.xl,
   boxShadow: shadows.card
 }

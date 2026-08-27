@@ -14,6 +14,7 @@
  * _Requirements: 2.6_
  */
 import { useEffect, useState, type CSSProperties, type FormEvent } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { UserRole } from '@ui-contracts'
 import { useAuth } from '../../hooks/useAuth'
 import { Badge, Button, ConfirmDialog, Input, LoadingSpinner, useToast } from '../../components/ui'
@@ -41,6 +42,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
 export function AccountPage() {
   const { user, updateProfile, logout } = useAuth()
   const toast = useToast()
+  const [searchParams] = useSearchParams()
 
   const [fullName, setFullName] = useState(user?.name ?? '')
   const [email, setEmail] = useState('')
@@ -55,7 +57,9 @@ export function AccountPage() {
   const [confirmNewPassword, setConfirmNewPassword] = useState('')
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [activeTab, setActiveTab] = useState<'profile' | 'security'>('profile')
+  const [activeTab, setActiveTab] = useState<'profile' | 'security'>(() =>
+    searchParams.get('tab') === 'security' ? 'security' : 'profile'
+  )
   const [logoutOpen, setLogoutOpen] = useState(false)
   const initial = (fullName.trim().charAt(0) || user?.name?.charAt(0) || 'K').toLocaleUpperCase('vi')
 
@@ -155,182 +159,197 @@ export function AccountPage() {
   }
 
   return (
-    <section style={{ maxWidth: 760, margin: '24px auto' }}>
-      <div style={cardStyle}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 22 }}>
-          <div aria-hidden='true' style={profileAvatarStyle}>
+    <section
+      className={
+        user?.role === UserRole.CUSTOMER
+          ? 'customer-account-page customer-account-layout account-profile-page'
+          : 'customer-account-page'
+      }
+      style={user?.role === UserRole.CUSTOMER ? undefined : { maxWidth: 760, margin: '24px auto' }}
+    >
+      {user?.role === UserRole.CUSTOMER && (
+        <aside className='customer-account-sidebar' aria-label='Khu vực tài khoản'>
+          <div aria-hidden='true' className='customer-account-avatar' style={profileAvatarStyle}>
             {initial}
           </div>
-          <div>
-            <p style={eyebrowStyle}>● Tài khoản thành viên</p>
-            <h1 style={titleStyle}>{user?.name ?? 'Tài khoản của bạn'}</h1>
-            {user && <Badge variant='info'>{ROLE_LABELS[user.role] ?? user.role}</Badge>}
-          </div>
-        </div>
-      </div>
-
-      <div role='tablist' aria-label='Quản lý tài khoản' style={tabListStyle}>
-        <button
-          type='button'
-          role='tab'
-          aria-selected={activeTab === 'profile'}
-          onClick={() => setActiveTab('profile')}
-          style={tabStyle(activeTab === 'profile')}
-        >
-          Thông tin cá nhân
-        </button>
-        <button
-          type='button'
-          role='tab'
-          aria-selected={activeTab === 'security'}
-          onClick={() => setActiveTab('security')}
-          style={tabStyle(activeTab === 'security')}
-        >
-          Bảo mật & mật khẩu
-        </button>
-      </div>
-
-      {activeTab === 'profile' && (
-        <div role='tabpanel' style={{ ...cardStyle, marginTop: 20 }}>
-          <h2 style={subtitleStyle}>Thông tin hồ sơ</h2>
-          <p style={{ marginTop: 0, marginBottom: 24, color: colors.slate, fontSize: 14 }}>
-            Cập nhật thông tin liên hệ để nhận hỗ trợ và voucher thuận tiện hơn.
-          </p>
-
-          {isProfileLoading ? (
-            <LoadingSpinner label='Đang tải hồ sơ' />
-          ) : (
-            <form onSubmit={handleProfileSubmit} noValidate>
-              {profileError && (
-                <div role='alert' style={alertStyle}>
-                  {profileError}
+          <strong>Tài khoản của tôi</strong>
+          <p>Quản lý thông tin, lịch sử mua hàng và voucher của bạn.</p>
+          <nav aria-label='Điều hướng tài khoản'>
+            <button
+              type='button'
+              className={activeTab === 'profile' ? 'is-current' : ''}
+              onClick={() => setActiveTab('profile')}
+            >
+              Thông tin tài khoản
+            </button>
+            <Link to='/orders'>Lịch sử mua hàng</Link>
+            <Link to='/my-vouchers'>Voucher của tôi</Link>
+            <Link to='/favorites'>Yêu thích</Link>
+            <button
+              type='button'
+              className={activeTab === 'security' ? 'is-current' : ''}
+              onClick={() => setActiveTab('security')}
+            >
+              Đổi mật khẩu
+            </button>
+          </nav>
+          <div className='customer-account-member-badge'>Thành viên Bạc · 1.250 điểm</div>
+          <button type='button' className='customer-account-logout' onClick={() => setLogoutOpen(true)}>
+            Đăng xuất
+          </button>
+        </aside>
+      )}
+      <div className={user?.role === UserRole.CUSTOMER ? 'customer-account-content' : undefined}>
+        {activeTab === 'profile' && (
+          <>
+            <div className='customer-account-hero' style={cardStyle}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 22 }}>
+                <div aria-hidden='true' style={profileAvatarStyle}>
+                  {initial}
                 </div>
+                <div>
+                  <p style={eyebrowStyle}>● Tài khoản khách hàng</p>
+                  <h1 style={titleStyle}>{user?.name ?? 'Tài khoản của bạn'}</h1>
+                  {user && <Badge variant='info'>{ROLE_LABELS[user.role] ?? user.role}</Badge>}
+                </div>
+              </div>
+            </div>
+
+            <div role='tabpanel' style={{ ...cardStyle, marginTop: 20 }}>
+              <h2 style={subtitleStyle}>Thông tin hồ sơ</h2>
+              <p style={{ marginTop: 0, marginBottom: 24, color: colors.slate, fontSize: 14 }}>
+                Cập nhật thông tin liên hệ để nhận hỗ trợ và voucher thuận tiện hơn.
+              </p>
+
+              {isProfileLoading ? (
+                <LoadingSpinner label='Đang tải hồ sơ' />
+              ) : (
+                <form onSubmit={handleProfileSubmit} noValidate>
+                  {profileError && (
+                    <div role='alert' style={alertStyle}>
+                      {profileError}
+                    </div>
+                  )}
+                  <div style={{ marginBottom: 16 }}>
+                    <Input
+                      label='👤  Họ và tên'
+                      name='fullName'
+                      value={fullName}
+                      onChange={(event) => setFullName(event.target.value)}
+                      disabled={isProfileSubmitting}
+                      required
+                    />
+                  </div>
+                  <div style={{ marginBottom: 16 }}>
+                    <Input
+                      label='✉  Email'
+                      name='email'
+                      type='email'
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      disabled={isProfileSubmitting}
+                    />
+                  </div>
+                  <div style={{ marginBottom: 16 }}>
+                    <Input
+                      label='☎  Số điện thoại'
+                      name='phone'
+                      type='tel'
+                      value={phone}
+                      onChange={(event) => setPhone(event.target.value)}
+                      disabled={isProfileSubmitting}
+                    />
+                  </div>
+                  <div style={{ marginBottom: 24 }}>
+                    <Input
+                      label='⌂  Địa chỉ'
+                      name='address'
+                      value={address}
+                      onChange={(event) => setAddress(event.target.value)}
+                      disabled={isProfileSubmitting}
+                    />
+                  </div>
+                  <Button type='submit' fullWidth isLoading={isProfileSubmitting}>
+                    ✓ Lưu hồ sơ
+                  </Button>
+                </form>
               )}
+            </div>
+          </>
+        )}
+
+        {activeTab === 'security' && (
+          <div role='tabpanel' style={{ ...cardStyle, marginTop: 0 }}>
+            <h2 style={subtitleStyle}>Đổi mật khẩu</h2>
+            <p style={{ marginTop: 0, marginBottom: 24, color: colors.slate, fontSize: 14 }}>
+              Nhập mật khẩu hiện tại và chọn mật khẩu mới an toàn.
+            </p>
+
+            <form onSubmit={handlePasswordSubmit} noValidate>
               <div style={{ marginBottom: 16 }}>
                 <Input
-                  label='👤  Họ và tên'
-                  name='fullName'
-                  value={fullName}
-                  onChange={(event) => setFullName(event.target.value)}
-                  disabled={isProfileSubmitting}
+                  label='Mật khẩu hiện tại'
+                  name='currentPassword'
+                  type='password'
+                  autoComplete='current-password'
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  error={fieldErrors.currentPassword}
+                  disabled={isSubmitting}
                   required
                 />
               </div>
+
               <div style={{ marginBottom: 16 }}>
                 <Input
-                  label='✉  Email'
-                  name='email'
-                  type='email'
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  disabled={isProfileSubmitting}
+                  label='Mật khẩu mới'
+                  name='newPassword'
+                  type='password'
+                  autoComplete='new-password'
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  error={fieldErrors.newPassword}
+                  hint={`Ít nhất ${MIN_PASSWORD_LENGTH} ký tự.`}
+                  disabled={isSubmitting}
+                  required
                 />
               </div>
-              <div style={{ marginBottom: 16 }}>
-                <Input
-                  label='☎  Số điện thoại'
-                  name='phone'
-                  type='tel'
-                  value={phone}
-                  onChange={(event) => setPhone(event.target.value)}
-                  disabled={isProfileSubmitting}
-                />
-              </div>
+
               <div style={{ marginBottom: 24 }}>
                 <Input
-                  label='⌂  Địa chỉ'
-                  name='address'
-                  value={address}
-                  onChange={(event) => setAddress(event.target.value)}
-                  disabled={isProfileSubmitting}
+                  label='Xác nhận mật khẩu mới'
+                  name='confirmNewPassword'
+                  type='password'
+                  autoComplete='new-password'
+                  value={confirmNewPassword}
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  error={fieldErrors.confirmNewPassword}
+                  disabled={isSubmitting}
+                  required
                 />
               </div>
-              <Button type='submit' fullWidth isLoading={isProfileSubmitting}>
-                ✓ Lưu hồ sơ
+
+              <Button type='submit' fullWidth isLoading={isSubmitting} withArrow>
+                Đổi mật khẩu
               </Button>
             </form>
-          )}
-        </div>
-      )}
-
-      {activeTab === 'security' && (
-        <div role='tabpanel' style={{ ...cardStyle, marginTop: 20 }}>
-          <h2 style={subtitleStyle}>Đổi mật khẩu</h2>
-          <p style={{ marginTop: 0, marginBottom: 24, color: colors.slate, fontSize: 14 }}>
-            Nhập mật khẩu hiện tại và chọn mật khẩu mới an toàn.
-          </p>
-
-          <form onSubmit={handlePasswordSubmit} noValidate>
-            <div style={{ marginBottom: 16 }}>
-              <Input
-                label='Mật khẩu hiện tại'
-                name='currentPassword'
-                type='password'
-                autoComplete='current-password'
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                error={fieldErrors.currentPassword}
-                disabled={isSubmitting}
-                required
-              />
-            </div>
-
-            <div style={{ marginBottom: 16 }}>
-              <Input
-                label='Mật khẩu mới'
-                name='newPassword'
-                type='password'
-                autoComplete='new-password'
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                error={fieldErrors.newPassword}
-                hint={`Ít nhất ${MIN_PASSWORD_LENGTH} ký tự.`}
-                disabled={isSubmitting}
-                required
-              />
-            </div>
-
-            <div style={{ marginBottom: 24 }}>
-              <Input
-                label='Xác nhận mật khẩu mới'
-                name='confirmNewPassword'
-                type='password'
-                autoComplete='new-password'
-                value={confirmNewPassword}
-                onChange={(e) => setConfirmNewPassword(e.target.value)}
-                error={fieldErrors.confirmNewPassword}
-                disabled={isSubmitting}
-                required
-              />
-            </div>
-
-            <Button type='submit' fullWidth isLoading={isSubmitting} withArrow>
-              Đổi mật khẩu
-            </Button>
-          </form>
-          <div style={{ marginTop: 28, paddingTop: 24, borderTop: `1px solid ${colors.hairline}` }}>
-            <h3 style={{ ...subtitleStyle, fontSize: 17 }}>Phiên đăng nhập</h3>
-            <p style={{ color: colors.slate, fontSize: 14 }}>Đăng xuất an toàn khỏi thiết bị hiện tại.</p>
-            <Button variant='danger' onClick={() => setLogoutOpen(true)}>
-              Đăng xuất
-            </Button>
           </div>
-        </div>
-      )}
+        )}
 
-      <ConfirmDialog
-        open={logoutOpen}
-        title='Đăng xuất VoucherHub?'
-        message='Bạn có chắc muốn kết thúc phiên đăng nhập trên thiết bị này không?'
-        cancelLabel='Ở lại'
-        confirmLabel='Đăng xuất'
-        danger
-        onCancel={() => setLogoutOpen(false)}
-        onConfirm={() => {
-          setLogoutOpen(false)
-          logout()
-        }}
-      />
+        <ConfirmDialog
+          open={logoutOpen}
+          title='Đăng xuất VoucherHub?'
+          message='Bạn có chắc muốn kết thúc phiên đăng nhập trên thiết bị này không?'
+          cancelLabel='Ở lại'
+          confirmLabel='Đăng xuất'
+          danger
+          onCancel={() => setLogoutOpen(false)}
+          onConfirm={() => {
+            setLogoutOpen(false)
+            logout()
+          }}
+        />
+      </div>
     </section>
   )
 }
@@ -395,32 +414,6 @@ const profileAvatarStyle: CSSProperties = {
   fontFamily: fonts.display,
   fontSize: 36,
   fontWeight: 800
-}
-
-const tabListStyle: CSSProperties = {
-  display: 'flex',
-  gap: 8,
-  marginTop: 20,
-  padding: 6,
-  borderRadius: radius.lg,
-  background: colors.surface,
-  border: `1px solid ${colors.hairline}`
-}
-
-function tabStyle(active: boolean): CSSProperties {
-  return {
-    flex: 1,
-    minHeight: 44,
-    padding: '10px 16px',
-    border: `1px solid ${active ? colors.accent : 'transparent'}`,
-    borderBottom: active ? `4px solid ${colors.accent}` : '4px solid transparent',
-    borderRadius: radius.md,
-    background: active ? colors.accent : 'transparent',
-    color: active ? colors.onAccent : colors.slate,
-    fontFamily: fonts.display,
-    fontWeight: 700,
-    cursor: 'pointer'
-  }
 }
 
 export default AccountPage

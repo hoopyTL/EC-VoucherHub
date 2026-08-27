@@ -27,7 +27,7 @@ export function StaffCreatePage() {
     mutation.mutate({ ...form, phone: form.phone.trim() || undefined })
   }
   return (
-    <section style={{ maxWidth: 900, margin: '0 auto' }}>
+    <section className='partner-page partner-staff-form-page' style={{ maxWidth: 900, margin: '0 auto' }}>
       <Link to='/partner/staff' style={{ color: colors.slate, fontWeight: 700 }}>
         ← Quay lại danh sách nhân viên
       </Link>
@@ -35,7 +35,7 @@ export function StaffCreatePage() {
         <p style={{ color: colors.accent, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.1em' }}>
           Phân quyền vận hành
         </p>
-        <h1 style={{ margin: 0, fontFamily: fonts.display, fontSize: 46 }}>Thêm nhân viên</h1>
+        <h1 style={{ margin: 0, fontFamily: fonts.display, fontSize: 'clamp(30px, 4vw, 40px)' }}>Thêm nhân viên</h1>
         <p style={{ color: colors.slate }}>
           Tạo tài khoản và chỉ định chính xác những chi nhánh nhân viên được phép xác nhận voucher.
         </p>

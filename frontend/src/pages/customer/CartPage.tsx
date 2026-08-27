@@ -29,8 +29,10 @@ import { Button } from '../../components/ui/Button'
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner'
 import { ContentSkeleton } from '../../components/ui/ContentSkeleton'
 import { CheckoutProgress } from '../../components/customer/CheckoutProgress'
+import { VoucherImage } from '../../components/voucher/VoucherImage'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
 import { readCheckoutSelection, saveCheckoutSelection } from '../../services/checkout-selection'
+import { ArrowRight, Headphones, History, RotateCcw, ShieldCheck, ShoppingBag, Sparkles, Tag } from 'lucide-react'
 
 /** Maximum quantity of a single voucher allowed per order (mirrors backend). */
 export const MAX_QUANTITY_PER_ITEM = 10
@@ -255,7 +257,7 @@ export function CartPage() {
 
   if (isLoading) {
     return (
-      <section style={sectionStyle}>
+      <section className='customer-cart-page customer-page-state' style={sectionStyle}>
         <h1 style={headingStyle}>Giỏ hàng</h1>
         <ContentSkeleton rows={3} variant='cards' label='Đang tải giỏ hàng' />
       </section>
@@ -264,7 +266,7 @@ export function CartPage() {
 
   if (isError || !cart) {
     return (
-      <section style={sectionStyle}>
+      <section className='customer-cart-page customer-page-state' style={sectionStyle}>
         <h1 style={headingStyle}>Giỏ hàng</h1>
         <div role='alert' style={alertStyle}>
           Không thể tải giỏ hàng. Vui lòng thử lại.
@@ -278,12 +280,27 @@ export function CartPage() {
 
   if (cart.items.length === 0) {
     return (
-      <section style={sectionStyle}>
-        <h1 style={headingStyle}>Giỏ hàng</h1>
-        <p style={{ color: colors.slate }}>Giỏ hàng của bạn đang trống.</p>
-        <Link to='/search' style={browseLinkStyle}>
-          Khám phá voucher
-        </Link>
+      <section className='customer-cart-page customer-cart-empty-page' style={sectionStyle}>
+        <CheckoutProgress current='cart' />
+        <div className='customer-cart-empty-card'>
+          <div className='customer-cart-empty-card__visual' aria-hidden='true'>
+            <span>
+              <ShoppingBag size={48} strokeWidth={1.7} />
+            </span>
+            <Sparkles className='customer-cart-empty-card__sparkle' size={25} />
+          </div>
+          <h1>Giỏ hàng của bạn đang trống</h1>
+          <p>Hãy khám phá các voucher hấp dẫn hoặc tiếp tục thanh toán đơn hàng bạn vừa tạo.</p>
+          <div className='customer-cart-empty-card__actions'>
+            <Link className='customer-cart-empty-card__primary' to='/search'>
+              Khám phá voucher <ArrowRight size={18} />
+            </Link>
+            <Link className='customer-cart-empty-card__secondary' to='/orders'>
+              <History size={18} /> Xem lịch sử mua hàng
+            </Link>
+          </div>
+          <small>Sản phẩm sẽ xuất hiện tại đây sau khi bạn chọn “Thêm vào giỏ”.</small>
+        </div>
       </section>
     )
   }
@@ -299,110 +316,171 @@ export function CartPage() {
   }
 
   return (
-    <section className='customer-cart-view' style={sectionStyle}>
+    <section className='customer-cart-view customer-cart-page' style={sectionStyle}>
       <CheckoutProgress current='cart' />
-      <div className='cart-selection-toolbar'>
-        <label className='cart-select-all'>
-          <input type='checkbox' checked={allSelected} onChange={toggleAll} />
-          <span>Chọn tất cả ({cart.items.length})</span>
-        </label>
-        <span>{selectedItems.length} sản phẩm được chọn</span>
-      </div>
-      <h1 style={headingStyle}>Giỏ hàng</h1>
+      <div className='customer-cart-panel'>
+        <div className='customer-cart-panel__heading'>
+          <h1>Giỏ hàng của bạn ({cart.items.length})</h1>
+          <button type='button' onClick={() => cart.items.forEach((item) => removeItem(item))}>
+            Xóa tất cả
+          </button>
+        </div>
+        <div className='cart-selection-toolbar'>
+          <label className='cart-select-all'>
+            <input type='checkbox' checked={allSelected} onChange={toggleAll} />
+            <span>Chọn tất cả</span>
+          </label>
+          <span>{selectedItems.length} sản phẩm được chọn</span>
+        </div>
 
-      <ul className='customer-cart-list' style={listStyle}>
-        {cart.items.map((item) => {
-          const rowError = rowErrors[item.id]
-          const isUpdatingRow = updateMutation.isPending && updateMutation.variables?.id === item.id
-          const isRemovingRow = removeMutation.isPending && removeMutation.variables?.id === item.id
-          const rowBusy = isUpdatingRow || isRemovingRow
+        <ul className='customer-cart-list' style={listStyle}>
+          {cart.items.map((item, itemIndex) => {
+            const rowError = rowErrors[item.id]
+            const isUpdatingRow = updateMutation.isPending && updateMutation.variables?.id === item.id
+            const isRemovingRow = removeMutation.isPending && removeMutation.variables?.id === item.id
+            const rowBusy = isUpdatingRow || isRemovingRow
 
-          return (
-            <li
-              className={`customer-cart-row${selectedIds.includes(item.id) ? ' is-selected' : ''}`}
-              key={item.id}
-              style={rowStyle}
-              data-testid={`cart-item-${item.id}`}
-            >
-              <label className='cart-item-check' aria-label={`Chọn ${item.title} để thanh toán`}>
-                <input type='checkbox' checked={selectedIds.includes(item.id)} onChange={() => toggleItem(item.id)} />
-              </label>
-              <div style={thumbnailStyle}>
-                <span>VH</span>
-                {item.imageUrl && (
-                  <img
-                    src={item.imageUrl}
-                    alt=''
-                    style={thumbnailImageStyle}
-                    onError={(event) => {
-                      event.currentTarget.style.display = 'none'
-                    }}
-                  />
-                )}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={titleStyle}>{item.title}</p>
-                <p style={metaStyle}>
-                  Đơn giá: <span data-testid={`unit-price-${item.id}`}>{formatPrice(item.unitPrice)}</span>
-                </p>
-              </div>
-
-              <div style={quantityControlStyle}>
-                <Button
-                  size='sm'
-                  variant='secondary'
-                  aria-label={`Giảm số lượng ${item.title}`}
-                  disabled={rowBusy || item.quantity <= 1}
-                  onClick={() => changeQuantity(item, item.quantity - 1)}
-                >
-                  −
-                </Button>
-                <span
-                  aria-label={`Số lượng ${item.title}`}
-                  data-testid={`quantity-${item.id}`}
-                  style={quantityValueStyle}
-                >
-                  {item.quantity}
-                </span>
-                <Button
-                  size='sm'
-                  variant='secondary'
-                  aria-label={`Tăng số lượng ${item.title}`}
-                  disabled={rowBusy || item.quantity >= MAX_QUANTITY_PER_ITEM}
-                  onClick={() => changeQuantity(item, item.quantity + 1)}
-                >
-                  +
-                </Button>
-              </div>
-
-              <div style={subtotalStyle} data-testid={`subtotal-${item.id}`}>
-                {formatPrice(item.subtotal)}
-              </div>
-
-              <Button
-                size='sm'
-                variant='danger'
-                aria-label={`Xóa ${item.title} khỏi giỏ hàng`}
-                isLoading={isRemovingRow}
-                disabled={rowBusy}
-                onClick={() => removeItem(item)}
+            return (
+              <li
+                className={`customer-cart-row${selectedIds.includes(item.id) ? ' is-selected' : ''}`}
+                key={item.id}
+                style={rowStyle}
+                data-testid={`cart-item-${item.id}`}
               >
-                Xóa
-              </Button>
+                <label className='cart-item-check' aria-label={`Chọn ${item.title} để thanh toán`}>
+                  <input type='checkbox' checked={selectedIds.includes(item.id)} onChange={() => toggleItem(item.id)} />
+                </label>
+                <div style={thumbnailStyle}>
+                  <VoucherImage
+                    src={item.imageUrl ?? `/assets/voucher-catalogue-sprite.png?cell=${itemIndex % 10}`}
+                    alt={`Ảnh ${item.title}`}
+                    style={thumbnailImageStyle}
+                  />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={titleStyle}>{item.title}</p>
+                  <p style={metaStyle}>
+                    Đơn giá: <span data-testid={`unit-price-${item.id}`}>{formatPrice(item.unitPrice)}</span>
+                  </p>
+                </div>
 
-              {rowError && (
-                <p role='alert' style={rowErrorStyle}>
-                  {rowError}
-                </p>
-              )}
-            </li>
-          )
-        })}
-      </ul>
+                <div style={quantityControlStyle}>
+                  <Button
+                    size='sm'
+                    variant='secondary'
+                    aria-label={`Giảm số lượng ${item.title}`}
+                    disabled={rowBusy || item.quantity <= 1}
+                    onClick={() => changeQuantity(item, item.quantity - 1)}
+                  >
+                    −
+                  </Button>
+                  <span
+                    aria-label={`Số lượng ${item.title}`}
+                    data-testid={`quantity-${item.id}`}
+                    style={quantityValueStyle}
+                  >
+                    {item.quantity}
+                  </span>
+                  <Button
+                    size='sm'
+                    variant='secondary'
+                    aria-label={`Tăng số lượng ${item.title}`}
+                    disabled={rowBusy || item.quantity >= MAX_QUANTITY_PER_ITEM}
+                    onClick={() => changeQuantity(item, item.quantity + 1)}
+                  >
+                    +
+                  </Button>
+                </div>
+
+                <div style={subtotalStyle} data-testid={`subtotal-${item.id}`}>
+                  {formatPrice(item.subtotal)}
+                </div>
+
+                <Button
+                  size='sm'
+                  variant='danger'
+                  aria-label={`Xóa ${item.title} khỏi giỏ hàng`}
+                  isLoading={isRemovingRow}
+                  disabled={rowBusy}
+                  onClick={() => removeItem(item)}
+                >
+                  Xóa
+                </Button>
+
+                {rowError && (
+                  <p role='alert' style={rowErrorStyle}>
+                    {rowError}
+                  </p>
+                )}
+              </li>
+            )
+          })}
+        </ul>
+
+        <div className='customer-cart-coupon'>
+          <label>Bạn có mã giảm giá?</label>
+          <div>
+            <input placeholder='Nhập mã giảm giá của bạn' />
+            <button type='button'>Áp dụng</button>
+          </div>
+        </div>
+        <div className='customer-cart-benefits'>
+          <div>
+            <ShieldCheck />
+            <span>
+              <strong>Thanh toán an toàn</strong>
+              <small>Bảo mật tuyệt đối với SSL</small>
+            </span>
+          </div>
+          <div>
+            <Headphones />
+            <span>
+              <strong>Hỗ trợ 24/7</strong>
+              <small>Đội ngũ CSKH luôn sẵn sàng</small>
+            </span>
+          </div>
+          <div>
+            <RotateCcw />
+            <span>
+              <strong>Hoàn tiền dễ dàng</strong>
+              <small>Hoàn tiền nếu không sử dụng</small>
+            </span>
+          </div>
+        </div>
+      </div>
 
       <div className='customer-cart-summary' style={footerStyle}>
-        <div style={{ fontSize: 16 }}>
-          <span style={{ color: colors.slate, marginRight: 8 }}>Tổng thanh toán ({selectedItems.length} mục)</span>
+        <h2>Thông tin đơn hàng</h2>
+        <div className='customer-cart-summary__line'>
+          <span>Tạm tính ({selectedItems.length} sản phẩm)</span>
+          <b>{formatPrice(selectedTotal)}</b>
+        </div>
+        <div className='customer-cart-summary__line is-discount'>
+          <span>Giảm giá sản phẩm</span>
+          <b>− 0 ₫</b>
+        </div>
+        <div className='customer-cart-summary__line is-subtotal'>
+          <span>Tổng tiền hàng</span>
+          <b>{formatPrice(selectedTotal)}</b>
+        </div>
+        <label className='customer-cart-summary__coupon'>
+          Mã giảm giá
+          <div>
+            <input placeholder='Nhập mã giảm giá' />
+            <button type='button'>Áp dụng</button>
+          </div>
+        </label>
+        <div className='customer-cart-summary__coupon-note'>
+          <Tag size={20} />
+          <span>
+            <strong>Bạn chưa có mã giảm giá</strong>
+            <small>Sưu tầm mã giảm giá để tiết kiệm hơn nhé!</small>
+          </span>
+        </div>
+        <div className='customer-cart-summary__total'>
+          <span>
+            Tổng thanh toán<small>Đã bao gồm VAT (nếu có)</small>
+          </span>
           <strong data-testid='cart-total'>{formatPrice(selectedTotal)}</strong>
           {isFetching && (
             <span style={{ marginLeft: 10, verticalAlign: 'middle' }}>
@@ -412,11 +490,21 @@ export function CartPage() {
         </div>
         {selectedItems.length > 0 ? (
           <Link to='/checkout' style={{ textDecoration: 'none' }}>
-            <Button>Thanh toán {selectedItems.length} voucher</Button>
+            <Button aria-label={`Thanh toán ${selectedItems.length} voucher`}>Tiến hành thanh toán&nbsp; →</Button>
           </Link>
         ) : (
           <Button disabled>Vui lòng chọn voucher</Button>
         )}
+        <p className='customer-cart-summary__secure'>
+          <ShieldCheck size={15} /> Thông tin của bạn được bảo mật tuyệt đối
+        </p>
+        <div className='customer-cart-summary__reward'>
+          <span>ⓢ</span>
+          <p>
+            <strong>Bạn sẽ nhận được {Math.round(selectedTotal / 1000)} điểm thưởng</strong>
+            <small>Sau khi thanh toán thành công</small>
+          </p>
+        </div>
       </div>
     </section>
   )
@@ -439,11 +527,6 @@ const headingStyle: CSSProperties = {
   fontWeight: 800,
   letterSpacing: '-0.03em',
   color: colors.ink
-}
-
-const browseLinkStyle: CSSProperties = {
-  color: colors.ink,
-  fontWeight: 600
 }
 
 const listStyle: CSSProperties = {

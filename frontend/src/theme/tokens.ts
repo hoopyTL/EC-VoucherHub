@@ -15,51 +15,61 @@
 /** Monochrome palette. Hue is avoided entirely; hierarchy comes from value. */
 export const colors = {
   /** Global background — a warm light gray, more premium than pure white. */
-  canvas: '#F4EFE3',
+  canvas: '#F7F8FA',
   /** A slightly dimmer canvas for recessed/secondary surfaces. */
-  canvasDim: '#E9E1D1',
+  canvasDim: '#EEF0F4',
   /** Floating cards and interactive containers. */
-  surface: '#FFFDF7',
+  surface: '#FFFFFF',
   /** Subtle raised fill (e.g. inactive chips, hover wells). */
-  surfaceMuted: '#EFE8DA',
+  surfaceMuted: '#F2F4F7',
 
   /** High-priority text, primary buttons, structural lines. */
-  ink: '#1C1912',
+  ink: '#101828',
   /** Near-ink used for large display headlines that should feel "blocky". */
-  inkSoft: '#29241B',
+  inkSoft: '#1D2939',
   /** Secondary information, metadata, supporting body copy. */
-  slate: '#6D6658',
+  slate: '#667085',
   /** Lower-emphasis captions / placeholder text. */
-  slateMuted: '#8C8372',
+  slateMuted: '#98A2B3',
 
   /** 1px boundary strokes. */
-  hairline: '#D8CFB9',
+  hairline: '#E4E7EC',
   /** Slightly stronger hairline for inputs / dividers needing more presence. */
-  hairlineStrong: '#BEB39A',
+  hairlineStrong: '#D0D5DD',
 
-  /** Warm brand accent for primary actions, promotions and key states. */
-  accent: '#B4791E',
-  accentHover: '#8F5F16',
-  accentSurface: '#F5E6C8',
+  /** Core marketplace accent: navy-indigo, matching the product reference. */
+  accent: '#312E81',
+  accentHover: '#1E1B4B',
+  accentSurface: '#EEF2FF',
   onAccent: '#FFFFFF',
+  brand: '#4F46E5',
+  brandHover: '#4338CA',
+  brandSurface: '#EEF2FF',
+  /** Commerce-only accent for prices, discounts and destructive attention. */
+  commerce: '#EF4444',
+  commerceSurface: '#FEF2F2',
 
   /** Text/fill on top of ink surfaces. */
   onInk: '#FFFFFF',
   /** Muted text on top of ink surfaces (e.g. captions on dark hero). */
-  onInkMuted: '#B5B3B2',
+  onInkMuted: '#D0D5DD',
 
   /**
    * Semantic accents. The design is monochrome, but transactional states
    * (errors, destructive actions) still need a small amount of signal colour.
    * Kept deliberately restrained.
    */
-  danger: '#BA1A1A',
+  danger: '#B42318',
   onDanger: '#FFFFFF',
-  dangerSurface: '#FFDAD6',
-  onDangerSurface: '#93000A',
+  dangerSurface: '#FEE4E2',
+  onDangerSurface: '#912018',
   /** Success/positive surfaces, rendered as ink-on-light to stay monochrome. */
-  successSurface: '#DDEADF',
-  onSuccessSurface: '#1F5138'
+  successSurface: '#D1FADF',
+  onSuccessSurface: '#067647',
+  warning: '#B54708',
+  warningSurface: '#FEF0C7',
+  info: '#175CD3',
+  infoSurface: '#EAF2FF'
 } as const
 
 /** Font stacks. Hanken Grotesk for display/labels, Inter for body. */
@@ -76,16 +86,16 @@ export const fonts = {
 export const typography = {
   displayXl: {
     fontFamily: fonts.display,
-    fontSize: 80,
+    fontSize: 60,
     fontWeight: 800,
-    lineHeight: '84px',
+    lineHeight: '66px',
     letterSpacing: '-0.04em'
   },
   displayLg: {
     fontFamily: fonts.display,
-    fontSize: 64,
+    fontSize: 48,
     fontWeight: 800,
-    lineHeight: '68px',
+    lineHeight: '54px',
     letterSpacing: '-0.04em'
   },
   headlineLg: {
@@ -141,9 +151,9 @@ export const typography = {
 /** Corner radii. Cards use `xl` (24px); buttons/chips use `full` (pill). */
 export const radius = {
   sm: 4,
-  md: 12,
-  lg: 16,
-  xl: 18,
+  md: 8,
+  lg: 12,
+  xl: 16,
   full: 9999
 } as const
 
@@ -165,27 +175,51 @@ export const spacing = {
 
 /** Soft, highly diffused shadows so white cards hover above the canvas. */
 export const shadows = {
-  sm: '0px 4px 12px rgba(43, 35, 22, 0.07)',
-  md: '0px 12px 28px rgba(43, 35, 22, 0.10)',
-  lg: '0px 22px 52px rgba(43, 35, 22, 0.15)',
+  sm: '0 1px 3px rgba(16, 24, 40, 0.08)',
+  md: '0 6px 16px rgba(16, 24, 40, 0.08)',
+  lg: '0 16px 32px rgba(16, 24, 40, 0.12)',
   /** Default floating card. */
-  card: '0px 12px 28px rgba(43, 35, 22, 0.10)',
+  card: '0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04)',
   /** Slightly stronger lift on hover. */
-  cardHover: '0px 24px 50px rgba(0, 0, 0, 0.08)',
+  cardHover: '0 12px 24px rgba(16, 24, 40, 0.12)',
   /** Top layer (modals, dropdowns). */
-  overlay: '0px 30px 60px rgba(0, 0, 0, 0.18)'
+  overlay: '0 24px 48px rgba(16, 24, 40, 0.18)'
 } as const
 
 /** Glassmorphism preset for nav docks and image overlays. */
 export const glass = {
-  background: 'rgba(255, 255, 255, 0.94)',
-  backdropFilter: 'blur(20px)',
+  background: colors.surface,
+  backdropFilter: 'none',
   border: `1px solid ${colors.hairline}`
 } as const
 
 /** Max content width for centered layouts. */
 export const layout = {
   maxWidth: 1200
+} as const
+
+export const breakpoints = {
+  mobile: 390,
+  mobileWide: 430,
+  tablet: 768,
+  laptop: 1024,
+  desktop: 1280,
+  wide: 1440
+} as const
+
+export const motion = {
+  fast: '150ms',
+  standard: '180ms',
+  slow: '220ms',
+  easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)'
+} as const
+
+export const chartColors = {
+  primary: '#5145CD',
+  secondary: '#0E9384',
+  commerce: '#F26B38',
+  neutral: '#98A2B3',
+  grid: '#E4E7EC'
 } as const
 
 export const tokens = {
@@ -196,7 +230,10 @@ export const tokens = {
   spacing,
   shadows,
   glass,
-  layout
+  layout,
+  breakpoints,
+  motion,
+  chartColors
 } as const
 
 export default tokens

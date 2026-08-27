@@ -10,13 +10,15 @@ export function VoucherPerformancePage() {
   if (report.isLoading) return <LoadingSpinner label='Đang tải hiệu quả voucher' />
   if (report.isError) return <div role='alert'>Không thể tải hiệu quả voucher.</div>
   return (
-    <section style={{ maxWidth: 1180, margin: '0 auto' }}>
+    <section className='partner-page partner-performance-page' style={{ maxWidth: 1180, margin: '0 auto' }}>
       <ReportTabs />
       <header style={{ margin: '28px 0' }}>
         <p style={{ color: colors.accent, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.1em' }}>
           Danh mục vận hành
         </p>
-        <h1 style={{ margin: 0, fontFamily: fonts.display, fontSize: 46 }}>Hiệu quả từng voucher</h1>
+        <h1 style={{ margin: 0, fontFamily: fonts.display, fontSize: 'clamp(30px, 4vw, 40px)' }}>
+          Hiệu quả từng voucher
+        </h1>
         <p style={{ color: colors.slate }}>So sánh doanh thu, số mã phát hành, lượt bán và tỷ lệ sử dụng.</p>
       </header>
       <div

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Megaphone, X } from 'lucide-react'
 import { api } from '../../services/api'
-import { fonts } from '../../theme/tokens'
+import { colors, fonts, shadows } from '../../theme/tokens'
 
 interface PublicContentItem {
   id: string
@@ -38,8 +38,8 @@ export function AnnouncementBar() {
       aria-label='Thông báo hệ thống'
       data-testid='announcement-bar'
       style={{
-        background: 'linear-gradient(90deg, #78350f 0%, #b45309 50%, #92400e 100%)',
-        color: '#ffffff',
+        background: colors.ink,
+        color: colors.onInk,
         padding: '10px 16px',
         fontSize: '0.88rem',
         fontFamily: fonts.body,
@@ -48,7 +48,7 @@ export function AnnouncementBar() {
         justifyContent: 'center',
         position: 'relative',
         zIndex: 100,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.12)'
+        boxShadow: shadows.sm
       }}
     >
       <div

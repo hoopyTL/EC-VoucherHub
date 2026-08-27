@@ -14,10 +14,8 @@
  *
  * _Requirements: 11.2, 11.3, 11.4, 11.5, 11.6, 11.7_
  */
-import { useEffect, useState, type CSSProperties, type FormEvent } from 'react'
-import { Button } from '../ui/Button'
-import { Input } from '../ui/Input'
-import { colors, fonts, radius, shadows } from '../../theme/tokens'
+import { useEffect, useMemo, useState } from 'react'
+import { colors, radius, shadows } from '../../theme/tokens'
 
 /**
  * Selectable minimum-discount options for the discount dropdown (Req 11.7 /
@@ -73,36 +71,12 @@ export const EMPTY_FILTERS: VoucherFilterValues = {
   partnerId: ''
 }
 
-const fieldRowStyle: CSSProperties = {
-  display: 'flex',
-  flexWrap: 'wrap',
-  gap: 12,
-  alignItems: 'flex-end'
-}
+const MAX_PRICE_CAP = 1000000
 
-const selectStyle: CSSProperties = {
-  width: '100%',
-  padding: '12px 16px',
-  fontSize: 15,
-  fontFamily: fonts.body,
-  color: colors.ink,
-  background: colors.surface,
-  border: `1px solid ${colors.hairline}`,
-  borderRadius: radius.md,
-  boxSizing: 'border-box',
-  cursor: 'pointer'
-}
-
-const labelStyle: CSSProperties = {
-  display: 'block',
-  marginBottom: 6,
-  fontFamily: fonts.display,
-  fontSize: 12,
-  fontWeight: 600,
-  letterSpacing: '0.06em',
-  textTransform: 'uppercase',
-  color: colors.slate
-}
+const formatPriceShort = (value: number) =>
+  new Intl.NumberFormat('vi-VN', {
+    maximumFractionDigits: 0
+  }).format(value) + ' ₫'
 
 export function SearchFilters({
   value,
@@ -114,7 +88,7 @@ export function SearchFilters({
   // Local draft so edits don't fire a request until the user applies them.
   const [draft, setDraft] = useState<VoucherFilterValues>(value)
   const [validationError, setValidationError] = useState('')
-  const [advancedOpen, setAdvancedOpen] = useState(false)
+  const [partnerKeyword, setPartnerKeyword] = useState('')
 
   // Keep the draft in sync when the applied value changes externally
   // (e.g. the page clears filters or restores them from the URL).
@@ -122,11 +96,29 @@ export function SearchFilters({
     setDraft(value)
   }, [value])
 
-  function update<K extends keyof VoucherFilterValues>(key: K, next: VoucherFilterValues[K]) {
-    setDraft((prev) => ({ ...prev, [key]: next }))
+  // The API accepts one value per filter group. The visible sidebar behaves
+  // like a checkbox catalogue but commits the selected value immediately.
+  function applyListChoice<K extends 'category' | 'region' | 'partnerId' | 'minDiscount'>(key: K, next: string) {
+    const nextDraft = { ...draft, [key]: draft[key] === next ? '' : next }
+    setDraft(nextDraft)
+    setValidationError('')
+    onChange({ ...nextDraft, keyword: nextDraft.keyword.trim() })
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  const visiblePartners = useMemo(
+    () =>
+      partnerOptions.filter((partner) =>
+        partner.name.toLocaleLowerCase('vi').includes(partnerKeyword.toLocaleLowerCase('vi'))
+      ),
+    [partnerKeyword, partnerOptions]
+  )
+
+  const maxRangeValue = Number(draft.maxPrice !== '' ? draft.maxPrice : 0)
+  const sliderPercent = Math.min((maxRangeValue / MAX_PRICE_CAP) * 100, 100)
+  const priceSliderBackground = `linear-gradient(90deg, #4f46e5 0%, #4f46e5 ${sliderPercent}%, #e2e8f0 ${sliderPercent}%, #e2e8f0 100%)`
+  const sliderDisplayValue = maxRangeValue > 0 ? formatPriceShort(maxRangeValue) : 'Tất cả'
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const min = Number(draft.minPrice)
     const max = Number(draft.maxPrice)
@@ -146,6 +138,7 @@ export function SearchFilters({
 
   return (
     <form
+      className='catalogue-filter-form'
       onSubmit={handleSubmit}
       aria-label='Tìm kiếm và lọc voucher'
       style={{
@@ -159,168 +152,121 @@ export function SearchFilters({
         boxShadow: shadows.card
       }}
     >
-      <div className='filter-chip-bar' aria-label='Lọc nhanh voucher'>
-        <button
-          type='button'
-          className={!draft.category ? 'filter-chip active' : 'filter-chip'}
-          onClick={() => {
-            update('category', '')
-            onChange({ ...draft, category: '' })
-          }}
-        >
-          Tất cả
-        </button>
-        {categoryOptions.map((category) => (
-          <button
-            key={category}
-            type='button'
-            className={draft.category === category ? 'filter-chip active' : 'filter-chip'}
-            onClick={() => {
-              update('category', category)
-              onChange({ ...draft, category })
-            }}
-          >
-            {category}
-          </button>
-        ))}
-      </div>
-
-      <Input
-        label='Tìm kiếm'
-        type='search'
-        placeholder='Tìm theo tiêu đề hoặc mô tả'
-        value={draft.keyword}
-        onChange={(e) => update('keyword', e.target.value)}
-      />
-
-      <div className='filter-toolbar-actions'>
-        <button
-          type='button'
-          className='filter-drawer-trigger'
-          onClick={() => setAdvancedOpen((open) => !open)}
-          aria-expanded={advancedOpen}
-        >
-          Bộ lọc {advancedOpen ? '×' : '＋'}
+      <div className='catalogue-filter-heading'>
+        <strong>Bộ lọc</strong>
+        <button type='button' onClick={handleClear} className='catalogue-filter-clear'>
+          Xóa bộ lọc
         </button>
       </div>
 
-      <div className={advancedOpen ? 'filter-advanced is-open' : 'filter-advanced'}>
-        <div style={fieldRowStyle}>
-          <div style={{ flex: '1 1 160px' }}>
-            <label htmlFor='filter-category' style={labelStyle}>
-              Danh mục
-            </label>
-            <select
-              id='filter-category'
-              style={selectStyle}
-              value={draft.category}
-              onChange={(e) => update('category', e.target.value)}
+      <div className='catalogue-filter-lists'>
+        <fieldset className='catalogue-filter-section'>
+          <legend>Danh mục</legend>
+          {categoryOptions.map((category) => (
+            <button
+              key={category}
+              type='button'
+              className={draft.category === category ? 'catalogue-check is-selected' : 'catalogue-check'}
+              aria-pressed={draft.category === category}
+              onClick={() => applyListChoice('category', category)}
             >
-              <option value=''>Tất cả danh mục</option>
-              {categoryOptions.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
-          </div>
+              <span aria-hidden='true' />
+              {category}
+            </button>
+          ))}
+        </fieldset>
 
-          <div style={{ flex: '1 1 160px' }}>
-            <label htmlFor='filter-region' style={labelStyle}>
-              Khu vực
-            </label>
-            <select
-              id='filter-region'
-              style={selectStyle}
-              value={draft.region}
-              onChange={(e) => update('region', e.target.value)}
+        <fieldset className='catalogue-filter-section'>
+          <legend>Thương hiệu</legend>
+          <input
+            className='catalogue-brand-search'
+            type='search'
+            aria-label='Tìm thương hiệu'
+            placeholder='Tìm thương hiệu'
+            value={partnerKeyword}
+            onChange={(event) => setPartnerKeyword(event.target.value)}
+          />
+          <div className='catalogue-option-list'>
+            {visiblePartners.slice(0, 6).map((partner) => (
+              <button
+                key={partner.id}
+                type='button'
+                className={draft.partnerId === partner.id ? 'catalogue-check is-selected' : 'catalogue-check'}
+                aria-pressed={draft.partnerId === partner.id}
+                onClick={() => applyListChoice('partnerId', partner.id)}
+              >
+                <span aria-hidden='true' />
+                {partner.name}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+
+        <fieldset className='catalogue-filter-section'>
+          <legend>Khu vực</legend>
+          {regionOptions.map((region) => (
+            <button
+              key={region}
+              type='button'
+              className={draft.region === region ? 'catalogue-check is-selected' : 'catalogue-check'}
+              aria-pressed={draft.region === region}
+              onClick={() => applyListChoice('region', region)}
             >
-              <option value=''>Tất cả khu vực</option>
-              {regionOptions.map((region) => (
-                <option key={region} value={region}>
-                  {region}
-                </option>
-              ))}
-            </select>
-          </div>
+              <span aria-hidden='true' />
+              {region}
+            </button>
+          ))}
+        </fieldset>
 
-          <div style={{ flex: '1 1 160px' }}>
-            <label htmlFor='filter-partner' style={labelStyle}>
-              Đối tác
-            </label>
-            <select
-              id='filter-partner'
-              style={selectStyle}
-              value={draft.partnerId}
-              onChange={(e) => update('partnerId', e.target.value)}
-              disabled={partnerOptions.length === 0}
+        <fieldset className='catalogue-filter-section'>
+          <legend>Mức giảm</legend>
+          {MIN_DISCOUNT_OPTIONS.filter((option) => option.value).map((option) => (
+            <button
+              key={option.value}
+              type='button'
+              className={draft.minDiscount === option.value ? 'catalogue-check is-selected' : 'catalogue-check'}
+              aria-pressed={draft.minDiscount === option.value}
+              onClick={() => applyListChoice('minDiscount', option.value)}
             >
-              <option value=''>Tất cả đối tác</option>
-              {partnerOptions.map((partner) => (
-                <option key={partner.id} value={partner.id}>
-                  {partner.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+              <span aria-hidden='true' />
+              {option.label}
+            </button>
+          ))}
+        </fieldset>
 
-        <div style={fieldRowStyle}>
-          <div style={{ flex: '1 1 140px' }}>
-            <Input
-              label='Giá thấp nhất'
-              type='number'
-              inputMode='numeric'
-              min={0}
-              placeholder='0'
-              value={draft.minPrice}
-              onChange={(e) => update('minPrice', e.target.value)}
-            />
+        <fieldset className='catalogue-filter-section'>
+          <legend>Khoảng giá</legend>
+          <div className='catalogue-price-slider'>
+            <div className='catalogue-price-slider__row'>
+              <span style={{ opacity: 0, pointerEvents: 'none' }}>0 ₫</span>
+              <span>{sliderDisplayValue}</span>
+            </div>
+            <div className='catalogue-price-slider__rail' style={{ background: priceSliderBackground }}>
+              <input
+                aria-label='Giá tối đa'
+                type='range'
+                min={0}
+                max={MAX_PRICE_CAP}
+                step={10000}
+                value={Number(draft.maxPrice !== '' ? draft.maxPrice : 0)}
+                onChange={(event) => {
+                  const nextMax = Number(event.target.value)
+                  const next = { ...draft, minPrice: '0', maxPrice: String(nextMax) }
+                  setDraft(next)
+                  onChange({ ...next, keyword: next.keyword.trim() })
+                }}
+                style={{ direction: 'ltr' }}
+              />
+            </div>
           </div>
-          <div style={{ flex: '1 1 140px' }}>
-            <Input
-              label='Giá cao nhất'
-              type='number'
-              inputMode='numeric'
-              min={0}
-              placeholder='Bất kỳ'
-              value={draft.maxPrice}
-              onChange={(e) => update('maxPrice', e.target.value)}
-            />
-          </div>
-          <div style={{ flex: '1 1 160px' }}>
-            <label htmlFor='filter-min-discount' style={labelStyle}>
-              Giảm tối thiểu %
-            </label>
-            <select
-              id='filter-min-discount'
-              style={selectStyle}
-              value={draft.minDiscount}
-              onChange={(e) => update('minDiscount', e.target.value)}
-            >
-              {MIN_DISCOUNT_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: 10 }}>
-          <Button type='submit' withArrow>
-            Tìm kiếm
-          </Button>
-          <Button type='button' variant='secondary' onClick={handleClear}>
-            Xóa lọc
-          </Button>
-        </div>
-        {validationError && (
-          <p role='alert' style={{ margin: 0, color: colors.onDangerSurface, fontSize: 13 }}>
-            {validationError}
-          </p>
-        )}
+        </fieldset>
       </div>
+
+      {validationError && (
+        <p role='alert' style={{ margin: 0, color: colors.onDangerSurface, fontSize: 13 }}>
+          {validationError}
+        </p>
+      )}
     </form>
   )
 }

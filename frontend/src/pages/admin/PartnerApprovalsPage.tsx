@@ -114,7 +114,7 @@ export function PartnerApprovalsPage() {
   }
 
   return (
-    <section style={pageStyle}>
+    <section className='admin-page admin-partner-approvals-page' style={pageStyle}>
       <header
         style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}
       >

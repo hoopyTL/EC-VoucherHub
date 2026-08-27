@@ -16,10 +16,10 @@
  *
  * _Requirements: 14.1, 14.2, 15.1_
  */
-import { useState, type CSSProperties, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useState, type CSSProperties, type FormEvent } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { LockKeyhole } from 'lucide-react'
+import { Building2, CreditCard, ShieldCheck, Smartphone, WalletCards } from 'lucide-react'
 import type { CreateOrderRequest } from '@ui-contracts'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
@@ -30,10 +30,17 @@ import {
   formatMoney,
   getApiErrorMessage,
   getCart,
+  getOrder,
+  getOnePayUrl,
+  getPayPalUrl,
+  getStripeUrl,
+  getVNPayUrl,
   type CartResponse,
   type OrderResponse
 } from '../../services/orders'
 import { clearCheckoutSelection, readCheckoutSelection } from '../../services/checkout-selection'
+import { CheckoutProgress } from '../../components/customer/CheckoutProgress'
+import { VoucherImage } from '../../components/voucher/VoucherImage'
 
 /** Trim a string and return `undefined` when the result is empty. */
 function emptyToUndefined(value: string): string | undefined {
@@ -43,6 +50,8 @@ function emptyToUndefined(value: string): string | undefined {
 
 export function CheckoutPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const retryOrderId = searchParams.get('orderId')
   const queryClient = useQueryClient()
 
   const [recipientName, setRecipientName] = useState('')
@@ -50,30 +59,81 @@ export function CheckoutPage() {
   const [recipientPhone, setRecipientPhone] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [selectedIds] = useState(readCheckoutSelection)
+  const [paymentMethod, setPaymentMethod] = useState('vnpay')
 
   const cartQuery = useQuery<CartResponse>({
     queryKey: ['cart'],
-    queryFn: getCart
+    queryFn: getCart,
+    enabled: !retryOrderId
   })
+  const retryOrderQuery = useQuery<OrderResponse>({
+    queryKey: ['order', retryOrderId],
+    queryFn: () => getOrder(retryOrderId as string),
+    enabled: Boolean(retryOrderId)
+  })
+  const retryOrder = retryOrderQuery.data
+  const retryUnavailable = Boolean(retryOrder && retryOrder.status !== 'PENDING_PAYMENT')
+
+  useEffect(() => {
+    if (retryOrder?.status === 'PAID') {
+      navigate(`/orders/${retryOrder.id}`, { replace: true })
+    }
+  }, [navigate, retryOrder])
   const selectionForOrder = selectedIds.length > 0 ? selectedIds : (cartQuery.data?.items.map((item) => item.id) ?? [])
 
   const createOrderMutation = useMutation<OrderResponse, unknown, CreateOrderRequest>({
     mutationFn: createOrder,
-    onSuccess: (order) => {
+    onSuccess: async (order) => {
       // The order now owns the reserved inventory and the cart was cleared
       // server-side — drop the cached cart so other views refetch.
       queryClient.invalidateQueries({ queryKey: ['cart'] })
       clearCheckoutSelection()
-      navigate(`/orders/${order.id}`)
+      try {
+        const gatewayUrl =
+          paymentMethod === 'onepay'
+            ? await getOnePayUrl(order.id)
+            : paymentMethod === 'paypal'
+              ? await getPayPalUrl(order.id)
+              : paymentMethod === 'stripe'
+                ? await getStripeUrl(order.id)
+                : await getVNPayUrl(order.id)
+        window.location.assign(gatewayUrl)
+      } catch (err) {
+        navigate(`/checkout?orderId=${encodeURIComponent(order.id)}`, { replace: true })
+        setErrorMessage(getApiErrorMessage(err, 'Không thể mở cổng thanh toán. Vui lòng chọn phương thức và thử lại.'))
+      }
     },
     onError: (err) => {
       setErrorMessage(getApiErrorMessage(err, 'Không thể đặt hàng. Vui lòng thử lại.'))
     }
   })
 
+  const retryPaymentMutation = useMutation<string, unknown, string>({
+    mutationFn: async (orderId) =>
+      paymentMethod === 'onepay'
+        ? getOnePayUrl(orderId)
+        : paymentMethod === 'paypal'
+          ? getPayPalUrl(orderId)
+          : paymentMethod === 'stripe'
+            ? getStripeUrl(orderId)
+            : getVNPayUrl(orderId),
+    onSuccess: (url) => window.location.assign(url),
+    onError: (err) =>
+      setErrorMessage(getApiErrorMessage(err, 'Không thể mở cổng thanh toán đã chọn. Vui lòng thử lại.'))
+  })
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setErrorMessage(null)
+
+    if (retryOrderId) {
+      if (!retryOrder || retryOrder.status !== 'PENDING_PAYMENT') {
+        setErrorMessage('Đơn hàng không còn ở trạng thái chờ thanh toán.')
+        return
+      }
+      retryPaymentMutation.mutate(retryOrderId)
+      return
+    }
 
     const name = emptyToUndefined(recipientName)
     const phone = emptyToUndefined(recipientPhone)
@@ -85,48 +145,62 @@ export function CheckoutPage() {
 
     const body: CreateOrderRequest = {
       giftRecipient,
-      selectedCartItemIds: selectionForOrder.map(Number)
+      selectedCartItemIds: selectionForOrder.map(Number),
+      paymentMethod: paymentMethod.toUpperCase()
     }
 
     createOrderMutation.mutate(body)
   }
 
-  if (cartQuery.isLoading) {
+  if (cartQuery.isLoading || retryOrderQuery.isLoading) {
     return (
-      <section style={sectionStyle}>
+      <section className='customer-checkout-page customer-page-state' style={sectionStyle}>
         <ContentSkeleton rows={3} variant='cards' label='Đang tải giỏ hàng' />
       </section>
     )
   }
 
-  if (cartQuery.isError) {
+  if (cartQuery.isError || retryOrderQuery.isError) {
     return (
-      <section style={sectionStyle}>
+      <section className='customer-checkout-page customer-page-state' style={sectionStyle}>
         <h1 style={pageHeadingStyle}>Thanh toán</h1>
         <div role='alert' style={alertStyle}>
-          {getApiErrorMessage(cartQuery.error, 'Không thể tải giỏ hàng. Vui lòng thử lại.')}
+          {getApiErrorMessage(
+            cartQuery.error ?? retryOrderQuery.error,
+            'Không thể tải thông tin thanh toán. Vui lòng thử lại.'
+          )}
         </div>
       </section>
     )
   }
 
   const cart = cartQuery.data
-  const selectedCart = cart
+  const selectedCart = retryOrder
     ? {
-        items: cart.items.filter((item) => selectionForOrder.includes(item.id)),
-        total: cart.items
-          .filter((item) => selectionForOrder.includes(item.id))
-          .reduce((sum, item) => sum + item.subtotal, 0)
+        items: retryOrder.items.map((item) => ({
+          id: String(item.id),
+          voucherId: item.voucherProductId,
+          title: item.voucherProductName,
+          imageUrl: null,
+          unitPrice: Number(item.unitPrice),
+          quantity: item.quantity,
+          subtotal: Number(item.unitPrice) * item.quantity
+        })),
+        total: Number(retryOrder.totalAmount)
       }
-    : undefined
+    : cart
+      ? {
+          items: cart.items.filter((item) => selectionForOrder.includes(item.id)),
+          total: cart.items
+            .filter((item) => selectionForOrder.includes(item.id))
+            .reduce((sum, item) => sum + item.subtotal, 0)
+        }
+      : undefined
   const isEmpty = !selectedCart || selectedCart.items.length === 0
 
   return (
-    <section style={sectionStyle}>
-      <h1 style={pageHeadingStyle}>Thanh toán</h1>
-      <p style={{ marginTop: 0, marginBottom: 24, color: colors.slate, fontSize: 16 }}>
-        Kiểm tra đơn hàng và thêm thông tin người nhận quà nếu cần trước khi thanh toán.
-      </p>
+    <section className='customer-checkout-page' style={sectionStyle}>
+      <CheckoutProgress current='checkout' />
 
       {isEmpty ? (
         <div role='status' style={emptyStyle}>
@@ -136,100 +210,211 @@ export function CheckoutPage() {
           </Link>
         </div>
       ) : (
-        <div style={layoutStyle}>
+        <div className='customer-checkout-layout' style={layoutStyle}>
           {/* Order summary (Req 14.1) */}
-          <div aria-label='Tóm tắt đơn hàng' style={panelStyle}>
-            <h2 style={panelHeadingStyle}>Tóm tắt đơn hàng</h2>
-            <table className='checkout-summary-table' style={tableStyle}>
-              <thead>
-                <tr>
-                  <th style={thStyle}>Voucher</th>
-                  <th style={thNumStyle}>Đơn giá</th>
-                  <th style={thNumStyle}>SL</th>
-                  <th style={thNumStyle}>Thành tiền</th>
-                </tr>
-              </thead>
-              <tbody>
-                {selectedCart!.items.map((item) => (
-                  <tr className='checkout-summary-row' key={item.id}>
-                    <td style={tdStyle}>{item.title}</td>
-                    <td style={tdNumStyle}>{formatMoney(item.unitPrice)}</td>
-                    <td style={tdNumStyle}>{item.quantity}</td>
-                    <td style={tdNumStyle}>{formatMoney(item.subtotal)}</td>
-                  </tr>
+          <aside className='checkout-summary-column'>
+            <div className='customer-checkout-summary' aria-label='Tóm tắt đơn hàng' style={panelStyle}>
+              <div className='checkout-summary-title'>
+                <h2 style={panelHeadingStyle}>Tóm tắt đơn hàng</h2>
+                <span>{selectedCart!.items.length} sản phẩm</span>
+              </div>
+              <div className='checkout-summary-products'>
+                {selectedCart!.items.map((item, index) => (
+                  <div className='checkout-summary-item' key={item.id}>
+                    <span className='checkout-summary-image'>
+                      <VoucherImage
+                        src={item.imageUrl ?? `/assets/voucher-catalogue-sprite.png?cell=${index % 10}`}
+                        alt={`Ảnh ${item.title}`}
+                      />
+                    </span>
+                    <span className='checkout-summary-item__copy'>
+                      <strong>{item.title}</strong>
+                      <small>x {item.quantity}</small>
+                    </span>
+                    <span className='checkout-summary-item__price'>
+                      <b>{formatMoney(item.subtotal)}</b>
+                      <small>{formatMoney(item.unitPrice)} / voucher</small>
+                    </span>
+                  </div>
                 ))}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td style={{ ...tdStyle, fontWeight: 600 }} colSpan={3}>
-                    Tổng cộng
-                  </td>
-                  <td style={{ ...tdNumStyle, fontWeight: 700 }} data-testid='cart-total'>
-                    {formatMoney(selectedCart!.total)}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+              </div>
+              <div className='checkout-summary-costs'>
+                <p>
+                  <span>Tạm tính</span>
+                  <b>{formatMoney(selectedCart!.total)}</b>
+                </p>
+                <p>
+                  <span>Giảm giá</span>
+                  <b className='is-red'>− 0 ₫</b>
+                </p>
+                <p>
+                  <span>Mã giảm giá</span>
+                  <em>Chưa áp dụng</em>
+                </p>
+                <p>
+                  <span>Phí xử lý</span>
+                  <b className='is-green'>Miễn phí</b>
+                </p>
+              </div>
+              <div className='checkout-summary-grand-total'>
+                <span>
+                  Tổng thanh toán<small>Đã bao gồm VAT (nếu có)</small>
+                </span>
+                <strong data-testid='cart-total'>{formatMoney(selectedCart!.total)}</strong>
+              </div>
+            </div>
+            <div className='checkout-summary-assurance'>
+              <h3>
+                <ShieldCheck size={18} /> Vì sao chọn VoucherHub?
+              </h3>
+              <p>✓ Hàng ngàn ưu đãi mới mỗi ngày</p>
+              <p>✓ Thanh toán nhanh chóng, an toàn</p>
+              <p>✓ Hỗ trợ 24/7 – Sẵn sàng giúp bạn</p>
+              <Button
+                type='submit'
+                form='checkout-order-form'
+                aria-label='Thanh toán ngay'
+                fullWidth
+                disabled={retryUnavailable}
+                isLoading={createOrderMutation.isPending || retryPaymentMutation.isPending}
+              >
+                Thanh toán ngay
+              </Button>
+              <small>
+                Bằng việc nhấn “Thanh toán ngay”, bạn đồng ý với
+                <br />
+                <Link to='/policy'>Điều khoản sử dụng</Link> hoặc <Link to='/policy'>Chính sách bảo mật</Link>
+              </small>
+            </div>
+          </aside>
 
           {/* Gift recipient + confirm (Req 14.2) */}
-          <form onSubmit={handleSubmit} style={panelStyle} noValidate>
-            <h2 style={panelHeadingStyle}>Người nhận quà (không bắt buộc)</h2>
-            <p style={{ marginTop: 0, color: colors.slate, fontSize: 13 }}>
-              Nếu mua làm quà, hãy nhập thông tin người nhận. Để trống nếu mua cho chính bạn.
-            </p>
+          <form
+            id='checkout-order-form'
+            className='customer-checkout-recipient'
+            onSubmit={handleSubmit}
+            style={panelStyle}
+            noValidate
+          >
+            {!retryOrderId && (
+              <>
+                <h2 style={panelHeadingStyle}>Thông tin người mua</h2>
+                <p style={{ marginTop: 0, color: colors.slate, fontSize: 13 }}>
+                  Thông tin dùng để nhận đơn hàng và voucher. Có thể nhập người nhận khác nếu mua làm quà.
+                </p>
 
-            {errorMessage && (
-              <div role='alert' style={alertStyle}>
-                {errorMessage}
+                {errorMessage && (
+                  <div role='alert' style={alertStyle}>
+                    {errorMessage}
+                  </div>
+                )}
+
+                <div className='checkout-buyer-grid'>
+                  <div>
+                    <Input
+                      label='Tên người nhận'
+                      name='recipientName'
+                      type='text'
+                      autoComplete='name'
+                      value={recipientName}
+                      onChange={(e) => setRecipientName(e.target.value)}
+                      disabled={createOrderMutation.isPending}
+                    />
+                  </div>
+                  <div>
+                    <Input
+                      label='Email người nhận'
+                      name='recipientEmail'
+                      type='email'
+                      autoComplete='email'
+                      value={recipientEmail}
+                      onChange={(e) => setRecipientEmail(e.target.value)}
+                      disabled={createOrderMutation.isPending}
+                    />
+                  </div>
+                  <div>
+                    <Input
+                      label='Số điện thoại người nhận'
+                      name='recipientPhone'
+                      type='tel'
+                      autoComplete='tel'
+                      value={recipientPhone}
+                      onChange={(e) => setRecipientPhone(e.target.value)}
+                      disabled={createOrderMutation.isPending}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {retryOrderId && (
+              <div className='checkout-retry-notice'>
+                <h2 style={panelHeadingStyle}>Chọn phương thức thanh toán</h2>
+                <p>
+                  {retryOrder?.status === 'PENDING_PAYMENT'
+                    ? `Đơn #${retryOrderId.slice(0, 8)} đang chờ thanh toán. Chọn một trong bốn phương thức bên dưới để tiếp tục.`
+                    : `Đơn #${retryOrderId.slice(0, 8)} không còn ở trạng thái chờ thanh toán.`}
+                </p>
+                {errorMessage && (
+                  <div role='alert' style={alertStyle}>
+                    {errorMessage}
+                  </div>
+                )}
               </div>
             )}
 
-            <div style={{ marginBottom: 14 }}>
-              <Input
-                label='Tên người nhận'
-                name='recipientName'
-                type='text'
-                autoComplete='name'
-                value={recipientName}
-                onChange={(e) => setRecipientName(e.target.value)}
-                disabled={createOrderMutation.isPending}
-              />
-            </div>
-            <div style={{ marginBottom: 14 }}>
-              <Input
-                label='Email người nhận'
-                name='recipientEmail'
-                type='email'
-                autoComplete='email'
-                value={recipientEmail}
-                onChange={(e) => setRecipientEmail(e.target.value)}
-                disabled={createOrderMutation.isPending}
-              />
-            </div>
-            <div style={{ marginBottom: 20 }}>
-              <Input
-                label='Số điện thoại người nhận'
-                name='recipientPhone'
-                type='tel'
-                autoComplete='tel'
-                value={recipientPhone}
-                onChange={(e) => setRecipientPhone(e.target.value)}
-                disabled={createOrderMutation.isPending}
-              />
-            </div>
+            <section className='checkout-payment-methods' aria-labelledby='checkout-payment-title'>
+              <div className='checkout-payment-heading'>
+                <CreditCard size={19} aria-hidden='true' />
+                <span>
+                  <strong id='checkout-payment-title'>Phương thức thanh toán</strong>
+                  <small>Chọn phương thức phù hợp với bạn</small>
+                </span>
+              </div>
+              {[
+                {
+                  id: 'vnpay',
+                  label: 'VNPay',
+                  copy: 'Thanh toán nhanh qua ngân hàng và ví điện tử',
+                  icon: Smartphone,
+                  badge: 'Đề xuất'
+                },
+                { id: 'onepay', label: 'OnePay', copy: 'Thanh toán nội địa an toàn qua cổng OnePay', icon: Building2 },
+                { id: 'paypal', label: 'PayPal', copy: 'Thanh toán quốc tế bằng tài khoản PayPal', icon: WalletCards },
+                {
+                  id: 'stripe',
+                  label: 'Thẻ thanh toán quốc tế (Stripe)',
+                  copy: 'Visa, Mastercard và các loại thẻ quốc tế',
+                  icon: CreditCard
+                }
+              ].map(({ id, label, copy, icon: Icon, badge }) => (
+                <label key={id} className={`checkout-payment-option${paymentMethod === id ? ' is-selected' : ''}`}>
+                  <input
+                    type='radio'
+                    name='paymentMethod'
+                    value={id}
+                    checked={paymentMethod === id}
+                    disabled={retryUnavailable}
+                    onChange={() => setPaymentMethod(id)}
+                  />
+                  <span className='checkout-payment-icon'>
+                    <Icon size={21} aria-hidden='true' />
+                  </span>
+                  <span className='checkout-payment-copy'>
+                    <strong>{label}</strong>
+                    <small>{copy}</small>
+                  </span>
+                  {badge && <em>{badge}</em>}
+                  <span className='checkout-payment-safe'>✓ An toàn, tiện lợi</span>
+                </label>
+              ))}
+            </section>
 
-            <Button type='submit' fullWidth isLoading={createOrderMutation.isPending}>
-              Đặt hàng
-            </Button>
-            <div className='checkout-security-note'>
-              <LockKeyhole size={16} aria-hidden='true' />
-              <span>
-                {'Giao d\u1ecbch \u0111\u01b0\u1ee3c m\u00e3 h\u00f3a v\u00e0 b\u1ea3o v\u1ec7 an to\u00e0n.'}
-              </span>
-            </div>
-            <Link to='/cart' style={{ display: 'inline-block', marginTop: 12, fontSize: 14, ...linkStyle }}>
-              Quay lại giỏ hàng
+            <Link
+              to={retryOrderId ? `/orders/${retryOrderId}` : '/cart'}
+              style={{ display: 'inline-block', marginTop: 12, fontSize: 14, ...linkStyle }}
+            >
+              {retryOrderId ? 'Quay lại đơn hàng' : 'Quay lại giỏ hàng'}
             </Link>
           </form>
         </div>
@@ -287,31 +472,6 @@ const panelHeadingStyle: CSSProperties = {
   letterSpacing: '-0.01em',
   color: colors.ink
 }
-
-const tableStyle: CSSProperties = {
-  width: '100%',
-  borderCollapse: 'collapse',
-  fontSize: 14
-}
-
-const thStyle: CSSProperties = {
-  textAlign: 'left',
-  padding: '6px 8px',
-  borderBottom: `1px solid ${colors.hairline}`,
-  color: colors.slate,
-  fontWeight: 600
-}
-
-const thNumStyle: CSSProperties = { ...thStyle, textAlign: 'right' }
-
-const tdStyle: CSSProperties = {
-  textAlign: 'left',
-  padding: '8px',
-  borderBottom: `1px solid ${colors.hairline}`,
-  color: colors.ink
-}
-
-const tdNumStyle: CSSProperties = { ...tdStyle, textAlign: 'right' }
 
 const alertStyle: CSSProperties = {
   marginBottom: 16,

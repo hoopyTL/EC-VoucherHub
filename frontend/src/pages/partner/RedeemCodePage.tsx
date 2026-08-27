@@ -178,7 +178,7 @@ export function RedeemCodePage() {
   const selectedBranch = activeBranches.find((branch) => String(branch.id) === branchId)
 
   return (
-    <section style={pageStyle}>
+    <section className='partner-page partner-redeem-page' style={pageStyle}>
       <header style={heroStyle}>
         <p style={eyebrowStyle}>Đối soát tại quầy</p>
         <h1 style={titleStyle}>Xác nhận sử dụng voucher</h1>
@@ -357,10 +357,9 @@ const pageStyle: CSSProperties = { maxWidth: 1040, margin: '0 auto' }
 
 const heroStyle: CSSProperties = {
   padding: 'clamp(26px, 5vw, 44px)',
-  borderRadius: '18px 52px 18px 18px',
-  background:
-    'radial-gradient(circle at 88% 8%, rgba(91, 229, 190, .42), transparent 31%), linear-gradient(135deg, #064e3b, #087f68)',
-  boxShadow: '0 24px 56px rgba(6, 78, 59, .18)',
+  borderRadius: radius.xl,
+  background: '#171A2B',
+  boxShadow: shadows.md,
   marginBottom: 22
 }
 

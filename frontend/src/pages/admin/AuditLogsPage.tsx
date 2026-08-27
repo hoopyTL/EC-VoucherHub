@@ -105,7 +105,7 @@ export function AuditLogsPage() {
   const uniqueActorsCount = new Set(logs.map((l) => l.actor?.email).filter(Boolean)).size
 
   return (
-    <div style={{ maxWidth: 1200, margin: '0 auto', paddingBottom: 60 }}>
+    <div className='admin-page admin-audit-page' style={{ maxWidth: 1200, margin: '0 auto', paddingBottom: 60 }}>
       {/* Page Header */}
       <div
         style={{

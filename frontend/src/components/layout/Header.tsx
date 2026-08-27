@@ -6,14 +6,17 @@
  * pill chip behind the link; the primary CTA is an ink pill. Navigation adapts
  * to the authenticated user's role (Req 23.2).
  */
-import { Link, NavLink } from 'react-router-dom'
-import { useState, type CSSProperties } from 'react'
+import { FormEvent, useState, type CSSProperties } from 'react'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../hooks/useAuth'
-import { colors, fonts, radius, glass, shadows } from '../../theme/tokens'
+import { colors, fonts, radius, glass } from '../../theme/tokens'
 import { ConfirmDialog } from '../ui'
-import { Home, LogOut, ShoppingCart } from 'lucide-react'
-import { setLanguage, type Lang } from '../../i18n'
+import { ArrowLeft, Gift, Home, LogOut, ShoppingCart } from 'lucide-react'
+import { getVoucherFilterOptions } from '../../services/voucher.service'
+import { getCart } from '../../services/orders'
+import { SearchInput } from '../ui'
 
 interface NavItem {
   to: string
@@ -23,8 +26,8 @@ interface NavItem {
 const navLinkBase: CSSProperties = {
   textDecoration: 'none',
   color: colors.slate,
-  padding: '8px 16px',
-  borderRadius: radius.full,
+  padding: '8px 12px',
+  borderRadius: radius.md,
   fontFamily: fonts.display,
   fontSize: 14,
   fontWeight: 600,
@@ -55,15 +58,41 @@ function renderNavLink({ to, label }: NavItem) {
 }
 
 export function Header() {
+  const navigate = useNavigate()
+  const location = useLocation()
   const { isAuthenticated, user, logout } = useAuth()
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const [logoutOpen, setLogoutOpen] = useState(false)
+  const [keyword, setKeyword] = useState('')
+  const filterOptions = useQuery({
+    queryKey: ['vouchers', 'filter-options'],
+    queryFn: getVoucherFilterOptions,
+    staleTime: 5 * 60 * 1000
+  })
+  const cartQuery = useQuery({
+    queryKey: ['cart'],
+    queryFn: getCart,
+    enabled: isAuthenticated && user?.role === 'CUSTOMER',
+    staleTime: 30 * 1000
+  })
+  const cartQuantity = cartQuery.data?.items.reduce((total, item) => total + item.quantity, 0) ?? 0
   const initial = (user?.name?.trim().charAt(0) || 'K').toLocaleUpperCase('vi')
+  const compactCommerceHeader =
+    location.pathname === '/cart' ||
+    location.pathname === '/checkout' ||
+    location.pathname === '/my-vouchers' ||
+    location.pathname === '/favorites' ||
+    location.pathname === '/profile' ||
+    location.pathname === '/login' ||
+    location.pathname.startsWith('/orders')
 
-  const publicLinks: NavItem[] = [
-    { to: '/', label: t('nav.home') },
-    { to: '/search', label: t('nav.browse') }
-  ]
+  const submitSearch = (event: FormEvent) => {
+    event.preventDefault()
+    const query = keyword.trim()
+    navigate(query ? `/search?q=${encodeURIComponent(query)}` : '/search')
+  }
+
+  const publicLinks: NavItem[] = [{ to: '/search', label: '☰  Danh mục' }]
 
   const roleLinks: NavItem[] = []
   // Only surface role-specific destinations once the session is confirmed
@@ -81,175 +110,218 @@ export function Header() {
 
   return (
     <header
+      className={`customer-header${compactCommerceHeader ? ' customer-header--compact' : ''}`}
       style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 16,
-        padding: '16px 24px',
+        position: 'relative',
+        zIndex: 1,
+        display: 'block',
+        padding: '10px 0 0',
         ...glass,
         borderTop: 'none',
         borderLeft: 'none',
         borderRight: 'none',
-        boxShadow: shadows.card,
-        flexWrap: 'wrap'
+        borderBottom: `1px solid ${colors.hairline}`,
+        boxShadow: 'none',
+        background: 'rgba(255,255,255,0.97)'
       }}
     >
-      {/* Wordmark */}
-      <Link
-        to='/'
-        style={{
-          textDecoration: 'none',
-          color: colors.ink,
-          fontFamily: fonts.display,
-          fontWeight: 800,
-          fontSize: 20,
-          letterSpacing: '-0.02em',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 6
-        }}
-      >
-        VoucherHub
-        <span aria-hidden='true' style={{ fontSize: 11, verticalAlign: 'super' }}>
-          ®
-        </span>
-      </Link>
-
-      {/* Centered pill dock */}
-      <nav
-        aria-label='Điều hướng chính'
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 4,
-          padding: 6,
-          borderRadius: radius.full,
-          background: colors.surfaceMuted,
-          border: `1px solid ${colors.hairline}`,
-          flexWrap: 'wrap'
-        }}
-      >
-        {publicLinks.map(renderNavLink)}
-        {roleLinks.map(renderNavLink)}
-      </nav>
-
-      {/* Account actions */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <button
-          type='button'
-          aria-label={`${t('common.language')}: ${i18n.language.startsWith('en') ? 'English' : 'Tiếng Việt'}`}
-          title={i18n.language.startsWith('en') ? 'Chuyển sang tiếng Việt' : 'Switch to English'}
-          onClick={() => setLanguage((i18n.language.startsWith('en') ? 'vi' : 'en') as Lang)}
+      <div className='customer-header__row'>
+        {/* Wordmark */}
+        <Link
+          to='/'
           style={{
-            minWidth: 48,
-            minHeight: 42,
-            borderRadius: radius.full,
-            border: `1px solid ${colors.hairline}`,
-            background: colors.surface,
-            padding: '0 12px',
-            fontWeight: 800,
-            letterSpacing: '.04em',
+            textDecoration: 'none',
             color: colors.ink,
-            cursor: 'pointer'
+            fontFamily: fonts.display,
+            fontWeight: 800,
+            fontSize: 21,
+            letterSpacing: '-0.02em',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6
           }}
         >
-          {i18n.language.startsWith('en') ? 'EN' : 'VI'}
-        </button>
-        {isAuthenticated && user ? (
-          <>
-            {user.role === 'CUSTOMER' && (
+          <span
+            aria-hidden='true'
+            style={{
+              width: 32,
+              height: 32,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 8,
+              color: colors.onAccent,
+              background: colors.accent
+            }}
+          >
+            <Gift size={18} strokeWidth={2} />
+          </span>
+          <span className='customer-header__wordmark'>
+            VoucherHub<small>Tiết kiệm nhiều hơn mỗi ngày</small>
+          </span>
+        </Link>
+
+        {compactCommerceHeader && location.pathname !== '/' && (
+          <Link
+            to='/'
+            className='customer-header__home-back'
+            aria-label='Quay lại trang chủ'
+            title='Quay lại trang chủ'
+          >
+            <ArrowLeft size={19} strokeWidth={2} aria-hidden='true' />
+            <span>Trang chủ</span>
+          </Link>
+        )}
+
+        {!compactCommerceHeader && (
+          <form className='customer-header__search' onSubmit={submitSearch} role='search'>
+            <SearchInput
+              value={keyword}
+              onChange={(event) => setKeyword(event.target.value)}
+              placeholder='Tìm kiếm thương hiệu, voucher, ưu đãi...'
+              aria-label='Tìm kiếm voucher'
+              style={{ width: '100%', minWidth: 0 }}
+            />
+            <button className='customer-header__search-submit' type='submit'>
+              Tìm kiếm
+            </button>
+          </form>
+        )}
+
+        {/* Secondary catalogue navigation */}
+        {!compactCommerceHeader && (
+          <nav
+            aria-label='Điều hướng chính'
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gridColumn: '1 / -1',
+              order: 4,
+              gap: 8,
+              padding: '10px 0 0',
+              borderTop: `1px solid ${colors.hairline}`,
+              background: colors.surface,
+              overflowX: 'auto'
+            }}
+          >
+            {publicLinks.map(renderNavLink)}
+            <NavLink to='/search?sort=discount' style={{ ...navLinkBase, color: '#ef4444' }}>
+              ♨ Ưu đãi hot
+            </NavLink>
+            {(filterOptions.data?.categories ?? []).slice(0, 7).map((category) => (
+              <NavLink key={category} to={`/search?category=${encodeURIComponent(category)}`} style={navLinkBase}>
+                {category}
+              </NavLink>
+            ))}
+            {roleLinks.map(renderNavLink)}
+          </nav>
+        )}
+
+        {/* Account actions */}
+        <div
+          className='customer-header__actions'
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}
+        >
+          {isAuthenticated && user ? (
+            <>
+              {user.role === 'CUSTOMER' && (
+                <NavLink
+                  to='/cart'
+                  aria-label={cartQuantity > 0 ? `Mở giỏ hàng, đang có ${cartQuantity} voucher` : 'Mở giỏ hàng'}
+                  title={cartQuantity > 0 ? `Giỏ hàng (${cartQuantity})` : 'Giỏ hàng'}
+                  className='customer-header__cart'
+                  style={({ isActive }) => ({
+                    position: 'relative',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 42,
+                    height: 42,
+                    borderRadius: radius.md,
+                    color: isActive ? colors.accentHover : colors.ink,
+                    background: isActive ? colors.accentSurface : colors.surface,
+                    border: `1px solid ${isActive ? colors.accent : colors.hairline}`,
+                    boxShadow: isActive ? '0 6px 16px rgba(228, 77, 38, 0.10)' : 'none'
+                  })}
+                >
+                  <ShoppingCart size={20} strokeWidth={1.8} aria-hidden='true' />
+                  {cartQuantity > 0 && (
+                    <span className='customer-header__cart-badge' aria-hidden='true'>
+                      {cartQuantity > 99 ? '99+' : cartQuantity}
+                    </span>
+                  )}
+                </NavLink>
+              )}
               <NavLink
-                to='/cart'
-                aria-label='Mở giỏ hàng'
-                title='Giỏ hàng'
-                style={({ isActive }) => ({
+                to='/profile'
+                aria-label='Mở tài khoản'
+                title={user.name || t('nav.account')}
+                style={() => ({
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   width: 42,
                   height: 42,
                   borderRadius: radius.full,
-                  color: isActive ? colors.accentHover : colors.ink,
-                  background: isActive ? colors.accentSurface : colors.surface,
-                  border: `1px solid ${isActive ? colors.accent : colors.hairline}`,
-                  boxShadow: isActive ? '0 6px 16px rgba(228, 77, 38, 0.10)' : 'none'
+                  color: colors.accentHover,
+                  background: colors.accentSurface,
+                  border: `1px solid ${colors.accent}`,
+                  fontFamily: fonts.display,
+                  fontWeight: 800
                 })}
               >
-                <ShoppingCart size={20} strokeWidth={1.8} aria-hidden='true' />
+                {initial}
               </NavLink>
-            )}
-            <NavLink
-              to='/profile'
-              aria-label='Mở tài khoản'
-              title={user.name || t('nav.account')}
-              style={() => ({
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 42,
-                height: 42,
-                borderRadius: radius.full,
-                color: colors.accentHover,
-                background: colors.accentSurface,
-                border: `1px solid ${colors.accent}`,
-                fontFamily: fonts.display,
-                fontWeight: 800
-              })}
-            >
-              {initial}
-            </NavLink>
-            <button
-              type='button'
-              aria-label='Đăng xuất'
-              title='Đăng xuất'
-              onClick={() => setLogoutOpen(true)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 42,
-                height: 42,
-                padding: 0,
-                borderRadius: radius.full,
-                border: `1px solid ${colors.hairline}`,
-                background: colors.surface,
-                color: colors.ink,
-                cursor: 'pointer',
-                fontFamily: fonts.display,
-                fontSize: 14,
-                fontWeight: 600
-              }}
-            >
-              <LogOut size={19} strokeWidth={1.8} aria-hidden='true' />
-            </button>
-          </>
-        ) : (
-          <>
-            <NavLink to='/login' style={navLinkBase}>
-              {t('nav.logIn')}
-            </NavLink>
-            <NavLink
-              to='/register'
-              style={{
-                textDecoration: 'none',
-                padding: '10px 20px',
-                borderRadius: radius.full,
-                background: colors.ink,
-                color: colors.onInk,
-                fontFamily: fonts.display,
-                fontSize: 14,
-                fontWeight: 600,
-                letterSpacing: '0.01em'
-              }}
-            >
-              {t('nav.signUp')}
-            </NavLink>
-          </>
-        )}
+              <button
+                type='button'
+                className='customer-header__logout'
+                aria-label='Đăng xuất'
+                title='Đăng xuất'
+                onClick={() => setLogoutOpen(true)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 42,
+                  height: 42,
+                  padding: 0,
+                  borderRadius: radius.md,
+                  border: `1px solid ${colors.hairline}`,
+                  background: colors.surface,
+                  color: colors.ink,
+                  cursor: 'pointer',
+                  fontFamily: fonts.display,
+                  fontSize: 14,
+                  fontWeight: 600
+                }}
+              >
+                <LogOut size={19} strokeWidth={1.8} aria-hidden='true' />
+              </button>
+            </>
+          ) : (
+            <>
+              <NavLink to='/login' style={navLinkBase}>
+                {t('nav.logIn')}
+              </NavLink>
+              <NavLink
+                to='/register'
+                style={{
+                  textDecoration: 'none',
+                  padding: '10px 20px',
+                  borderRadius: radius.full,
+                  background: colors.ink,
+                  color: colors.onInk,
+                  fontFamily: fonts.display,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  letterSpacing: '0.01em'
+                }}
+              >
+                {t('nav.signUp')}
+              </NavLink>
+            </>
+          )}
+        </div>
       </div>
       <ConfirmDialog
         open={logoutOpen}

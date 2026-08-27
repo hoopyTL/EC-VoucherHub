@@ -113,5 +113,8 @@ export interface MyVoucher {
     description: string
     imageUrl: string | null
     partnerName: string
+    originalPrice?: string
+    salePrice?: string
+    category?: string
   }
 }

@@ -175,7 +175,11 @@ export function ContentManagementPage() {
   const archivedCount = contentList.filter((item) => item.status === 'archived').length
 
   return (
-    <section style={{ maxWidth: 1120, margin: '0 auto', paddingBottom: 40 }} data-testid='admin-content-page'>
+    <section
+      className='admin-page admin-content-page'
+      style={{ maxWidth: 1120, margin: '0 auto', paddingBottom: 40 }}
+      data-testid='admin-content-page'
+    >
       {/* Header */}
       <div
         style={{

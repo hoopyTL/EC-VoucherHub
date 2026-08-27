@@ -6,6 +6,7 @@ import orderRoutes from './order.routes'
 import * as orderService from './order.service'
 import { createVNPayUrl, verifyVNPayReturn } from '../../utils/vnpay'
 import { createOnePayUrl, verifyOnePayReturn } from '../../utils/onepay'
+import stripe from '../../utils/stripe'
 
 vi.mock('../../middlewares/authenticate', () => ({
   authenticate: (req: any, _res: any, next: any) => {
@@ -35,6 +36,9 @@ vi.mock('../../utils/onepay', () => ({
   verifyOnePayReturn: vi.fn(),
   restoreOrderIdFromTxnRef: (id: string) => id.split('_')[0]
 }))
+vi.mock('../../utils/stripe', () => ({
+  default: { checkout: { sessions: { retrieve: vi.fn() } }, webhooks: { constructEvent: vi.fn() } }
+}))
 vi.mock('../../configs/prisma', () => ({
   default: {
     order: { findUnique: vi.fn() },
@@ -49,6 +53,7 @@ const createUrlMock = vi.mocked(createVNPayUrl)
 const verifyReturnMock = vi.mocked(verifyVNPayReturn)
 const createOnePayUrlMock = vi.mocked(createOnePayUrl)
 const verifyOnePayReturnMock = vi.mocked(verifyOnePayReturn)
+const retrieveStripeSessionMock = vi.mocked(stripe.checkout.sessions.retrieve)
 const app = express()
 app.use(express.json())
 app.use('/api/orders', orderRoutes)
@@ -75,7 +80,11 @@ describe('order controller routes', () => {
   })
 
   it('creates VNPay URL and cancels an order', async () => {
-    serviceMock.getOrderDetail.mockResolvedValue({ id: 'order-1', totalAmount: '125000' } as any)
+    serviceMock.getOrderDetail.mockResolvedValue({
+      id: 'order-1',
+      status: 'PENDING_PAYMENT',
+      totalAmount: '125000'
+    } as any)
     serviceMock.cancelOrder.mockResolvedValue({ message: 'cancelled' })
     createUrlMock.mockReturnValue('https://sandbox.example/payment')
 
@@ -92,13 +101,47 @@ describe('order controller routes', () => {
     expect(cancelled.body.data.message).toBe('cancelled')
   })
 
+  it('confirms a paid Stripe session for the exact authenticated order', async () => {
+    serviceMock.getOrderDetail
+      .mockResolvedValueOnce({ id: 'order-1', status: 'PENDING_PAYMENT', totalAmount: '125000' } as any)
+      .mockResolvedValueOnce({ id: 'order-1', status: 'PAID' } as any)
+    retrieveStripeSessionMock.mockResolvedValue({
+      payment_status: 'paid',
+      currency: 'vnd',
+      amount_total: 125000,
+      metadata: { orderId: 'order-1' }
+    } as any)
+    serviceMock.processPayment.mockResolvedValue({} as any)
+
+    const response = await request(app).post('/api/orders/order-1/stripe/confirm').send({ sessionId: 'cs_test_1' })
+
+    expect(response.status).toBe(200)
+    expect(retrieveStripeSessionMock).toHaveBeenCalledWith('cs_test_1')
+    expect(serviceMock.processPayment).toHaveBeenCalledWith('customer-1', 'order-1', { outcome: 'SUCCESS' })
+  })
+
+  it('returns an already-paid Stripe order without processing it again', async () => {
+    serviceMock.getOrderDetail.mockResolvedValue({ id: 'order-1', status: 'PAID' } as any)
+    const response = await request(app).post('/api/orders/order-1/stripe/confirm').send({ sessionId: 'cs_test_1' })
+    expect(response.status).toBe(200)
+    expect(serviceMock.processPayment).not.toHaveBeenCalled()
+  })
+
+  it('rejects a Stripe session whose metadata does not match the route order', async () => {
+    serviceMock.getOrderDetail.mockResolvedValue({ id: 'order-1', status: 'PENDING_PAYMENT' } as any)
+    retrieveStripeSessionMock.mockResolvedValue({ payment_status: 'paid', metadata: { orderId: 'other-order' } } as any)
+    const response = await request(app).post('/api/orders/order-1/stripe/confirm').send({ sessionId: 'cs_test_1' })
+    expect(response.status).toBe(400)
+    expect(serviceMock.processPayment).not.toHaveBeenCalled()
+  })
+
   it('rejects an IPN with an invalid signature', async () => {
     verifyReturnMock.mockReturnValue(false)
     const response = await request(app).get('/api/orders/vnpay-ipn?vnp_TxnRef=order-1_123')
     expect(response.body).toEqual({ RspCode: '97', Message: 'Invalid signature' })
   })
 
-  it('handles missing and already-confirmed IPN orders', async () => {
+  it('handles missing orders and treats an already-paid IPN as idempotent success', async () => {
     verifyReturnMock.mockReturnValue(true)
     prismaMock.order.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce({ status: 'PAID' })
 
@@ -106,7 +149,7 @@ describe('order controller routes', () => {
     const confirmed = await request(app).get('/api/orders/vnpay-ipn?vnp_TxnRef=paid_123')
 
     expect(missing.body.RspCode).toBe('01')
-    expect(confirmed.body.RspCode).toBe('02')
+    expect(confirmed.body.RspCode).toBe('00')
   })
 
   it.each([
@@ -126,7 +169,12 @@ describe('order controller routes', () => {
     )
 
     expect(response.body.RspCode).toBe('00')
-    expect(serviceMock.processPayment).toHaveBeenCalledWith('customer-1', 'order-1', { outcome })
+    expect(serviceMock.processPayment).toHaveBeenCalledWith(
+      'customer-1',
+      'order-1',
+      { outcome },
+      expect.objectContaining({ gateway: 'VNPAY', gatewayTransId: 'order-1_123' })
+    )
   })
 
   it('rejects a signed VNPay callback whose amount does not match the exact order', async () => {
@@ -176,12 +224,13 @@ describe('order controller routes', () => {
     prismaMock.order.findUnique.mockResolvedValue({
       id: 'order-1',
       customerId: 'customer-1',
-      status: 'PENDING_PAYMENT'
+      status: 'PENDING_PAYMENT',
+      totalAmount: '125000'
     })
     serviceMock.processPayment.mockResolvedValue({ orderId: 'order-1', status: 'PAID', codes: [] })
 
     const response = await request(app).get(
-      '/api/orders/onepay-ipn?vpc_MerchTxnRef=order-1_123&vpc_TxnResponseCode=0&vpc_TransactionNo=999999'
+      '/api/orders/onepay-ipn?vpc_MerchTxnRef=order-1_123&vpc_TxnResponseCode=0&vpc_TransactionNo=999999&vpc_Amount=12500000'
     )
 
     expect(response.text).toBe('responsecode=0&desc=confirm-success')

@@ -13,13 +13,14 @@
  */
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
-import type { CSSProperties } from 'react'
+import { useContext, useEffect, useState, useRef, type CSSProperties } from 'react'
 import { api } from '../../services/api'
 import type { Order } from '../../types/customer'
-import { Badge, ContentSkeleton, variantForStatus } from '../../components/ui'
+import { Badge, ConfirmDialog, ContentSkeleton, variantForStatus } from '../../components/ui'
 import { formatCurrency, formatDate, formatStatus } from '../../utils/format'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
-import { useEffect, useState, useRef } from 'react'
+import { AuthContext } from '../../store/AuthContext'
+import { CalendarDays, ChevronRight, PackageCheck, ReceiptText } from 'lucide-react'
 
 /** Fetch the customer's orders (newest first per the backend ordering). */
 async function fetchOrders(view: string, cursor?: string): Promise<{ items: Order[]; nextCursor: string | null }> {
@@ -42,8 +43,10 @@ export type OrderHistoryView = 'processing' | 'purchased' | 'history' | 'all'
 
 export function OrdersPage({ view = 'all' }: { view?: OrderHistoryView }) {
   const navigate = useNavigate()
+  const auth = useContext(AuthContext)
   const [cursor, setCursor] = useState<string | undefined>(undefined)
   const [history, setHistory] = useState<string[]>([])
+  const [logoutOpen, setLogoutOpen] = useState(false)
   const lastDataRef = useRef<{ items: Order[]; nextCursor: string | null } | null>(null)
 
   type OrdersResult = { items: Order[]; nextCursor: string | null }
@@ -75,86 +78,186 @@ export function OrdersPage({ view = 'all' }: { view?: OrderHistoryView }) {
           ? 'Đơn đã hủy & hoàn tiền'
           : 'Lịch sử mua voucher'
 
+  const initials = (auth?.user?.name ?? 'N').trim().charAt(0).toLocaleUpperCase('vi') || 'N'
+
   return (
-    <section className='customer-orders-view' style={{ maxWidth: 1040, margin: '0 auto' }}>
-      <h1 style={pageHeadingStyle}>{heading}</h1>
-
-      {isLoading && (
-        <div style={{ padding: 32 }}>
-          <ContentSkeleton rows={5} label='Đang tải đơn hàng' />
+    <section className='customer-orders-view customer-orders-page customer-account-layout'>
+      <aside className='customer-account-sidebar' aria-label='Khu vực tài khoản'>
+        <div aria-hidden='true' className='customer-account-avatar' style={avatarStyle}>
+          {initials}
         </div>
-      )}
-
-      {isError && (
-        <div role='alert' style={alertStyle}>
-          Không thể tải đơn hàng. Vui lòng thử lại sau.
-        </div>
-      )}
-
-      {!isLoading && !isError && visibleOrders.length === 0 && (
-        <div style={emptyStyle}>
-          <p style={{ margin: 0 }}>Bạn chưa có đơn hàng nào trong nhóm này.</p>
-          <Link to='/search' style={linkStyle}>
-            Khám phá voucher →
+        <strong>Tài khoản của tôi</strong>
+        <p>Quản lý thông tin, lịch sử mua hàng và voucher của bạn.</p>
+        <nav aria-label='Điều hướng tài khoản'>
+          <Link to='/profile'>Thông tin tài khoản</Link>
+          <Link className='is-current' to='/orders'>
+            Lịch sử mua hàng
           </Link>
-        </div>
-      )}
+          <Link to='/my-vouchers'>Voucher của tôi</Link>
+          <Link to='/favorites'>Yêu thích</Link>
+          <Link to='/profile?tab=security'>Đổi mật khẩu</Link>
+        </nav>
+        <div className='customer-account-member-badge'>Thành viên Bạc · 1.250 điểm</div>
+        <button type='button' className='customer-account-logout' onClick={() => setLogoutOpen(true)}>
+          Đăng xuất
+        </button>
+      </aside>
+      <div className='customer-account-content'>
+        <header className='purchase-history-hero'>
+          <div>
+            <span>
+              <ReceiptText size={18} /> Tài khoản khách hàng
+            </span>
+            <h1 style={pageHeadingStyle}>{heading}</h1>
+            <p>Theo dõi trạng thái, giá trị và xem chi tiết các voucher bạn đã mua.</p>
+          </div>
+          <div className='purchase-history-stat'>
+            <PackageCheck size={24} />
+            <span>
+              <strong>{visibleOrders.length}</strong>
+              <small>đơn trên trang này</small>
+            </span>
+          </div>
+        </header>
 
-      {!isLoading && !isError && visibleOrders.length > 0 && (
-        <ul className='customer-order-list' style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-          {visibleOrders.map((order) => (
-            <li key={order.id}>
-              <button
-                type='button'
-                className='customer-order-row'
-                onClick={() => navigate(`/orders/${order.id}`)}
-                style={rowStyle}
-                aria-label={`Xem đơn hàng ${order.id}`}
-              >
-                <span style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <span style={{ fontWeight: 600, fontFamily: fonts.display }}>Đơn #{order.id.slice(0, 8)}</span>
-                  <span style={{ color: colors.slate, fontSize: 13 }}>
-                    {formatDate(order.createdAt)} · {itemCount(order)} voucher
-                  </span>
-                </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <span style={{ fontWeight: 700 }}>{formatCurrency(order.totalAmount)}</span>
-                  <Badge variant={variantForStatus(order.status)}>{formatStatus(order.status)}</Badge>
-                </span>
-              </button>
+        <nav className='purchase-history-filters' aria-label='Lọc lịch sử mua hàng'>
+          <Link className={view === 'all' ? 'is-current' : ''} to='/cart?tab=orders'>
+            Tất cả
+          </Link>
+          <Link className={view === 'processing' ? 'is-current' : ''} to='/cart?tab=processing'>
+            Chờ thanh toán
+          </Link>
+          <Link className={view === 'purchased' ? 'is-current' : ''} to='/cart?tab=purchased'>
+            Đã mua
+          </Link>
+          <Link className={view === 'history' ? 'is-current' : ''} to='/cart?tab=history'>
+            Đã hủy & hoàn tiền
+          </Link>
+        </nav>
+
+        {isLoading && (
+          <div style={{ padding: 32 }}>
+            <ContentSkeleton rows={5} label='Đang tải đơn hàng' />
+          </div>
+        )}
+
+        {isError && (
+          <div role='alert' style={alertStyle}>
+            Không thể tải đơn hàng. Vui lòng thử lại sau.
+          </div>
+        )}
+
+        {!isLoading && !isError && visibleOrders.length === 0 && (
+          <div style={emptyStyle}>
+            <p style={{ margin: 0 }}>Bạn chưa có đơn hàng nào trong nhóm này.</p>
+            <Link to='/search' style={linkStyle}>
+              Khám phá voucher →
+            </Link>
+          </div>
+        )}
+
+        {!isLoading && !isError && visibleOrders.length > 0 && (
+          <ul className='customer-order-list' style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+            <li className='customer-order-list__header' aria-hidden='true'>
+              <span>Đơn hàng</span>
+              <span>Ngày mua</span>
+              <span>Sản phẩm</span>
+              <span>Tổng tiền</span>
+              <span>Trạng thái</span>
+              <span>Thao tác</span>
             </li>
-          ))}
-        </ul>
-      )}
-      {!isLoading && !isError && (
-        <div style={{ display: 'flex', gap: 8, marginTop: 16, alignItems: 'center' }}>
-          <button
-            type='button'
-            onClick={() => {
-              const prev = history.pop()
-              setHistory([...history])
-              setCursor(prev)
-            }}
-            disabled={history.length === 0}
+            {visibleOrders.map((order) => (
+              <li key={order.id}>
+                <button
+                  type='button'
+                  className='customer-order-row'
+                  onClick={() => navigate(`/orders/${order.id}`)}
+                  style={rowStyle}
+                  aria-label={`Xem đơn hàng ${order.id}`}
+                >
+                  <span className='order-code'>
+                    <ReceiptText size={18} />
+                    <span>
+                      <strong>Đơn #{order.id.slice(0, 8).toUpperCase()}</strong>
+                      <small>Mã đơn hàng</small>
+                    </span>
+                  </span>
+                  <span className='order-date'>
+                    <CalendarDays size={16} />
+                    {formatDate(order.createdAt)}
+                  </span>
+                  <span className='order-items'>{itemCount(order)} voucher</span>
+                  <span className='order-total'>{formatCurrency(order.totalAmount)}</span>
+                  <span className='order-status'>
+                    <Badge variant={variantForStatus(order.status)}>{formatStatus(order.status)}</Badge>
+                  </span>
+                  <span className='order-action'>
+                    Xem chi tiết <ChevronRight size={16} />
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {!isLoading && !isError && (
+          <div
+            className='customer-order-pagination'
+            style={{ display: 'flex', gap: 8, marginTop: 16, alignItems: 'center' }}
           >
-            Prev
-          </button>
-          <button
-            type='button'
-            onClick={() => {
-              if (data?.nextCursor) {
-                setHistory((h) => [...h, cursor ?? ''])
-                setCursor(data.nextCursor ?? undefined)
-              }
-            }}
-            disabled={!data?.nextCursor}
-          >
-            Next {isFetching ? '…' : ''}
-          </button>
-        </div>
-      )}
+            <button
+              type='button'
+              onClick={() => {
+                const prev = history.pop()
+                setHistory([...history])
+                setCursor(prev)
+              }}
+              disabled={history.length === 0}
+            >
+              ← Trang trước
+            </button>
+            <button
+              type='button'
+              onClick={() => {
+                if (data?.nextCursor) {
+                  setHistory((h) => [...h, cursor ?? ''])
+                  setCursor(data.nextCursor ?? undefined)
+                }
+              }}
+              disabled={!data?.nextCursor}
+            >
+              Trang sau {isFetching ? '…' : '→'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      <ConfirmDialog
+        open={logoutOpen}
+        title='Đăng xuất VoucherHub?'
+        message='Bạn có chắc muốn kết thúc phiên đăng nhập trên thiết bị này không?'
+        cancelLabel='Ở lại'
+        confirmLabel='Đăng xuất'
+        danger
+        onCancel={() => setLogoutOpen(false)}
+        onConfirm={() => {
+          setLogoutOpen(false)
+          auth?.logout()
+        }}
+      />
     </section>
   )
+}
+
+const avatarStyle: CSSProperties = {
+  display: 'grid',
+  width: 46,
+  height: 46,
+  margin: '0 0 10px',
+  placeItems: 'center',
+  borderRadius: '50%',
+  background: '#ede9fe',
+  color: '#4338ca',
+  fontWeight: 900
 }
 
 const pageHeadingStyle: CSSProperties = {

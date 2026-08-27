@@ -92,7 +92,7 @@ export function DashboardPage() {
   const isError = branchesQuery.isError || vouchersQuery.isError
 
   return (
-    <section style={{ maxWidth: 1080, margin: '0 auto' }}>
+    <section className='partner-page partner-dashboard-page' style={{ maxWidth: 1080, margin: '0 auto' }}>
       <div style={heroStyle}>
         <div>
           <p
@@ -176,6 +176,106 @@ function DashboardContent({ stats }: { stats: PartnerDashboardStats }) {
           ))}
         </ul>
       )}
+
+      <div className='partner-dashboard-analytics'>
+        <section className='partner-dashboard-panel partner-dashboard-revenue'>
+          <div className='partner-dashboard-panel__heading'>
+            <strong>Doanh thu</strong>
+            <span>30 ngày qua⌄</span>
+          </div>
+          <svg viewBox='0 0 760 220' role='img' aria-label='Biểu đồ doanh thu 30 ngày'>
+            <defs>
+              <linearGradient id='partner-chart-fill' x1='0' y1='0' x2='0' y2='1'>
+                <stop offset='0' stopColor='#4f46e5' stopOpacity='.22' />
+                <stop offset='1' stopColor='#4f46e5' stopOpacity='0' />
+              </linearGradient>
+            </defs>
+            {[40, 80, 120, 160, 200].map((y) => (
+              <line key={y} x1='20' x2='740' y1={y} y2={y} stroke='#e6eaf2' strokeDasharray='4 5' />
+            ))}
+            <path
+              d='M20 185 L65 152 L110 124 L155 164 L200 140 L245 110 L290 132 L335 88 L380 105 L425 72 L470 115 L515 83 L560 92 L605 43 L650 111 L695 76 L740 78 L740 210 L20 210 Z'
+              fill='url(#partner-chart-fill)'
+            />
+            <polyline
+              points='20,185 65,152 110,124 155,164 200,140 245,110 290,132 335,88 380,105 425,72 470,115 515,83 560,92 605,43 650,111 695,76 740,78'
+              fill='none'
+              stroke='#4338ca'
+              strokeWidth='4'
+              strokeLinejoin='round'
+              strokeLinecap='round'
+            />
+          </svg>
+        </section>
+        <section className='partner-dashboard-panel partner-dashboard-branches'>
+          <div className='partner-dashboard-panel__heading'>
+            <strong>Doanh thu theo chi nhánh</strong>
+            <Link to='/partner/branches'>Xem chi tiết →</Link>
+          </div>
+          {[
+            ['Landmark 81', 92],
+            ['Lê Lợi Q.1', 74],
+            ['Phú Nhuận', 61],
+            ['Thảo Điền', 48],
+            ['Cầu Giấy', 39]
+          ].map(([name, width], index) => (
+            <div className='partner-branch-bar' key={String(name)}>
+              <span>{name}</span>
+              <i>
+                <b style={{ width: `${width}%` }} />
+              </i>
+              <strong>{(156 - index * 19).toLocaleString('vi-VN')}tr</strong>
+            </div>
+          ))}
+        </section>
+      </div>
+
+      <div className='partner-dashboard-bottom'>
+        <section className='partner-dashboard-panel'>
+          <div className='partner-dashboard-panel__heading'>
+            <strong>Top voucher bán chạy</strong>
+            <Link to='/partner/vouchers'>Xem tất cả →</Link>
+          </div>
+          <div className='partner-mini-table'>
+            {['HIGHLAND50', 'PNJ30', 'PIZZA40', 'KLOOK10', 'HASAKI20'].map((code, index) => (
+              <div key={code}>
+                <b>#{index + 1}</b>
+                <span>
+                  <strong>{code}</strong>
+                  <small>Giảm {50 - index * 5}%</small>
+                </span>
+                <em>{(2345 - index * 287).toLocaleString('vi-VN')}</em>
+                <i>{62 - index * 3}%</i>
+              </div>
+            ))}
+          </div>
+        </section>
+        <section className='partner-dashboard-panel'>
+          <div className='partner-dashboard-panel__heading'>
+            <strong>Hoạt động đổi voucher gần đây</strong>
+            <Link to='/partner/redeem'>Xem tất cả →</Link>
+          </div>
+          <div className='partner-mini-table partner-activity-table'>
+            {['HIGHLAND50', 'PNJ30', 'PIZZA40', 'KLOOK10', 'HASAKI20'].map((code, index) => (
+              <div key={code}>
+                <small>10:{21 - index * 3}</small>
+                <strong>{code}</strong>
+                <span>Khách hàng #{1024 + index}</span>
+                <em>-{(89 + index * 20).toLocaleString('vi-VN')}.000đ</em>
+              </div>
+            ))}
+          </div>
+        </section>
+        <aside className='partner-dashboard-panel partner-quick-actions'>
+          <div className='partner-dashboard-panel__heading'>
+            <strong>Thao tác nhanh</strong>
+          </div>
+          <Link to='/partner/vouchers/new'>＋ Tạo voucher mới</Link>
+          <Link to='/partner/branches/new'>⌂ Tạo chi nhánh</Link>
+          <Link to='/partner/redeem'>⌁ Quét mã đổi voucher</Link>
+          <Link to='/partner/reports'>▤ Xuất báo cáo</Link>
+        </aside>
+      </div>
     </>
   )
 }
@@ -234,7 +334,7 @@ const statCardStyle: CSSProperties = {
   padding: 20,
   minHeight: 140,
   justifyContent: 'space-between',
-  background: 'linear-gradient(145deg,#ffffff 15%,#ecfff8 100%)',
+  background: colors.surface,
   border: `1px solid ${colors.hairline}`,
   borderRadius: radius.xl,
   boxShadow: shadows.card
@@ -258,21 +358,20 @@ const heroStyle: CSSProperties = {
   gap: 24,
   padding: 'clamp(26px,5vw,42px)',
   marginBottom: 24,
-  borderRadius: '12px 44px 12px 44px',
-  background:
-    'radial-gradient(circle at 85% 10%,rgba(75,236,193,.42),transparent 30%),linear-gradient(135deg,#064e3b,#087f68)',
-  boxShadow: '0 22px 50px rgba(6,78,59,.18)'
+  borderRadius: radius.xl,
+  background: '#171A2B',
+  boxShadow: shadows.md
 }
 const heroActionStyle: CSSProperties = {
   padding: '12px 18px',
-  borderRadius: 999,
+  borderRadius: radius.md,
   background: '#fff',
   color: '#064e3b',
   fontWeight: 800
 }
 const heroSecondaryStyle: CSSProperties = {
   padding: '12px 18px',
-  borderRadius: 999,
+  borderRadius: radius.md,
   border: '1px solid rgba(255,255,255,.4)',
   color: '#fff',
   fontWeight: 700

@@ -44,8 +44,10 @@ const PARTNER_ITEMS: SidebarItem[] = [
 ]
 export interface SidebarProps {
   variant: SidebarVariant
+  open?: boolean
+  onNavigate?: () => void
 }
-export function Sidebar({ variant }: SidebarProps) {
+export function Sidebar({ variant, open = false, onNavigate }: SidebarProps) {
   const { t } = useTranslation()
   const { user } = useAuth()
   const items =
@@ -58,13 +60,15 @@ export function Sidebar({ variant }: SidebarProps) {
   return (
     <aside
       className='workspace-sidebar'
+      data-open={open || undefined}
       style={{
-        width: 248,
+        width: 232,
         flexShrink: 0,
         padding: '22px 14px',
         color: '#fff',
-        background: 'linear-gradient(180deg, var(--accent-deep) 0%, var(--accent) 100%)',
-        boxShadow: '12px 0 35px rgba(24,20,42,.08)'
+        background: '#0B102F',
+        borderRight: '1px solid rgba(255,255,255,.08)',
+        boxShadow: 'none'
       }}
     >
       <div style={{ margin: '0 10px 22px' }}>
@@ -92,10 +96,11 @@ export function Sidebar({ variant }: SidebarProps) {
               key={item.to}
               to={item.to}
               end={item.to === `/${variant}`}
+              onClick={onNavigate}
               style={({ isActive }) => ({
                 ...itemStyle,
                 color: '#fff',
-                background: isActive ? 'rgba(255,255,255,.18)' : 'transparent',
+                background: isActive ? '#4338CA' : 'transparent',
                 boxShadow: isActive ? `inset 3px 0 0 ${accent}` : 'none',
                 opacity: isActive ? 1 : 0.78
               })}

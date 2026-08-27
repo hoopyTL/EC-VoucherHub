@@ -2,21 +2,39 @@
 
 :root,
 [data-theme='customer'] {
-  --paper: #f4efe3;
-  --surface: #fffdf7;
-  --ink: #1c1912;
-  --muted-ink: #6d6658;
-  --orange: #b4791e;
-  --orange-deep: #8f5f16;
-  --accent: var(--orange);
-  --accent-deep: var(--orange-deep);
-  --accent-soft: #f5e6c8;
-  --workspace-background: linear-gradient(135deg, #f5e6c8 0%, #fffdf7 100%);
-  --green: #2b6b4a;
-  --mustard: #e2a63a;
-  --danger: #b83232;
-  --danger-soft: #f8dada;
-  --line: #d8cfb9;
+  --paper: #f8fafc;
+  --surface: #ffffff;
+  --ink: #101828;
+  --muted-ink: #667085;
+  --orange: #ef4444;
+  --orange-deep: #dc2626;
+  --accent: #312e81;
+  --accent-deep: #1e1b4b;
+  --accent-soft: #eef2ff;
+  --workspace-background: #f7f8fa;
+  --green: #14804a;
+  --mustard: #b54708;
+  --danger: #b42318;
+  --danger-soft: #fee4e2;
+  --line: #e4e7ec;
+  --brand: #5145cd;
+  --brand-deep: #4036aa;
+  --brand-soft: #eeedff;
+  --success: #14804a;
+  --success-soft: #d1fadf;
+  --warning: #b54708;
+  --warning-soft: #fef0c7;
+  --info: #175cd3;
+  --info-soft: #eaf2ff;
+  --chart-primary: #5145cd;
+  --chart-secondary: #0e9384;
+  --chart-commerce: #f26b38;
+  --chart-neutral: #98a2b3;
+  --chart-grid: #e4e7ec;
+  --motion-fast: 150ms;
+  --motion-standard: 180ms;
+  --motion-slow: 220ms;
+  --motion-easing: cubic-bezier(0.2, 0.7, 0.2, 1);
 
   --font-sans: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
@@ -30,26 +48,26 @@
   --space-12: 48px;
   --space-16: 64px;
 
-  --radius-card: 18px;
-  --radius-control: 16px;
+  --radius-card: 16px;
+  --radius-control: 10px;
   --radius-pill: 100px;
-  --shadow-sm: 0 4px 12px rgb(43 35 22 / 7%);
-  --shadow-md: 0 12px 28px rgb(43 35 22 / 10%);
-  --shadow-lg: 0 22px 52px rgb(43 35 22 / 15%);
+  --shadow-sm: 0 1px 3px rgb(16 24 40 / 8%);
+  --shadow-md: 0 6px 16px rgb(16 24 40 / 8%);
+  --shadow-lg: 0 16px 32px rgb(16 24 40 / 12%);
 }
 
 [data-theme='admin'] {
-  --accent: #6d5bd0;
-  --accent-deep: #5545b2;
-  --accent-soft: #e8e4fa;
-  --workspace-background: linear-gradient(135deg, #f6f4ff 0%, #fff8f3 100%);
+  --accent: #5145cd;
+  --accent-deep: #4036aa;
+  --accent-soft: #eeedff;
+  --workspace-background: #f7f8fa;
 }
 
 [data-theme='partner'] {
-  --accent: #1f6b4a;
-  --accent-deep: #155239;
-  --accent-soft: #dcece4;
-  --workspace-background: linear-gradient(135deg, #f2fbf8 0%, #fff9f2 100%);
+  --accent: #4f46e5;
+  --accent-deep: #4338ca;
+  --accent-soft: #eef2ff;
+  --workspace-background: #f7f8fa;
 }
 
 .money,

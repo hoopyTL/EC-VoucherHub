@@ -166,7 +166,7 @@ export function BranchesPage() {
   }
 
   return (
-    <section style={{ maxWidth: 900, margin: '0 auto' }}>
+    <section className='partner-page partner-branches-page' style={{ maxWidth: 900, margin: '0 auto' }}>
       <div style={headerRowStyle}>
         <h1 style={titleStyle}>Quản lý chi nhánh</h1>
         <Button onClick={openAdd}>Thêm chi nhánh</Button>

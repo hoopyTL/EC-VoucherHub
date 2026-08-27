@@ -50,6 +50,9 @@ export const getOrderDetail = asyncHandler(async (req: Request, res: Response) =
  * POST /api/orders/:id/payment — Thanh toán mô phỏng cho đơn hàng
  */
 export const processPayment = asyncHandler(async (req: Request, res: Response) => {
+  if (process.env.NODE_ENV !== 'test' && process.env.ENABLE_SIMULATED_PAYMENTS !== 'true') {
+    throw ApiError.notFound('Phương thức thanh toán mô phỏng không khả dụng.')
+  }
   const paymentContext = req.body?.gateway ? { gateway: String(req.body.gateway) } : undefined
   const result = await orderService.processPayment(req.user!.sub, req.params.id as string, req.body, paymentContext)
   successResponse(res, result)
@@ -62,6 +65,38 @@ export const createStripePayment = asyncHandler(async (req: Request, res: Respon
   }
   const result = await orderService.createStripeCheckoutSession(req.user!.sub, String(req.params.id))
   successResponse(res, result)
+})
+
+/** Confirm a returning Stripe Checkout session for its authenticated order owner. */
+export const confirmStripePayment = asyncHandler(async (req: Request, res: Response) => {
+  const orderId = String(req.params.id)
+  const sessionId = typeof req.body?.sessionId === 'string' ? req.body.sessionId.trim() : ''
+  if (!sessionId) throw ApiError.badRequest('Thiếu mã phiên thanh toán Stripe.')
+
+  const order = await orderService.getOrderDetail(req.user!.sub, orderId)
+  if (order.status === OrderStatus.PAID) return successResponse(res, order)
+  if (order.status !== OrderStatus.PENDING_PAYMENT)
+    throw ApiError.conflict('Đơn hàng không ở trạng thái chờ thanh toán.')
+
+  let session
+  try {
+    session = await stripe.checkout.sessions.retrieve(sessionId)
+  } catch {
+    throw ApiError.badRequest('Không tìm thấy phiên thanh toán Stripe hợp lệ.')
+  }
+
+  if (session.payment_status !== 'paid' || session.metadata?.orderId !== orderId) {
+    throw ApiError.badRequest('Phiên thanh toán Stripe không khớp với đơn hàng.')
+  }
+  const expectedAmount = Math.round(Number(order.totalAmount))
+  if (session.currency?.toLowerCase() !== 'vnd' || session.amount_total !== expectedAmount) {
+    throw ApiError.badRequest('Số tiền Stripe không khớp với đơn hàng.')
+  }
+
+  await orderService.processPayment(req.user!.sub, orderId, { outcome: 'SUCCESS' })
+  const confirmed = await orderService.getOrderDetail(req.user!.sub, orderId)
+  if (confirmed.status !== OrderStatus.PAID) throw ApiError.conflict('Stripe chưa xác nhận thanh toán hoàn tất.')
+  successResponse(res, confirmed)
 })
 
 export const createPayPalPayment = asyncHandler(async (req: Request, res: Response) => {
@@ -196,6 +231,12 @@ export const onepayIpn = asyncHandler(async (req: Request, res: Response) => {
       return res.send('responsecode=0&desc=confirm-success')
     }
 
+    const callbackAmount = Number(query.vpc_Amount)
+    const expectedAmount = Math.round(Number(order.totalAmount) * 100)
+    if (!Number.isFinite(callbackAmount) || callbackAmount !== expectedAmount) {
+      return res.send('responsecode=1&desc=invalid-amount')
+    }
+
     if (txnResponseCode === '0') {
       await orderService.processPayment(
         order.customerId,
@@ -225,6 +266,9 @@ export const onepayIpn = asyncHandler(async (req: Request, res: Response) => {
 export const createVNPayPayment = asyncHandler(async (req: Request, res: Response) => {
   const orderId = req.params.id as string
   const order = await orderService.getOrderDetail(req.user!.sub, orderId)
+  if (order.status !== OrderStatus.PENDING_PAYMENT) {
+    throw ApiError.conflict('Đơn hàng không ở trạng thái chờ thanh toán.')
+  }
   const amount = typeof order.totalAmount === 'number' ? order.totalAmount : Number(order.totalAmount)
 
   // Trích xuất địa chỉ IP của Client để điền vào request VNPay
@@ -273,8 +317,15 @@ export const vnpayIpn = asyncHandler(async (req: Request, res: Response) => {
     }
 
     // 3. Kiểm tra tiến độ ghi nhận (Chỉ xử lý đơn chưa được thanh toán)
+    // VNPay may call the server IPN before the customer's browser returns to
+    // the frontend. The frontend then safely replays this verification URL.
+    // Treat an already-paid order as an idempotent success instead of turning a
+    // successful payment into a false failure on the result page.
+    if (order.status === OrderStatus.PAID) {
+      return res.status(200).json({ RspCode: '00', Message: 'Confirm Success' })
+    }
     if (order.status !== OrderStatus.PENDING_PAYMENT) {
-      return res.status(200).json({ RspCode: '02', Message: 'Order already confirmed' })
+      return res.status(200).json({ RspCode: '02', Message: 'Order not pending payment' })
     }
 
     const expectedAmount = Math.round(Number(order.totalAmount) * 100)
@@ -284,9 +335,27 @@ export const vnpayIpn = asyncHandler(async (req: Request, res: Response) => {
 
     // A payment is successful only when both VNPay result fields confirm it.
     if (responseCode === '00' && transactionStatus === '00') {
-      await orderService.processPayment(order.customerId, orderId, { outcome: 'SUCCESS' })
+      await orderService.processPayment(
+        order.customerId,
+        orderId,
+        { outcome: 'SUCCESS' },
+        {
+          gateway: 'VNPAY',
+          gatewayTransId: String(vnp_Params['vnp_TransactionNo'] || rawTxnRef),
+          rawResponse: vnp_Params as Record<string, unknown>
+        }
+      )
     } else {
-      await orderService.processPayment(order.customerId, orderId, { outcome: 'FAILURE' })
+      await orderService.processPayment(
+        order.customerId,
+        orderId,
+        { outcome: 'FAILURE' },
+        {
+          gateway: 'VNPAY',
+          gatewayTransId: String(vnp_Params['vnp_TransactionNo'] || rawTxnRef),
+          rawResponse: vnp_Params as Record<string, unknown>
+        }
+      )
     }
 
     // 5. Trả mã chuẩn '00' để báo cho Server VNPay biết là Webhook đã xử lý xong
@@ -320,10 +389,14 @@ export const stripeWebhookHandler = asyncHandler(async (req: Request, res: Respo
   }
 
   if (event.type === 'checkout.session.completed') {
-    const orderId = event.data.object.metadata?.orderId
+    const checkoutSession = event.data.object
+    const orderId = checkoutSession.metadata?.orderId
     if (orderId) {
       const order = await prisma.order.findUnique({ where: { id: orderId } })
-      if (order?.status === OrderStatus.PENDING_PAYMENT) {
+      const amountMatches =
+        checkoutSession.currency?.toLowerCase() === 'vnd' &&
+        checkoutSession.amount_total === Math.round(Number(order?.totalAmount ?? -1))
+      if (order?.status === OrderStatus.PENDING_PAYMENT && checkoutSession.payment_status === 'paid' && amountMatches) {
         await orderService.processPayment(order.customerId, orderId, { outcome: 'SUCCESS' })
       }
     }

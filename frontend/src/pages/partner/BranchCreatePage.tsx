@@ -27,7 +27,7 @@ export function BranchCreatePage() {
     mutation.mutate({ name: form.name.trim(), address: form.address.trim(), region: form.region })
   }
   return (
-    <section style={{ maxWidth: 860, margin: '0 auto' }}>
+    <section className='partner-page partner-branch-form-page' style={{ maxWidth: 860, margin: '0 auto' }}>
       <Link to='/partner/branches' style={{ color: colors.slate, fontWeight: 700 }}>
         ← Quay lại danh sách chi nhánh
       </Link>
@@ -35,7 +35,7 @@ export function BranchCreatePage() {
         <p style={{ color: colors.accent, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.1em' }}>
           Mở rộng điểm phục vụ
         </p>
-        <h1 style={{ margin: 0, fontFamily: fonts.display, fontSize: 46 }}>Thêm chi nhánh</h1>
+        <h1 style={{ margin: 0, fontFamily: fonts.display, fontSize: 'clamp(30px, 4vw, 40px)' }}>Thêm chi nhánh</h1>
         <p style={{ color: colors.slate }}>
           Khai báo địa điểm áp dụng voucher và nơi nhân viên xác nhận mã cho khách hàng.
         </p>

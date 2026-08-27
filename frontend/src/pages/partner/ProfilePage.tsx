@@ -82,7 +82,7 @@ export function ProfilePage() {
 
   const profile: PartnerProfile = profileQuery.data
   return (
-    <section style={{ maxWidth: 820, margin: '0 auto' }}>
+    <section className='partner-page partner-profile-page' style={{ maxWidth: 820, margin: '0 auto' }}>
       <p style={eyebrowStyle}>● Hồ sơ đối tác</p>
       <div style={headingRowStyle}>
         <h1 style={titleStyle}>{profile.legalName}</h1>
@@ -162,7 +162,7 @@ const titleStyle: CSSProperties = {
   margin: 0,
   color: colors.ink,
   fontFamily: fonts.display,
-  fontSize: 48,
+  fontSize: 'clamp(30px, 4vw, 42px)',
   fontWeight: 800,
   letterSpacing: '-0.03em'
 }

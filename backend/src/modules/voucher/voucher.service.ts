@@ -390,7 +390,7 @@ export const voucherService = {
       },
       select: {
         category: { select: { name: true } },
-        partner: { select: { id: true, legalName: true } },
+        partner: { select: { id: true, legalName: true, logoUrl: true } },
         voucherProductBranches: { select: { branch: { select: { region: true } } } }
       }
     })
@@ -401,7 +401,10 @@ export const voucherService = {
       ].sort(),
       partners: [
         ...new Map(
-          vouchers.map((voucher) => [voucher.partner.id, { id: voucher.partner.id, name: voucher.partner.legalName }])
+          vouchers.map((voucher) => [
+            voucher.partner.id,
+            { id: voucher.partner.id, name: voucher.partner.legalName, logoUrl: voucher.partner.logoUrl }
+          ])
         ).values()
       ].sort((a, b) => a.name.localeCompare(b.name, 'vi'))
     }

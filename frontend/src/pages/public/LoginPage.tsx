@@ -123,7 +123,7 @@ export function LoginPage() {
   }
 
   return (
-    <section style={sectionStyle}>
+    <section className='auth-form-page' style={sectionStyle}>
       <p
         style={{
           margin: '0 0 12px',

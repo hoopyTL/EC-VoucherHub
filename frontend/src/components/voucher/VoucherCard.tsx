@@ -10,6 +10,7 @@
  */
 import { Link } from 'react-router-dom'
 import { useState } from 'react'
+import { Heart } from 'lucide-react'
 import type { CSSProperties } from 'react'
 import { Badge } from '../ui/Badge'
 import { PriceDisplay } from './PriceDisplay'
@@ -17,6 +18,7 @@ import { FlashSaleBadge } from './FlashSaleBadge'
 import { formatDateRange } from '../../utils/format'
 import type { VoucherListItem } from '../../services/voucher.service'
 import { colors, fonts, radius, shadows } from '../../theme/tokens'
+import { isVoucherFavorite, toggleVoucherFavorite } from '../../services/favorites'
 
 export interface VoucherCardProps {
   voucher: VoucherListItem
@@ -64,6 +66,7 @@ export function VoucherCard({ voucher }: VoucherCardProps) {
   const remaining = voucher.totalQuantity - voucher.soldQuantity
   const discountPercent = Math.max(0, Math.round((1 - Number(voucher.salePrice) / Number(voucher.originalPrice)) * 100))
   const [hover, setHover] = useState(false)
+  const [favorite, setFavorite] = useState(() => isVoucherFavorite(voucher.id))
 
   // Flash sale: when active, the effective price replaces the sale price (the
   // original stays struck-through) and a countdown badge is shown.
@@ -87,8 +90,22 @@ export function VoucherCard({ voucher }: VoucherCardProps) {
       data-testid='voucher-card'
       className='voucher-ticket'
     >
+      <button
+        type='button'
+        className={`voucher-favorite-button${favorite ? ' is-favorite' : ''}`}
+        aria-label={favorite ? 'Bỏ khỏi yêu thích' : 'Thêm vào yêu thích'}
+        aria-pressed={favorite}
+        onClick={(event) => {
+          event.preventDefault()
+          event.stopPropagation()
+          setFavorite(toggleVoucherFavorite(voucher.id))
+        }}
+      >
+        <Heart size={19} fill={favorite ? 'currentColor' : 'none'} aria-hidden='true' />
+      </button>
       {/* Desaturated image header with the category micro-label overlaid. */}
       <div
+        className='voucher-card__media'
         style={{
           position: 'relative',
           aspectRatio: '16 / 10',
@@ -104,7 +121,7 @@ export function VoucherCard({ voucher }: VoucherCardProps) {
               position: 'absolute',
               inset: 0,
               backgroundImage: "url('/assets/voucher-catalogue-sprite.png')",
-              backgroundSize: '1000% auto',
+              backgroundSize: '1000% 700%',
               backgroundPosition: `${((spriteCell % 10) * 100) / 9}% ${(Math.floor(spriteCell / 10) * 100) / 6}%`,
               backgroundRepeat: 'no-repeat',
               transform: hover ? 'scale(1.08)' : 'scale(1)',
@@ -182,7 +199,10 @@ export function VoucherCard({ voucher }: VoucherCardProps) {
       </div>
 
       {/* Body */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 20, flex: 1 }}>
+      <div
+        className='voucher-card__body'
+        style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 20, flex: 1 }}
+      >
         <p
           style={{
             margin: 0,

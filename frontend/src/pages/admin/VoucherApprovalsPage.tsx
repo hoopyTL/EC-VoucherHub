@@ -112,7 +112,7 @@ export function VoucherApprovalsPage() {
   }
 
   return (
-    <section style={pageStyle}>
+    <section className='admin-page admin-voucher-approvals-page' style={pageStyle}>
       <header>
         <p style={eyebrowStyle}>● Kiểm duyệt sản phẩm</p>
         <h1 style={titleStyle}>Voucher chờ duyệt</h1>

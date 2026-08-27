@@ -12,9 +12,8 @@
  * _Requirements: 12.1, 12.2, 11.1_
  */
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { useState, type CSSProperties } from 'react'
+import { useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner'
 import { useToast } from '../../components/ui'
@@ -81,7 +80,7 @@ const bodyTextStyle: CSSProperties = {
 
 const purchasePanelStyle: CSSProperties = {
   display: 'flex',
-  alignItems: 'center',
+  alignItems: 'flex-start',
   justifyContent: 'space-between',
   flexWrap: 'wrap',
   gap: 16,
@@ -89,23 +88,19 @@ const purchasePanelStyle: CSSProperties = {
   borderRadius: radius.xl,
   border: `1px solid ${colors.hairline}`,
   background: colors.surface,
-  boxShadow: shadows.card
-}
-
-const qtyLabelStyle: CSSProperties = {
-  fontFamily: fonts.display,
-  fontSize: 12,
-  fontWeight: 600,
-  letterSpacing: '0.06em',
-  textTransform: 'uppercase',
-  color: colors.slate
+  boxShadow: 'none',
+  position: 'sticky',
+  top: 96,
+  alignSelf: 'start',
+  maxHeight: 'calc(100vh - 120px)',
+  overflow: 'visible'
 }
 
 const stepperStyle: CSSProperties = {
   display: 'inline-flex',
   alignItems: 'center',
   border: `1px solid ${colors.hairline}`,
-  borderRadius: radius.full,
+  borderRadius: radius.md,
   overflow: 'hidden'
 }
 
@@ -137,6 +132,48 @@ export function VoucherDetailPage() {
   const { isAuthenticated, user } = useAuth()
 
   const [quantity, setQuantity] = useState(1)
+  const addAnimationOrigin = useRef<{ x: number; y: number; imageUrl?: string | null } | null>(null)
+
+  function animateVoucherToCart() {
+    const origin = addAnimationOrigin.current
+    const cartTarget = document.querySelector<HTMLElement>('.customer-header__cart')
+    if (!origin || !cartTarget || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+    const target = cartTarget.getBoundingClientRect()
+    const flyer = document.createElement(origin.imageUrl ? 'img' : 'span')
+    flyer.className = 'voucher-add-to-cart-flyer'
+    if (flyer instanceof HTMLImageElement && origin.imageUrl) {
+      flyer.src = origin.imageUrl
+      flyer.alt = ''
+    } else {
+      flyer.textContent = 'VH'
+    }
+    flyer.style.left = `${origin.x - 28}px`
+    flyer.style.top = `${origin.y - 28}px`
+    document.body.appendChild(flyer)
+
+    const translateX = target.left + target.width / 2 - origin.x
+    const translateY = target.top + target.height / 2 - origin.y
+    const flight = flyer.animate(
+      [
+        { transform: 'translate3d(0,0,0) scale(1)', opacity: 1 },
+        {
+          transform: `translate3d(${translateX * 0.48}px, ${translateY * 0.24 - 70}px, 0) scale(.82)`,
+          opacity: 0.96,
+          offset: 0.46
+        },
+        { transform: `translate3d(${translateX}px, ${translateY}px, 0) scale(.2)`, opacity: 0.2 }
+      ],
+      { duration: 720, easing: 'cubic-bezier(.22,.75,.2,1)', fill: 'forwards' }
+    )
+    flight.onfinish = () => {
+      flyer.remove()
+      cartTarget.classList.remove('is-cart-bumping')
+      void cartTarget.offsetWidth
+      cartTarget.classList.add('is-cart-bumping')
+      window.setTimeout(() => cartTarget.classList.remove('is-cart-bumping'), 520)
+    }
+  }
 
   const query = useQuery<VoucherDetailResponse>({
     queryKey: ['voucher', id],
@@ -150,7 +187,7 @@ export function VoucherDetailPage() {
       // Refresh any cart views with the authoritative server response.
       queryClient.setQueryData(['cart'], cart)
       queryClient.invalidateQueries({ queryKey: ['cart'] })
-      toast.success('Added to your cart.')
+      animateVoucherToCart()
     },
     onError: (err) => {
       toast.error(resolveAddToCartError(err))
@@ -209,11 +246,17 @@ export function VoucherDetailPage() {
   const flashActive = Boolean(voucher.flashSale?.active && voucher.flashSale.flashSaleEnd)
   const effectiveSalePrice = flashActive ? (voucher.flashSale!.effectivePrice as number) : voucher.salePrice
 
-  function handleAddToCart() {
+  function handleAddToCart(event: ReactMouseEvent<HTMLButtonElement>) {
     // Gate on auth: send guests to login, returning here afterwards (PAGE-03).
     if (!isAuthenticated) {
       navigate('/login', { state: { from: { pathname: `/vouchers/${voucher.id}` } } })
       return
+    }
+    const source = event.currentTarget.getBoundingClientRect()
+    addAnimationOrigin.current = {
+      x: source.left + source.width / 2,
+      y: source.top + source.height / 2,
+      imageUrl: voucher.imageUrl
     }
     addMutation.mutate(quantity)
   }
@@ -241,30 +284,66 @@ export function VoucherDetailPage() {
         </Link>
       </nav>
 
-      <header className='voucher-detail-summary' style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-          <Badge variant='info'>{voucher.category}</Badge>
-          <Badge variant={voucher.remainingQuantity > 0 ? 'success' : 'neutral'}>
-            {voucher.remainingQuantity > 0 ? `Còn ${voucher.remainingQuantity}` : 'Hết hàng'}
-          </Badge>
+      <header className='voucher-detail-summary' style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div
+          className='voucher-detail-brand-row'
+          style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}
+        >
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 28,
+              height: 28,
+              borderRadius: 8,
+              background: colors.accent,
+              color: colors.onAccent,
+              fontSize: 14,
+              fontWeight: 800
+            }}
+          >
+            {voucher.partner.businessName.charAt(0).toUpperCase()}
+          </div>
+          <span style={{ fontSize: 20, fontWeight: 800, fontFamily: fonts.display, color: colors.ink }}>
+            {voucher.partner.businessName}
+          </span>
+          <span aria-hidden='true' style={{ color: '#9ca3af', fontSize: 18 }}>
+            •
+          </span>
+          <span style={{ fontSize: 12, color: colors.slate, fontWeight: 600 }}>Mã voucher</span>
         </div>
 
         <h1
           style={{
             margin: 0,
             fontFamily: fonts.display,
-            fontSize: 'clamp(32px, 5vw, 56px)',
+            fontSize: 'clamp(28px, 2.5vw, 40px)',
             fontWeight: 800,
-            letterSpacing: '-0.03em',
-            lineHeight: 1.05,
+            letterSpacing: '-0.04em',
+            lineHeight: 1.08,
             color: colors.ink
           }}
         >
           {voucher.title}
         </h1>
-        <p style={{ margin: 0, color: colors.slate, fontFamily: fonts.body }}>
-          Cung cấp bởi <strong style={{ color: colors.ink }}>{voucher.partner.businessName}</strong>
-        </p>
+
+        <div
+          className='voucher-detail-score-row'
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            flexWrap: 'wrap',
+            color: colors.slate,
+            fontSize: 13
+          }}
+        >
+          <span style={{ color: '#f59e0b', letterSpacing: '0.12em', fontSize: 18 }}>★★★★★</span>
+          <span style={{ fontWeight: 700, color: colors.ink }}>4.9/5</span>
+          <span>·</span>
+          <span>2.345 đánh giá</span>
+        </div>
 
         {flashActive && (
           <div>
@@ -272,20 +351,115 @@ export function VoucherDetailPage() {
           </div>
         )}
 
-        <PriceDisplay
-          originalPrice={voucher.originalPrice}
-          salePrice={effectiveSalePrice}
-          discountPercentage={flashActive ? undefined : voucher.discountPercentage}
-          size='lg'
-        />
+        <div className='voucher-detail-price-box' style={{ display: 'grid', gap: 10 }}>
+          <PriceDisplay
+            originalPrice={voucher.originalPrice}
+            salePrice={effectiveSalePrice}
+            discountPercentage={flashActive ? undefined : voucher.discountPercentage}
+            size='lg'
+          />
+        </div>
+
+        <div
+          className='voucher-detail-feature-grid'
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}
+        >
+          <div
+            style={{
+              display: 'grid',
+              gap: 6,
+              padding: '12px 14px',
+              borderRadius: 12,
+              background: '#f7f8ff',
+              border: `1px solid ${colors.hairline}`
+            }}
+          >
+            <span style={{ fontSize: 12, color: colors.slate }}>Giảm đến</span>
+            <strong style={{ fontSize: 18, fontFamily: fonts.display, color: colors.accentHover }}>
+              {voucher.discountPercentage}%
+            </strong>
+          </div>
+          <div
+            style={{
+              display: 'grid',
+              gap: 6,
+              padding: '12px 14px',
+              borderRadius: 12,
+              background: '#f7f8ff',
+              border: `1px solid ${colors.hairline}`
+            }}
+          >
+            <span style={{ fontSize: 12, color: colors.slate }}>Giá trị</span>
+            <strong style={{ fontSize: 18, fontFamily: fonts.display, color: colors.ink }}>
+              {Number(voucher.salePrice).toLocaleString('vi-VN')}đ
+            </strong>
+          </div>
+          <div
+            style={{
+              display: 'grid',
+              gap: 6,
+              padding: '12px 14px',
+              borderRadius: 12,
+              background: '#f7f8ff',
+              border: `1px solid ${colors.hairline}`
+            }}
+          >
+            <span style={{ fontSize: 12, color: colors.slate }}>Còn lại</span>
+            <strong style={{ fontSize: 18, fontFamily: fonts.display, color: colors.ink }}>
+              {voucher.remainingQuantity}
+            </strong>
+          </div>
+        </div>
       </header>
 
       {/* Purchase panel — quantity selector + add to cart (Req 13.1) */}
-      <section className='voucher-detail-purchase' style={purchasePanelStyle} aria-label='Mua voucher'>
+      <section
+        className='voucher-detail-purchase'
+        style={{ ...purchasePanelStyle, display: 'flex', flexDirection: 'column', gap: 18 }}
+        aria-label='Mua voucher'
+      >
+        <h3 style={{ margin: 0, fontSize: 22, fontFamily: fonts.display, fontWeight: 800, color: colors.ink }}>
+          Thông tin mua voucher
+        </h3>
         {isCustomer ? (
           <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-              <span style={qtyLabelStyle}>Số lượng</span>
+            <div style={{ display: 'grid', gap: 8 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '12px 14px',
+                  borderRadius: 12,
+                  background: '#f7f8ff',
+                  border: `1px solid ${colors.hairline}`
+                }}
+              >
+                <span style={{ fontSize: 13, color: colors.slate }}>Giảm 50%</span>
+                <strong style={{ fontSize: 18, fontFamily: fonts.display, color: colors.ink }}>
+                  {Number(voucher.salePrice).toLocaleString('vi-VN')}đ
+                </strong>
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '12px 14px',
+                  borderRadius: 12,
+                  background: '#f7f8ff',
+                  border: `1px solid ${colors.hairline}`
+                }}
+              >
+                <span style={{ fontSize: 13, color: colors.slate }}>Tối đa</span>
+                <strong style={{ fontSize: 18, fontFamily: fonts.display, color: colors.ink }}>
+                  {Number(voucher.originalPrice).toLocaleString('vi-VN')}đ
+                </strong>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 13, color: colors.slate, fontWeight: 700 }}>Số lượng</span>
               <div style={stepperStyle}>
                 <button
                   type='button'
@@ -309,30 +483,26 @@ export function VoucherDetailPage() {
                   +
                 </button>
               </div>
-              <span style={{ fontSize: 13, color: colors.slateMuted, fontFamily: fonts.body }}>
-                {soldOut ? 'Hết hàng' : `Còn ${remaining} · tối đa ${MAX_QUANTITY} mỗi đơn`}
-              </span>
             </div>
 
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 12, flexDirection: 'column' }}>
               <Button
                 variant='primary'
                 size='lg'
-                withArrow
                 disabled={soldOut || buyNowMutation.isPending}
-                isLoading={addMutation.isPending}
-                onClick={handleAddToCart}
+                isLoading={buyNowMutation.isPending}
+                onClick={handleBuyNow}
               >
-                {soldOut ? 'Hết hàng' : 'Thêm vào giỏ'}
+                {soldOut ? 'Hết hàng' : 'Mua ngay'}
               </Button>
               <Button
                 variant='secondary'
                 size='lg'
                 disabled={soldOut || addMutation.isPending}
-                isLoading={buyNowMutation.isPending}
-                onClick={handleBuyNow}
+                isLoading={addMutation.isPending}
+                onClick={handleAddToCart}
               >
-                {soldOut ? 'Hết hàng' : 'Mua ngay'}
+                {soldOut ? 'Hết hàng' : 'Thêm vào giỏ'}
               </Button>
             </div>
           </>

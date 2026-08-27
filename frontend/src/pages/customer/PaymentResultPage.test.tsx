@@ -29,10 +29,10 @@ describe('PaymentResultPage gateway confirmation', () => {
 
   it('Stripe PAID immediately navigates to the existing completed order screen without a retry click', async () => {
     const id = '30be1486-aaaa-bbbb-cccc-123456789012'
-    vi.spyOn(orders, 'getOrder').mockResolvedValue(paidOrder(id))
+    const confirm = vi.spyOn(api, 'post').mockResolvedValue({ data: paidOrder(id) } as any)
     renderWithUrl(`/payment-result?order_id=${id}&stripe_success=true&session_id=cs_test_123`)
     expect(await screen.findByTestId('completed-order-screen')).toBeDefined()
-    expect(orders.getOrder).toHaveBeenCalledWith(id)
+    expect(confirm).toHaveBeenCalledWith(`/orders/${id}/stripe/confirm`, { sessionId: 'cs_test_123' })
   })
 
   it('OnePay PAID immediately navigates to the existing completed order screen', async () => {
@@ -57,9 +57,9 @@ describe('PaymentResultPage gateway confirmation', () => {
   })
 
   it('polls briefly while Stripe is pending then automatically completes once PAID', async () => {
-    vi.spyOn(orders, 'getOrder')
-      .mockResolvedValueOnce({ ...paidOrder('o2'), status: 'PENDING_PAYMENT' })
-      .mockResolvedValueOnce(paidOrder('o2'))
+    vi.spyOn(api, 'post')
+      .mockRejectedValueOnce(new Error('race'))
+      .mockResolvedValueOnce({ data: paidOrder('o2') } as any)
     vi.spyOn(PaymentResultModule.paymentResultClock, 'scheduleTimeout').mockImplementation((callback: () => void) => {
       callback()
       return 1 as any
@@ -69,7 +69,11 @@ describe('PaymentResultPage gateway confirmation', () => {
   })
 
   it('forged Stripe success query never completes when backend says the order is not paid', async () => {
-    vi.spyOn(orders, 'getOrder').mockResolvedValue({ ...paidOrder('o4'), status: 'CANCELLED' })
+    vi.spyOn(api, 'post').mockResolvedValue({ data: { ...paidOrder('o4'), status: 'CANCELLED' } } as any)
+    vi.spyOn(PaymentResultModule.paymentResultClock, 'scheduleTimeout').mockImplementation((callback: () => void) => {
+      callback()
+      return 1 as any
+    })
     renderWithUrl('/payment-result?order_id=o4&stripe_success=true&session_id=forged')
     expect(await screen.findByText('Thanh toán chưa hoàn tất')).toBeDefined()
     expect(screen.queryByTestId('completed-order-screen')).toBeNull()

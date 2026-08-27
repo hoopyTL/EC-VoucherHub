@@ -12,12 +12,18 @@ vi.mock('../../services/orders', async () => {
   return {
     ...actual,
     getCart: vi.fn(),
-    createOrder: vi.fn()
+    createOrder: vi.fn(),
+    getOrder: vi.fn(),
+    getVNPayUrl: vi.fn(),
+    getOnePayUrl: vi.fn(),
+    getPayPalUrl: vi.fn(),
+    getStripeUrl: vi.fn()
   }
 })
 
 const getCartMock = vi.mocked(ordersApi.getCart)
 const createOrderMock = vi.mocked(ordersApi.createOrder)
+const getVNPayUrlMock = vi.mocked(ordersApi.getVNPayUrl)
 
 /** Renders the current path so redirects can be asserted. */
 function LocationProbe() {
@@ -69,6 +75,8 @@ describe('CheckoutPage', () => {
     sessionStorage.clear()
     getCartMock.mockReset()
     createOrderMock.mockReset()
+    getVNPayUrlMock.mockReset()
+    getVNPayUrlMock.mockRejectedValue(new Error('gateway unavailable in unit test'))
   })
 
   afterEach(() => {
@@ -92,10 +100,10 @@ describe('CheckoutPage', () => {
     renderCheckout()
 
     expect(await screen.findByText(/giỏ hàng của bạn đang trống/i)).toBeDefined()
-    expect(screen.queryByRole('button', { name: /đặt hàng/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /thanh toán ngay/i })).toBeNull()
   })
 
-  it('creates an order and navigates to the payment page', async () => {
+  it('creates an order and requests the selected payment gateway', async () => {
     getCartMock.mockResolvedValue(SAMPLE_CART)
     createOrderMock.mockResolvedValue({
       id: 'order-123',
@@ -113,13 +121,15 @@ describe('CheckoutPage', () => {
     renderCheckout()
 
     await screen.findByText('Spa Day Pass')
-    fireEvent.click(screen.getByRole('button', { name: /đặt hàng/i }))
+    fireEvent.click(screen.getByRole('button', { name: /thanh toán ngay/i }))
 
-    await waitFor(() => {
-      expect(screen.getByTestId('location').textContent).toBe('/orders/order-123')
-    })
+    await waitFor(() => expect(getVNPayUrlMock).toHaveBeenCalledWith('order-123'))
     // No recipient details entered → all fields omitted.
-    expect(createOrderMock).toHaveBeenCalledWith({ giftRecipient: undefined, selectedCartItemIds: [1, 2] })
+    expect(createOrderMock).toHaveBeenCalledWith({
+      giftRecipient: undefined,
+      selectedCartItemIds: [1, 2],
+      paymentMethod: 'VNPAY'
+    })
   })
 
   it('passes gift recipient details when provided', async () => {
@@ -146,7 +156,7 @@ describe('CheckoutPage', () => {
     fireEvent.change(screen.getByLabelText(/email người nhận/i), {
       target: { value: 'bob@example.com' }
     })
-    fireEvent.click(screen.getByRole('button', { name: /đặt hàng/i }))
+    fireEvent.click(screen.getByRole('button', { name: /thanh toán ngay/i }))
 
     await waitFor(() => {
       expect(createOrderMock).toHaveBeenCalledWith({
@@ -155,7 +165,8 @@ describe('CheckoutPage', () => {
           name: 'Bob',
           email: 'bob@example.com',
           phone: undefined
-        }
+        },
+        paymentMethod: 'VNPAY'
       })
     })
   })
@@ -172,7 +183,7 @@ describe('CheckoutPage', () => {
     renderCheckout()
 
     await screen.findByText('Spa Day Pass')
-    fireEvent.click(screen.getByRole('button', { name: /đặt hàng/i }))
+    fireEvent.click(screen.getByRole('button', { name: /thanh toán ngay/i }))
 
     const alert = await screen.findByRole('alert')
     expect(alert.textContent).toMatch(/out of stock/i)

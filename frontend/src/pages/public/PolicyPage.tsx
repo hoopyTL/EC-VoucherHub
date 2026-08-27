@@ -22,7 +22,10 @@ export function PolicyPage() {
   })
 
   return (
-    <div style={{ maxWidth: 880, margin: '0 auto', padding: '20px 0 60px' }}>
+    <div
+      className='content-page content-page--policy'
+      style={{ maxWidth: 880, margin: '0 auto', padding: '20px 0 60px' }}
+    >
       <div style={{ textAlign: 'center', marginBottom: 40 }}>
         <span
           style={{
@@ -77,10 +80,11 @@ export function PolicyPage() {
           </p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div className='policy-list' style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           {policies.map((item) => (
             <article
               key={item.id}
+              className='policy-item'
               style={{
                 background: '#ffffff',
                 padding: '28px 32px',

@@ -71,8 +71,8 @@ export function ReviewForm({ voucherId, orderId, initialData, onSuccess, onCance
     <form
       onSubmit={handleSubmit}
       style={{
-        background: 'var(--card-bg, #ffffff)',
-        border: '1px solid var(--border-color, #e5e7eb)',
+        background: colors.surface,
+        border: `1px solid ${colors.hairline}`,
         borderRadius: radius.md,
         padding: '20px',
         marginTop: '16px'
@@ -112,13 +112,13 @@ export function ReviewForm({ voucherId, orderId, initialData, onSuccess, onCance
             padding: '10px 12px',
             fontSize: '14px',
             borderRadius: radius.sm,
-            border: '1px solid #d1d5db',
+            border: `1px solid ${colors.hairlineStrong}`,
             fontFamily: fonts.body,
             resize: 'vertical',
             boxSizing: 'border-box'
           }}
         />
-        <div style={{ textAlign: 'right', fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
+        <div style={{ textAlign: 'right', fontSize: '12px', color: colors.slate, marginTop: '4px' }}>
           {comment.length}/1000 ký tự
         </div>
       </div>
@@ -129,8 +129,8 @@ export function ReviewForm({ voucherId, orderId, initialData, onSuccess, onCance
           style={{
             padding: '8px 12px',
             marginBottom: '14px',
-            background: '#fef2f2',
-            color: '#b91c1c',
+            background: colors.dangerSurface,
+            color: colors.onDangerSurface,
             borderRadius: radius.sm,
             fontSize: '13px'
           }}

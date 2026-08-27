@@ -13,15 +13,13 @@
  * _Requirements: 17.1, 17.2_
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useState, type CSSProperties } from 'react'
 import {
   ArrowLeft,
   CheckCircle2,
   Clock3,
   CreditCard,
-  Landmark,
-  Wallet,
   ReceiptText,
   QrCode,
   ShieldCheck,
@@ -49,6 +47,7 @@ function isNotFound(error: unknown): boolean {
 }
 
 export function OrderDetailPage() {
+  const navigate = useNavigate()
   const { id = '' } = useParams<{ id: string }>()
   const toast = useToast()
   const [showCancelDialog, setShowCancelDialog] = useState(false)
@@ -249,74 +248,10 @@ export function OrderDetailPage() {
           <div className='order-payment-actions' style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 16 }}>
             <Button
               variant='primary'
-              leftIcon={<Landmark size={19} aria-hidden='true' />}
-              style={{ backgroundColor: colors.accent, borderColor: colors.accent }}
-              onClick={async () => {
-                try {
-                  const { getVNPayUrl } = await import('../../services/orders')
-                  const url = await getVNPayUrl(order.id)
-                  window.location.href = url
-                } catch (error: any) {
-                  toast.error(error?.response?.data?.error?.message || 'Không thể mở VNPay. Vui lòng thử lại.')
-                }
-              }}
-            >
-              Thanh toán qua VNPay
-            </Button>
-
-            <Button
-              variant='primary'
               leftIcon={<CreditCard size={19} aria-hidden='true' />}
-              style={{ backgroundColor: colors.ink, borderColor: colors.ink }}
-              onClick={async () => {
-                try {
-                  const { getStripeUrl } = await import('../../services/orders')
-                  const url = await getStripeUrl(order.id)
-                  window.location.href = url
-                } catch (error: any) {
-                  toast.error(
-                    error?.response?.data?.error?.message || 'Không thể mở cổng thanh toán quốc tế. Vui lòng thử lại.'
-                  )
-                }
-              }}
+              onClick={() => navigate(`/checkout?orderId=${encodeURIComponent(order.id)}`)}
             >
-              Thanh toán qua thẻ quốc tế (Stripe)
-            </Button>
-
-            <Button
-              variant='primary'
-              leftIcon={<Wallet size={19} aria-hidden='true' />}
-              style={{ backgroundColor: '#0070ba', borderColor: '#0070ba' }}
-              onClick={async () => {
-                try {
-                  const { getPayPalUrl } = await import('../../services/orders')
-                  const url = await getPayPalUrl(order.id)
-                  window.location.href = url
-                } catch (error: any) {
-                  toast.error(error?.response?.data?.error?.message || 'Không thể mở PayPal Sandbox. Vui lòng thử lại.')
-                }
-              }}
-            >
-              Thanh toán qua PayPal
-            </Button>
-
-            <Button
-              variant='primary'
-              leftIcon={<CreditCard size={19} aria-hidden='true' />}
-              style={{ backgroundColor: '#f05a28', borderColor: '#f05a28' }}
-              onClick={async () => {
-                try {
-                  const { getOnePayUrl } = await import('../../services/orders')
-                  const url = await getOnePayUrl(order.id)
-                  window.location.href = url
-                } catch (error: any) {
-                  toast.error(
-                    error?.response?.data?.error?.message || 'Không thể kết nối OnePay Sandbox. Vui lòng thử lại.'
-                  )
-                }
-              }}
-            >
-              Thanh toán qua OnePay
+              Tiếp tục thanh toán
             </Button>
 
             <Button

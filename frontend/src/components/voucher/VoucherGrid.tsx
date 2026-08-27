@@ -21,8 +21,8 @@ export interface VoucherGridProps {
 
 const gridStyle: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))',
-  gap: 24
+  gridTemplateColumns: '1fr',
+  gap: 12
 }
 
 function RevealCard({ index, children }: { index: number; children: ReactNode }) {
@@ -64,7 +64,7 @@ export function VoucherGrid({
     return (
       <div role='status' style={gridStyle} aria-label='Đang tải voucher' aria-busy='true'>
         {Array.from({ length: 8 }, (_, index) => (
-          <div key={index} className='voucher-skeleton' style={{ height: 390, borderRadius: 24 }} />
+          <div key={index} className='voucher-skeleton' style={{ height: 390, borderRadius: 16 }} />
         ))}
       </div>
     )
@@ -79,7 +79,7 @@ export function VoucherGrid({
   }
 
   return (
-    <div style={gridStyle} data-testid='voucher-grid'>
+    <div className='voucher-grid-list' style={gridStyle} data-testid='voucher-grid'>
       {vouchers.map((voucher, index) => (
         <RevealCard key={voucher.id} index={index}>
           <VoucherCard voucher={voucher} />

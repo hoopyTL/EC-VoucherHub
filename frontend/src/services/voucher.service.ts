@@ -96,7 +96,7 @@ export interface SearchVouchersResponse {
 export interface VoucherFilterOptions {
   categories: string[]
   regions: string[]
-  partners: Array<{ id: string; name: string }>
+  partners: Array<{ id: string; name: string; logoUrl?: string | null }>
 }
 
 export interface ExternalPromotionItem {

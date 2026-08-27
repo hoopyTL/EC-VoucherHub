@@ -12,6 +12,7 @@
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
+import { radius, shadows } from '../../theme/tokens'
 
 export type ToastVariant = 'success' | 'error' | 'info' | 'warning'
 
@@ -69,11 +70,11 @@ export function Toast({ message, variant = 'info', onClose, style }: ToastProps)
         minWidth: 260,
         maxWidth: 380,
         padding: '12px 14px',
-        borderRadius: 8,
+        borderRadius: radius.md,
         background: colors.background,
         color: colors.color,
         border: `1px solid ${colors.border}`,
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+        boxShadow: shadows.md,
         fontSize: 14,
         ...style
       }}
