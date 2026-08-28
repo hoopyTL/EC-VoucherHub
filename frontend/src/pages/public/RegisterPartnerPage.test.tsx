@@ -95,6 +95,17 @@ describe('RegisterPartnerPage', () => {
     expect(postSpy.mock.calls[0]?.[1]).not.toHaveProperty('email')
   })
 
+  it('shows the exact error for an invalid email', async () => {
+    const postSpy = vi.spyOn(api, 'post')
+    renderPage()
+    fillValidForm()
+    fireEvent.change(screen.getByLabelText(/^email/i), { target: { value: 'email-khong-hop-le' } })
+    fireEvent.click(screen.getByRole('button', { name: /gửi hồ sơ/i }))
+
+    expect(await screen.findByText('Email không đúng định dạng.')).toBeDefined()
+    expect(postSpy).not.toHaveBeenCalled()
+  })
+
   it('starts with one branch and can add and remove branches', () => {
     renderPage()
     expect(screen.getByText(/chi nhánh 1/i)).toBeDefined()

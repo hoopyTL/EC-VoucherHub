@@ -4,7 +4,7 @@ const emailSchema = z.string().trim().toLowerCase().email('Email không đúng �
 const phoneSchema = z
   .string()
   .trim()
-  .regex(/^\+?[0-9]{10,15}$/, 'Số điện thoại không đúng định dạng')
+  .regex(/^[0-9]{10,11}$/, 'Số điện thoại phải gồm 10 đến 11 chữ số')
 const bcryptInputSchema = z
   .string()
   .max(72, 'Mật khẩu không được vượt quá 72 ký tự')

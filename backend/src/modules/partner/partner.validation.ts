@@ -4,7 +4,7 @@ const emailSchema = z.string().trim().toLowerCase().email('Email không đúng �
 const phoneSchema = z
   .string()
   .trim()
-  .regex(/^\+?[0-9]{10,15}$/, 'Số điện thoại không đúng định dạng')
+  .regex(/^[0-9]{10,11}$/, 'Số điện thoại phải gồm 10 đến 11 chữ số')
 const passwordSchema = z
   .string()
   .min(8, 'Mật khẩu phải từ 8 ký tự trở lên')

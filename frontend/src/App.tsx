@@ -19,6 +19,7 @@
 import { useState } from 'react'
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './store/AuthContext'
+import { useAuth } from './hooks/useAuth'
 import { AnnouncementBar } from './components/layout/AnnouncementBar'
 import { Header } from './components/layout/Header'
 import { Footer } from './components/layout/Footer'
@@ -113,6 +114,8 @@ function AuthLayout() {
 /** Workspace layout for admin/partner: header, sidebar + content, footer. */
 function WorkspaceLayout({ variant }: { variant: SidebarVariant }) {
   const [navigationOpen, setNavigationOpen] = useState(false)
+  const { user } = useAuth()
+  const isStaffWorkspace = variant === 'partner' && user?.role === 'STAFF'
   return (
     <div id='top' data-theme={variant} style={{ minHeight: '100vh' }}>
       <div className='workspace-shell'>
@@ -134,7 +137,13 @@ function WorkspaceLayout({ variant }: { variant: SidebarVariant }) {
           </main>
           <footer className='workspace-footer'>
             <span>© 2026 VoucherHub</span>
-            <span>{variant === 'admin' ? 'Trung tâm vận hành' : 'Không gian đối tác'}</span>
+            <span>
+              {variant === 'admin'
+                ? 'Trung tâm vận hành'
+                : isStaffWorkspace
+                  ? 'Không gian nhân viên'
+                  : 'Không gian đối tác'}
+            </span>
           </footer>
         </div>
       </div>

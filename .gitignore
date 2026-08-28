@@ -29,6 +29,7 @@ node-v*-win-x64.zip
 # Build output
 dist/
 build/
+output/
 
 # Compiled output accidentally emitted next to TS sources
 **/src/**/*.js

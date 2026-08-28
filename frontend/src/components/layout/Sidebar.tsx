@@ -50,10 +50,11 @@ export interface SidebarProps {
 export function Sidebar({ variant, open = false, onNavigate }: SidebarProps) {
   const { t } = useTranslation()
   const { user } = useAuth()
+  const isStaffWorkspace = variant === 'partner' && user?.role === 'STAFF'
   const items =
     variant === 'admin'
       ? ADMIN_ITEMS
-      : user?.role === 'STAFF'
+      : isStaffWorkspace
         ? PARTNER_ITEMS.filter((item) => item.to === '/partner/redeem')
         : PARTNER_ITEMS
   const accent = 'var(--accent)'
@@ -73,7 +74,11 @@ export function Sidebar({ variant, open = false, onNavigate }: SidebarProps) {
     >
       <div style={{ margin: '0 10px 22px' }}>
         <span style={{ display: 'block', fontSize: 16, fontWeight: 800 }}>
-          {variant === 'admin' ? t('workspace.adminTitle') : t('workspace.partnerTitle')}
+          {variant === 'admin'
+            ? t('workspace.adminTitle')
+            : isStaffWorkspace
+              ? t('workspace.staffTitle')
+              : t('workspace.partnerTitle')}
         </span>
         <span
           style={{
@@ -85,7 +90,11 @@ export function Sidebar({ variant, open = false, onNavigate }: SidebarProps) {
             textTransform: 'uppercase'
           }}
         >
-          {variant === 'admin' ? t('workspace.adminSubtitle') : t('workspace.partnerSubtitle')}
+          {variant === 'admin'
+            ? t('workspace.adminSubtitle')
+            : isStaffWorkspace
+              ? t('workspace.staffSubtitle')
+              : t('workspace.partnerSubtitle')}
         </span>
       </div>
       <nav aria-label={t('workspace.navigation')} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

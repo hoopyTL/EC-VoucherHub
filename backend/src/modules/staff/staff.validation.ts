@@ -4,7 +4,7 @@ const email = z.string().trim().toLowerCase().email().max(255)
 const phone = z
   .string()
   .trim()
-  .regex(/^\+?[0-9]{10,15}$/)
+  .regex(/^[0-9]{10,11}$/, 'Số điện thoại phải gồm 10 đến 11 chữ số')
   .optional()
 const branchIds = z.array(z.coerce.number().int().positive()).min(1, 'Phải phân công ít nhất một chi nhánh').max(50)
 

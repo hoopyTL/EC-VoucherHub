@@ -206,7 +206,9 @@ export function AccountPage() {
                   {initial}
                 </div>
                 <div>
-                  <p style={eyebrowStyle}>● Tài khoản khách hàng</p>
+                  <p style={eyebrowStyle}>
+                    ● Tài khoản {user ? (ROLE_LABELS[user.role] ?? user.role).toLocaleLowerCase('vi') : ''}
+                  </p>
                   <h1 style={titleStyle}>{user?.name ?? 'Tài khoản của bạn'}</h1>
                   {user && <Badge variant='info'>{ROLE_LABELS[user.role] ?? user.role}</Badge>}
                 </div>

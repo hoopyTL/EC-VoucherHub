@@ -102,7 +102,10 @@ export function Header() {
   if (isAuthenticated && user?.role === 'CUSTOMER') {
     roleLinks.push({ to: '/my-vouchers', label: 'Voucher của tôi' })
   } else if (isAuthenticated && (user?.role === 'PARTNER' || user?.role === 'STAFF')) {
-    roleLinks.push({ to: user.role === 'STAFF' ? '/partner/redeem' : '/partner', label: t('nav.partnerWorkspace') })
+    roleLinks.push({
+      to: user.role === 'STAFF' ? '/partner/redeem' : '/partner',
+      label: user.role === 'STAFF' ? t('nav.staffWorkspace') : t('nav.partnerWorkspace')
+    })
   } else if (isAuthenticated && user?.role === 'ADMIN') {
     roleLinks.push({ to: '/admin', label: t('nav.adminConsole') })
   }

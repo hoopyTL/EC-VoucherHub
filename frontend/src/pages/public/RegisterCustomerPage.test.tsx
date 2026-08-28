@@ -84,6 +84,20 @@ describe('RegisterCustomerPage', () => {
     expect(postSpy).not.toHaveBeenCalled()
   })
 
+  it('shows the exact error for an invalid email even when the phone is valid', async () => {
+    const postSpy = vi.spyOn(api, 'post')
+    renderPage()
+
+    fireEvent.change(screen.getByLabelText(/họ và tên/i), { target: { value: 'Quốc Bảo' } })
+    fireEvent.change(screen.getByLabelText(/^email/i), { target: { value: 'nguyssenquocbao14022005' } })
+    fireEvent.change(screen.getByLabelText(/số điện thoại/i), { target: { value: '0123456785' } })
+    fireEvent.change(screen.getByLabelText(/mật khẩu/i), { target: { value: 'password123' } })
+    fireEvent.click(screen.getByRole('button', { name: /tạo tài khoản/i }))
+
+    expect(await screen.findByText('Email không đúng định dạng.')).toBeDefined()
+    expect(postSpy).not.toHaveBeenCalled()
+  })
+
   it('submits a valid form and navigates to login', async () => {
     const postSpy = vi.spyOn(api, 'post').mockResolvedValue({ data: {} } as never)
     renderPage()

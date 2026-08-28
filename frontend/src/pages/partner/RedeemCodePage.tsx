@@ -514,6 +514,7 @@ const guideKickerStyle: CSSProperties = {
 }
 const guideTitleStyle: CSSProperties = {
   margin: '10px 0 14px',
+  color: '#fff',
   fontFamily: fonts.display,
   fontSize: 20,
   lineHeight: 1.3

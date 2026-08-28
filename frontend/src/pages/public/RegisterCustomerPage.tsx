@@ -24,10 +24,14 @@ import type { CSSProperties } from 'react'
 
 /** Minimum password length required at registration (Requirement 1.3). */
 export const MIN_PASSWORD_LENGTH = 8
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const PHONE_PATTERN = /^[0-9]{10,11}$/
 
 interface FieldErrors {
   name?: string
   identifier?: string
+  email?: string
+  phone?: string
   password?: string
 }
 
@@ -38,8 +42,11 @@ interface FieldErrors {
 function describeApiError(err: unknown, fallback: string): { status?: number; message: string } {
   if (axios.isAxiosError(err)) {
     const status = err.response?.status
-    const data = err.response?.data as { error?: { message?: string } } | undefined
-    return { status, message: data?.error?.message ?? fallback }
+    const data = err.response?.data as
+      | { error?: { message?: string; details?: Array<{ field?: string; message?: string }> } }
+      | undefined
+    const detailMessages = data?.error?.details?.map((detail) => detail.message).filter(Boolean) as string[] | undefined
+    return { status, message: detailMessages?.length ? detailMessages.join(' ') : (data?.error?.message ?? fallback) }
   }
   return { message: fallback }
 }
@@ -68,6 +75,12 @@ export function RegisterCustomerPage() {
     }
     if (!email.trim() && !phone.trim()) {
       errors.identifier = 'Vui lòng nhập email hoặc số điện thoại.'
+    }
+    if (email.trim() && !EMAIL_PATTERN.test(email.trim())) {
+      errors.email = 'Email không đúng định dạng.'
+    }
+    if (phone.trim() && !PHONE_PATTERN.test(phone.trim())) {
+      errors.phone = 'Số điện thoại phải gồm 10 đến 11 chữ số.'
     }
     if (password.length < MIN_PASSWORD_LENGTH) {
       errors.password = `Mật khẩu phải có ít nhất ${MIN_PASSWORD_LENGTH} ký tự.`
@@ -138,8 +151,25 @@ export function RegisterCustomerPage() {
             label='Email'
             type='email'
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            error={fieldErrors.identifier}
+            onChange={(e) => {
+              const value = e.target.value
+              setEmail(value)
+              if (fieldErrors.email) {
+                setFieldErrors((current) => ({
+                  ...current,
+                  email: value.trim() && !EMAIL_PATTERN.test(value.trim()) ? 'Email không đúng định dạng.' : undefined
+                }))
+              }
+            }}
+            onBlur={() => {
+              if (email.trim()) {
+                setFieldErrors((current) => ({
+                  ...current,
+                  email: EMAIL_PATTERN.test(email.trim()) ? undefined : 'Email không đúng định dạng.'
+                }))
+              }
+            }}
+            error={fieldErrors.email ?? fieldErrors.identifier}
             hint='Bạn chỉ cần cung cấp email hoặc số điện thoại.'
             autoComplete='email'
           />
@@ -147,7 +177,31 @@ export function RegisterCustomerPage() {
             label='Số điện thoại'
             type='tel'
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value
+              setPhone(value)
+              if (fieldErrors.phone) {
+                setFieldErrors((current) => ({
+                  ...current,
+                  phone:
+                    value.trim() && !PHONE_PATTERN.test(value.trim())
+                      ? 'Số điện thoại phải gồm 10 đến 11 chữ số.'
+                      : undefined
+                }))
+              }
+            }}
+            onBlur={() => {
+              if (phone.trim()) {
+                setFieldErrors((current) => ({
+                  ...current,
+                  phone: PHONE_PATTERN.test(phone.trim()) ? undefined : 'Số điện thoại phải gồm 10 đến 11 chữ số.'
+                }))
+              }
+            }}
+            error={fieldErrors.phone}
+            inputMode='numeric'
+            pattern='[0-9]{10,11}'
+            hint='Nhập từ 10 đến 11 chữ số.'
             autoComplete='tel'
           />
           <Input
